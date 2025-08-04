@@ -1,10 +1,17 @@
 pub mod elements;
 pub mod helpers;
 pub mod renderer;
+pub mod text;
 
-use elements::{CandyElement, CandySquare, image::CandyImage};
+use elements::{
+    CandyElement, CandySquare,
+    image::CandyImage,
+    text::{CandyText, TextAlignment},
+};
 use renderer::{CandyRenderer, candy::CandyDefaultRenderer, twod::BiDimensionalRenderer};
 
+use skia_safe::{FontMgr, FontStyle, Typeface};
+use text::font::CandyFont;
 use winit::{
     dpi::PhysicalSize,
     event_loop::EventLoop,
@@ -114,19 +121,18 @@ pub struct CandyDefaultHandler {
 impl CandyHandler for CandyDefaultHandler {
     fn new(window: Window, config: Config) -> Self {
         use nalgebra::{Vector2, Vector4};
+        let tf = FontMgr::new()
+            .legacy_make_typeface(Some("Inter"), FontStyle::default())
+            .unwrap();
         Self {
-            img: CandyElement::new_image({
-                let img = CandyImage::from_source(
-                    "/sumimg",
-                    Some(CandySquare::new(
-                        Vector2::new(50.0, 50.0),
-                        Vector2::new(100.0, 100.0),
-                        Vector4::new(1.0, 0.0, 0.0, 1.0),
-                        None,
-                        Some(Vector2::new(50.0, 50.0)),
-                    )),
-                );
-                img.unwrap()
+            img: CandyElement::new_text({
+                CandyText::new(
+                    "pedro",
+                    Vector2::new(50.0, 100.0),
+                    CandyFont::new(tf, 18.0),
+                    Vector4::new(1.0, 1.0, 0.0, 1.0),
+                    TextAlignment::Center,
+                )
             }),
             renderer: CandyDefaultRenderer::new(&window, &config),
             window,
@@ -140,8 +146,8 @@ impl CandyHandler for CandyDefaultHandler {
         }
     }
     fn draw(&mut self) {
-        self.element
-            .render(self.renderer.twod_renderer().twod_painter());
+        //self.element
+        //    .render(self.renderer.twod_renderer().twod_painter());
         self.img
             .render(self.renderer.twod_renderer().twod_painter());
         self.renderer.flush();

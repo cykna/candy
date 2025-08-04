@@ -13,7 +13,14 @@ pub mod candy2d;
 pub mod helpers;
 pub use candy2d::Candy2DRenderer;
 
-use crate::elements::{image::CandyImage, square::CandySquare};
+use crate::{
+    elements::{
+        image::CandyImage,
+        square::CandySquare,
+        text::{CandyText, MultiText},
+    },
+    text::font::CandyFont,
+};
 
 pub struct Renderer2DEnvironment {
     surface: skia_safe::Surface,
@@ -44,9 +51,15 @@ pub trait BiDimensionalRenderer {
 }
 
 pub trait BiDimensionalPainter {
+    ///Method used to draw a square on the screen using the underlying renderer
     fn square(&mut self, square_info: &CandySquare);
+    ///Method used to draw a image on the screen using the underlying renderer
     fn image(&mut self, image_info: &CandyImage);
+    ///Method used to draw a circle on the screen using the underlying renderer
     fn circle(&mut self, position: &Vector2<f32>, color: &Vector4<f32>, radius: f32);
+    ///Method used to draw a text on the screen using the underlying renderer
+    fn text(&mut self, info: &CandyText);
+    fn multitext(&mut self, multi: &MultiText);
 }
 
 pub trait CandyImgConstructor<I> {

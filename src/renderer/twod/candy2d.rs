@@ -8,15 +8,20 @@ use glutin::{
 use nalgebra::Vector4;
 use raw_window_handle::HasWindowHandle;
 use skia_safe::{
-    Canvas, Color4f, ImageGenerator, Paint, Point, RRect, Rect, SamplingOptions,
-    canvas::SrcRectConstraint, gpu::gl::FramebufferInfo,
+    Canvas, Color4f, Font, ImageGenerator, Paint, Point, RRect, Rect, SamplingOptions, TextBlob,
+    Typeface, canvas::SrcRectConstraint, gpu::gl::FramebufferInfo,
 };
 use std::{any::Any, ffi::CString, num::NonZero};
 use winit::{dpi::PhysicalSize, window::Window};
 
 use crate::{
-    elements::{image::CandyImage, square::CandySquare},
+    elements::{
+        image::CandyImage,
+        square::CandySquare,
+        text::{CandyText, MultiText},
+    },
     helpers::vec4f32_to_color,
+    text::font::CandyFont,
 };
 
 use super::{
@@ -210,4 +215,15 @@ impl BiDimensionalPainter for Candy2DRenderer {
 
         canvas.restore();
     }
+    fn text(&mut self, info: &CandyText) {
+        let mut paint = Paint::new(vec4f32_to_color(info.color()), None);
+        paint.set_anti_alias(true).set_alpha_f(1.0);
+        self.canvas().draw_str(
+            info.content(),
+            Point::new(info.position().x, info.position().y),
+            &info.font(),
+            &paint,
+        );
+    }
+    fn multitext(&mut self, canvas: &MultiText) {}
 }
