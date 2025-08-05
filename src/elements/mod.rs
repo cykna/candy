@@ -19,10 +19,22 @@ pub enum CandyElement {
     Image(CandyImage),
     Text(CandyText),
     MultiText(MultiText),
+    Clickable {
+        inner: Box<CandyElement>,
+        event: Box<dyn Fn()>,
+    },
     Custom(Box<dyn CustomCandyElement>),
 }
 
 impl CandyElement {
+    #[inline]
+    pub fn clickable<F: Fn() + 'static>(element: CandyElement, f: F) -> Self {
+        Self::Clickable {
+            inner: Box::new(element),
+            event: Box::new(f),
+        }
+    }
+
     #[inline]
     pub fn new_multitext(txt: MultiText) -> Self {
         Self::MultiText(txt)
@@ -60,6 +72,7 @@ impl CandyElement {
             Self::Image(info) => renderer.image(info),
             Self::Text(info) => renderer.text(info),
             Self::MultiText(info) => renderer.multitext(info),
+            Self::Clickable { inner, .. } => inner.render(renderer),
             Self::Custom(custom) => custom.render(renderer),
         }
     }
@@ -72,6 +85,7 @@ impl CandyElement {
             Self::Image(i) => i.position(),
             Self::Text(t) => t.position(),
             Self::MultiText(t) => t.position(),
+            Self::Clickable { inner, .. } => inner.position(),
         }
     }
 }

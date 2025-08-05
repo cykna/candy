@@ -8,12 +8,14 @@ use elements::{
     image::CandyImage,
     text::{CandyText, TextAlignment},
 };
+use nalgebra::Vector2;
 use renderer::{CandyRenderer, candy::CandyDefaultRenderer, twod::BiDimensionalRenderer};
 
 use skia_safe::{FontMgr, FontStyle, Typeface};
 use text::font::CandyFont;
 use winit::{
     dpi::PhysicalSize,
+    event::MouseButton,
     event_loop::EventLoop,
     window::{Window, WindowAttributes},
 };
@@ -26,6 +28,8 @@ pub trait CandyHandler {
     fn new(window: Window, config: Config) -> Self;
     fn draw(&mut self);
     fn resize(&mut self, size: PhysicalSize<u32>);
+    fn on_mouse_move(&mut self, position: Vector2<f32>);
+    fn on_press(&mut self, button: MouseButton);
     fn exit(&self);
 }
 
@@ -105,6 +109,21 @@ where
                     event_loop.exit();
                     handler.exit();
                 }
+                winit::event::WindowEvent::MouseInput {
+                    device_id,
+                    state,
+                    button,
+                } => {
+                    if state.is_pressed() {
+                        handler.on_press(button)
+                    }
+                }
+                winit::event::WindowEvent::CursorMoved {
+                    device_id,
+                    position,
+                } => {
+                    handler.on_mouse_move(Vector2::new(position.x as f32, position.y as f32));
+                }
                 _ => {}
             }
         }
@@ -112,6 +131,7 @@ where
 }
 
 pub struct CandyDefaultHandler {
+    mouse_pos: Vector2<f32>,
     window: Window,
     renderer: CandyDefaultRenderer,
     element: CandyElement,
@@ -125,6 +145,7 @@ impl CandyHandler for CandyDefaultHandler {
             .legacy_make_typeface(Some("Inter"), FontStyle::default())
             .unwrap();
         Self {
+            mouse_pos: Vector2::new(0.0, 0.0),
             img: CandyElement::new_text({
                 CandyText::new(
                     "pedro",
@@ -145,6 +166,10 @@ impl CandyHandler for CandyDefaultHandler {
             )),
         }
     }
+    fn on_mouse_move(&mut self, position: Vector2<f32>) {
+        self.mouse_pos = position;
+    }
+    fn on_press(&mut self, button: MouseButton) {}
     fn draw(&mut self) {
         //self.element
         //    .render(self.renderer.twod_renderer().twod_painter());
