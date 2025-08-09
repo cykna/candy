@@ -7,18 +7,18 @@ use text::CandyText;
 
 pub use square::*;
 
-use crate::renderer::twod::{BiDimensionalPainter, ImagePainter};
+use crate::renderer::twod::BiDimensionalPainter;
 
 ///A trait used to create custom elements.
-pub trait CustomCandyElement {
+pub trait CustomCandyElement<P: BiDimensionalPainter> {
     ///Function executed when this element is requested to be drawn
-    fn render(&self, renderer: &mut dyn BiDimensionalPainter);
+    fn render(&self, renderer: &mut P);
     ///Retrieves the position of this element
     fn position(&self) -> &Vector2<f32>;
 }
 
 ///An element on the UI tree which is rendered by the `P` Painter
-pub enum CandyElement<P: ImagePainter> {
+pub enum CandyElement<P: BiDimensionalPainter> {
     Square(CandySquare),
     Image(CandyImage<P>),
     Text(CandyText),
@@ -26,10 +26,10 @@ pub enum CandyElement<P: ImagePainter> {
         inner: Box<CandyElement<P>>,
         event: Box<dyn Fn(Vector2<f32>)>,
     },
-    Custom(Box<dyn CustomCandyElement>),
+    Custom(Box<dyn CustomCandyElement<P>>),
 }
 
-impl<P: ImagePainter> CandyElement<P> {
+impl<P: BiDimensionalPainter> CandyElement<P> {
     #[inline]
     pub fn clickable<F: Fn(Vector2<f32>) + 'static>(element: CandyElement<P>, f: F) -> Self {
         Self::Clickable {
@@ -58,18 +58,17 @@ impl<P: ImagePainter> CandyElement<P> {
 
     #[inline]
     ///Creates a new custom element with the given `custom` struct that implements so
-    pub fn new_custom(custom: impl CustomCandyElement + 'static) -> Self {
+    pub fn new_custom(custom: impl CustomCandyElement<P> + 'static) -> Self {
         Self::Custom(Box::new(custom))
     }
 
     #[inline]
     ///Requests to the `renderer` to draw this element
-    pub fn render(&mut self, renderer: &mut P) {
+    pub fn render(&self, renderer: &mut P) {
         match self {
             Self::Square(info) => renderer.square(info),
-            Self::Image(info) => renderer.image(info),
+            Self::Image(info) => renderer.render_image(info),
             Self::Text(info) => renderer.text(info),
-            Self::MultiText(info) => renderer.multitext(info),
             Self::Clickable { inner, .. } => inner.render(renderer),
             Self::Custom(custom) => custom.render(renderer),
         }
@@ -82,7 +81,6 @@ impl<P: ImagePainter> CandyElement<P> {
             Self::Custom(c) => c.position(),
             Self::Image(i) => i.position(),
             Self::Text(t) => t.position(),
-            Self::MultiText(t) => t.position(),
             Self::Clickable { inner, .. } => inner.position(),
         }
     }

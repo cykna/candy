@@ -15,13 +15,12 @@ use std::{ffi::CString, num::NonZero};
 use winit::{dpi::PhysicalSize, window::Window};
 
 use crate::{
-    elements::{square::CandySquare, text::CandyText},
+    elements::{image::CandyImage, square::CandySquare, text::CandyText},
     helpers::vec4f32_to_color,
 };
 
 use super::{
-    BiDimensionalPainter, BiDimensionalRenderer, ImagePainter, RenderImageOptions,
-    Renderer2DEnvironment,
+    BiDimensionalPainter, BiDimensionalRenderer, RenderImageOptions, Renderer2DEnvironment,
     helpers::{create_context, create_surface},
 };
 
@@ -102,6 +101,7 @@ impl Candy2DRenderer {
 }
 
 impl BiDimensionalRenderer for Candy2DRenderer {
+    #[inline]
     fn new(window: &Window, config: &Config) -> Self {
         Self {
             environment: Self::create_environment(window, config),
@@ -123,9 +123,11 @@ impl BiDimensionalRenderer for Candy2DRenderer {
             NonZero::new(height.max(1)).unwrap(),
         );
     }
+    #[inline]
     fn twod_painter(&mut self) -> &mut impl BiDimensionalPainter {
         self
     }
+    #[inline]
     #[cfg(feature = "opengl")]
     fn flush(&mut self) {
         self.environment.gr_context.flush_and_submit();
@@ -137,6 +139,7 @@ impl BiDimensionalRenderer for Candy2DRenderer {
 }
 
 impl BiDimensionalPainter for Candy2DRenderer {
+    type Image = skia_safe::Image;
     fn square(&mut self, square_info: &CandySquare) {
         let radius = square_info.border_radius();
         let color = unsafe { std::mem::transmute::<_, &Color4f>(square_info.background_color()) };
@@ -167,11 +170,14 @@ impl BiDimensionalPainter for Candy2DRenderer {
         self.canvas()
             .draw_round_rect(&rect, radius.x, radius.y, &paint);
     }
+
+    #[inline]
     fn circle(&mut self, position: &nalgebra::Vector2<f32>, color: &Vector4<f32>, radius: f32) {
         let paint = Paint::new(vec4f32_to_color(color), None);
         self.canvas()
             .draw_circle(Point::new(position.x, position.y), radius, &paint);
     }
+
     fn text(&mut self, info: &CandyText) {
         let mut paint = Paint::new(vec4f32_to_color(info.color()), None);
         paint.set_anti_alias(true);
@@ -182,19 +188,16 @@ impl BiDimensionalPainter for Candy2DRenderer {
             &paint,
         );
     }
-}
-
-impl ImagePainter for Candy2DRenderer {
-    type Image = skia_safe::Image;
-    fn render_image(
-        &mut self,
-        position: Vector2<f32>,
-        img: &skia_safe::Image,
-        options: RenderImageOptions,
-    ) {
-        let w = img.width();
-        let h = img.height();
-        let rect = Rect::new(position.x, position.y, position.x + w, position.y + h);
+    fn render_image(&mut self, image: &CandyImage<Self>) {
+        let w = image.real_width();
+        let h = image.real_height();
+        let position = image.position();
+        let rect = Rect::new(
+            position.x,
+            position.y,
+            position.x + w as f32,
+            position.y + h as f32,
+        );
 
         let paint = Paint::default();
 
@@ -203,13 +206,13 @@ impl ImagePainter for Candy2DRenderer {
         canvas.save();
 
         canvas.clip_rrect(
-            &RRect::new_rect_xy(&rect, options.border_radius.x, options.border_radius.y),
+            &RRect::new_rect_xy(&rect, image.border_radius().x, image.border_radius().y),
             None,
             true,
         );
 
         canvas.draw_image_rect_with_sampling_options(
-            img,
+            image.image_handler(),
             Some((
                 &Rect::new(0.0, 0.0, w as f32, h as f32),
                 SrcRectConstraint::Fast,
