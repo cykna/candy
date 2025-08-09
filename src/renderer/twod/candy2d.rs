@@ -5,30 +5,27 @@ use glutin::{
     prelude::GlSurface,
     surface::{SurfaceAttributesBuilder, WindowSurface},
 };
-use nalgebra::Vector4;
+use nalgebra::{Vector2, Vector4};
 use raw_window_handle::HasWindowHandle;
 use skia_safe::{
-    Canvas, Color4f, Font, ImageGenerator, Paint, Point, RRect, Rect, SamplingOptions, TextBlob,
-    Typeface, canvas::SrcRectConstraint, gpu::gl::FramebufferInfo,
+    Canvas, Color4f, Paint, Point, RRect, Rect, SamplingOptions, canvas::SrcRectConstraint,
+    gpu::gl::FramebufferInfo,
 };
-use std::{any::Any, ffi::CString, num::NonZero};
+use std::{ffi::CString, num::NonZero};
 use winit::{dpi::PhysicalSize, window::Window};
 
 use crate::{
-    elements::{
-        image::CandyImage,
-        square::CandySquare,
-        text::{CandyText, MultiText},
-    },
+    elements::{square::CandySquare, text::CandyText},
     helpers::vec4f32_to_color,
-    text::font::CandyFont,
 };
 
 use super::{
-    BiDimensionalPainter, BiDimensionalRenderer, Renderer2DEnvironment,
+    BiDimensionalPainter, BiDimensionalRenderer, ImagePainter, RenderImageOptions,
+    Renderer2DEnvironment,
     helpers::{create_context, create_surface},
 };
 
+///Default 2D renderer of Candy. By default a wrapper over skia-safe
 pub struct Candy2DRenderer {
     environment: Renderer2DEnvironment,
 }
@@ -175,49 +172,9 @@ impl BiDimensionalPainter for Candy2DRenderer {
         self.canvas()
             .draw_circle(Point::new(position.x, position.y), radius, &paint);
     }
-    fn image(&mut self, image: &CandyImage) {
-        let pos = image.position();
-        let size = image.size();
-        let rect = Rect::new(pos.x, pos.y, pos.x + size.x, pos.y + size.y);
-
-        let paint = Paint::new(
-            unsafe { std::mem::transmute::<_, &Color4f>(image.background_color()) },
-            None,
-        );
-
-        let canvas = self.canvas();
-
-        canvas.save();
-
-        canvas.clip_rrect(
-            &RRect::new_rect_xy(&rect, image.border_radius().x, image.border_radius().y),
-            None,
-            true,
-        );
-
-        if let Some(img) = (image.image_handler() as &dyn Any).downcast_ref::<skia_safe::Image>() {
-            canvas.draw_image_rect_with_sampling_options(
-                img,
-                Some((
-                    &Rect::new(
-                        0.0,
-                        0.0,
-                        image.real_width() as f32,
-                        image.real_height() as f32,
-                    ),
-                    SrcRectConstraint::Fast,
-                )),
-                rect,
-                SamplingOptions::default(),
-                &paint,
-            );
-        }
-
-        canvas.restore();
-    }
     fn text(&mut self, info: &CandyText) {
         let mut paint = Paint::new(vec4f32_to_color(info.color()), None);
-        paint.set_anti_alias(true).set_alpha_f(1.0);
+        paint.set_anti_alias(true);
         self.canvas().draw_str(
             info.content(),
             Point::new(info.position().x, info.position().y),
@@ -225,5 +182,43 @@ impl BiDimensionalPainter for Candy2DRenderer {
             &paint,
         );
     }
-    fn multitext(&mut self, canvas: &MultiText) {}
+}
+
+impl ImagePainter for Candy2DRenderer {
+    type Image = skia_safe::Image;
+    fn render_image(
+        &mut self,
+        position: Vector2<f32>,
+        img: &skia_safe::Image,
+        options: RenderImageOptions,
+    ) {
+        let w = img.width();
+        let h = img.height();
+        let rect = Rect::new(position.x, position.y, position.x + w, position.y + h);
+
+        let paint = Paint::default();
+
+        let canvas = self.canvas();
+
+        canvas.save();
+
+        canvas.clip_rrect(
+            &RRect::new_rect_xy(&rect, options.border_radius.x, options.border_radius.y),
+            None,
+            true,
+        );
+
+        canvas.draw_image_rect_with_sampling_options(
+            img,
+            Some((
+                &Rect::new(0.0, 0.0, w as f32, h as f32),
+                SrcRectConstraint::Fast,
+            )),
+            rect,
+            SamplingOptions::default(),
+            &paint,
+        );
+
+        canvas.restore();
+    }
 }

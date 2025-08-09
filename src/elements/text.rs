@@ -1,15 +1,17 @@
+use crate::text::font::CandyFont;
 use nalgebra::{Vector2, Vector4};
 
-use crate::text::font::CandyFont;
-
-#[derive(Copy, Clone, PartialEq, Eq)]
+///The alignment of a Text. Wheater it will be positioned on the Left, Right, or Center of it's parent
+///Default is Center
+#[derive(Copy, Clone, PartialEq, Eq, Default)]
 pub enum TextAlignment {
+    #[default]
     Center,
     Right,
     Left,
 }
 
-///A handlr that contains informations about an specific text
+///A handler that contains on how to draw an specific text
 pub struct CandyText {
     font: CandyFont,
     color: Vector4<f32>,
@@ -35,58 +37,42 @@ impl CandyText {
         }
     }
 
+    ///Gets the content of this text
     #[inline]
     pub fn content(&self) -> &str {
         &self.text
     }
 
+    ///Gets the inner font of this text
     #[inline]
     pub fn font(&self) -> &CandyFont {
         &self.font
     }
 
+    ///Gets the inner position of this text
     #[inline]
     pub fn position(&self) -> &Vector2<f32> {
         &self.position
     }
-
+    ///Gets the color of this text
     #[inline]
     pub fn color(&self) -> &Vector4<f32> {
         &self.color
     }
 
+    ///Gets the alignment of this text
     #[inline]
     pub fn alignment(&self) -> TextAlignment {
         self.align
     }
-}
 
-///Same as `CandyText` but this is focused on drawing multiples texts at once. Normally by each of them having a different style/position
-pub struct MultiText {
-    texts: Vec<String>,
-    position: Vector2<f32>,
-}
-
-impl MultiText {
+    ///Gets the bounds of this Text. XY are the position while ZW are width and height
     #[inline]
-    ///Creates a new MultiText with capacity to `n` Texts
-    pub fn with_capacity(n: usize, position: Vector2<f32>) -> Self {
-        Self {
-            texts: Vec::with_capacity(n),
-            position,
-        }
-    }
-    #[inline]
-    ///Creates a empty MultiText
-    pub fn new(position: Vector2<f32>) -> Self {
-        Self {
-            texts: Vec::new(),
-            position,
-        }
-    }
-
-    #[inline]
-    pub fn position(&self) -> &Vector2<f32> {
-        &self.position
+    pub fn bounds(&self) -> Vector4<f32> {
+        let mut rec = Vector4::new(0.0, 0.0, 0.0, 0.0);
+        let mut glyphs = Vec::with_capacity(self.content().len());
+        self.font.str_to_glyphs(self.content(), &mut glyphs);
+        self.font.get_widths(&glyphs, rec.as_mut_slice());
+        rec
     }
 }

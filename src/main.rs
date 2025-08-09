@@ -2,16 +2,16 @@ pub mod elements;
 pub mod helpers;
 pub mod renderer;
 pub mod text;
+pub mod ui;
 
 use elements::{
     CandyElement, CandySquare,
-    image::CandyImage,
     text::{CandyText, TextAlignment},
 };
 use nalgebra::Vector2;
 use renderer::{CandyRenderer, candy::CandyDefaultRenderer, twod::BiDimensionalRenderer};
 
-use skia_safe::{FontMgr, FontStyle, Typeface};
+use skia_safe::{FontMgr, FontStyle};
 use text::font::CandyFont;
 use winit::{
     dpi::PhysicalSize,

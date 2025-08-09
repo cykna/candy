@@ -1,26 +1,17 @@
-use std::any::Any;
-
 use glutin::{
     config::Config,
     context::PossiblyCurrentContext,
     surface::{Surface, WindowSurface},
 };
 use nalgebra::{Vector2, Vector4};
-use skia_safe::{Data, RCHandle, gpu::gl::FramebufferInfo};
+use skia_safe::{Data, gpu::gl::FramebufferInfo};
 use winit::window::Window;
 
 pub mod candy2d;
 pub mod helpers;
 pub use candy2d::Candy2DRenderer;
 
-use crate::{
-    elements::{
-        image::CandyImage,
-        square::CandySquare,
-        text::{CandyText, MultiText},
-    },
-    text::font::CandyFont,
-};
+use crate::elements::{image::RenderableImage, square::CandySquare, text::CandyText};
 
 pub struct Renderer2DEnvironment {
     surface: skia_safe::Surface,
@@ -37,55 +28,56 @@ pub struct Renderer2DEnvironment {
     #[cfg(feature = "opengl")]
     stencil_size: usize,
 }
-
+///Trait used to control a 2D painter
 pub trait BiDimensionalRenderer {
     #[cfg(feature = "opengl")]
     fn new(window: &Window, config: &Config) -> Self;
 
+    ///When this renderer is requested to resize with the given `width` and `height`
     #[cfg(feature = "opengl")]
     fn resize(&mut self, window: &Window, width: u32, height: u32);
 
+    ///Retrieves the struct that actually does draw things on the screen
     fn twod_painter(&mut self) -> &mut impl BiDimensionalPainter;
 
+    ///Finishes every command made supposing everything is ready to be drawn on the next frame
     fn flush(&mut self);
 }
 
+///A 2D painter used to draw 2D stuff on the screen
 pub trait BiDimensionalPainter {
     ///Method used to draw a square on the screen using the underlying renderer
     fn square(&mut self, square_info: &CandySquare);
-    ///Method used to draw a image on the screen using the underlying renderer
-    fn image(&mut self, image_info: &CandyImage);
     ///Method used to draw a circle on the screen using the underlying renderer
     fn circle(&mut self, position: &Vector2<f32>, color: &Vector4<f32>, radius: f32);
     ///Method used to draw a text on the screen using the underlying renderer
     fn text(&mut self, info: &CandyText);
-    fn multitext(&mut self, multi: &MultiText);
+}
+
+pub struct RenderImageOptions {
+    pub border_radius: Vector2<f32>,
+    pub border_color: Vector4<f32>,
+    pub border_width: f32,
+}
+
+///This trait is used to implement the drawing of multiple types of images for a single painter
+pub trait ImagePainter: BiDimensionalPainter {
+    type Image: RenderableImage;
+    ///Method uses to draw the given `img` at the given `position`
+    fn render_image(
+        &mut self,
+        position: Vector2<f32>,
+        img: &Self::Image,
+        options: RenderImageOptions,
+    );
 }
 
 pub trait CandyImgConstructor<I> {
     fn from_bytes(bytes: &[u8]) -> I;
 }
 
-/// A handler for Images on Candy. This is now shown due to rust limitations with dyn, but this is dependent of CandyImgConstructor
-pub trait CandyImg: Any {
-    fn width(&self) -> u32;
-    fn height(&self) -> u32;
-}
-
 impl CandyImgConstructor<skia_safe::Image> for skia_safe::Image {
     fn from_bytes(bytes: &[u8]) -> skia_safe::Image {
         skia_safe::Image::from_encoded(Data::new_copy(bytes)).unwrap()
-    }
-}
-
-impl CandyImg for skia_safe::Image {
-    #[inline]
-    fn width(&self) -> u32 {
-        self.width() as u32
-    }
-
-    #[inline]
-    fn height(&self) -> u32 {
-        self.height() as u32
     }
 }

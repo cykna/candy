@@ -263,6 +263,7 @@ dependencies = [
  "nalgebra",
  "raw-window-handle",
  "skia-safe",
+ "slotmap",
  "wgpu",
  "winit",
 ]

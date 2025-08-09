@@ -3,41 +3,39 @@ pub mod square;
 pub mod text;
 use image::CandyImage;
 use nalgebra::Vector2;
-use text::{CandyText, MultiText};
+use text::CandyText;
 
 pub use square::*;
 
-use crate::renderer::twod::BiDimensionalPainter;
+use crate::renderer::twod::{BiDimensionalPainter, ImagePainter};
 
+///A trait used to create custom elements.
 pub trait CustomCandyElement {
+    ///Function executed when this element is requested to be drawn
     fn render(&self, renderer: &mut dyn BiDimensionalPainter);
+    ///Retrieves the position of this element
     fn position(&self) -> &Vector2<f32>;
 }
 
-pub enum CandyElement {
+///An element on the UI tree which is rendered by the `P` Painter
+pub enum CandyElement<P: ImagePainter> {
     Square(CandySquare),
-    Image(CandyImage),
+    Image(CandyImage<P>),
     Text(CandyText),
-    MultiText(MultiText),
     Clickable {
-        inner: Box<CandyElement>,
-        event: Box<dyn Fn()>,
+        inner: Box<CandyElement<P>>,
+        event: Box<dyn Fn(Vector2<f32>)>,
     },
     Custom(Box<dyn CustomCandyElement>),
 }
 
-impl CandyElement {
+impl<P: ImagePainter> CandyElement<P> {
     #[inline]
-    pub fn clickable<F: Fn() + 'static>(element: CandyElement, f: F) -> Self {
+    pub fn clickable<F: Fn(Vector2<f32>) + 'static>(element: CandyElement<P>, f: F) -> Self {
         Self::Clickable {
             inner: Box::new(element),
             event: Box::new(f),
         }
-    }
-
-    #[inline]
-    pub fn new_multitext(txt: MultiText) -> Self {
-        Self::MultiText(txt)
     }
 
     #[inline]
@@ -48,7 +46,7 @@ impl CandyElement {
 
     #[inline]
     ///Creates a new image element with the given `img` options
-    pub fn new_image(img: CandyImage) -> Self {
+    pub fn new_image(img: CandyImage<P>) -> Self {
         Self::Image(img)
     }
 
@@ -66,7 +64,7 @@ impl CandyElement {
 
     #[inline]
     ///Requests to the `renderer` to draw this element
-    pub fn render(&mut self, renderer: &mut dyn BiDimensionalPainter) {
+    pub fn render(&mut self, renderer: &mut P) {
         match self {
             Self::Square(info) => renderer.square(info),
             Self::Image(info) => renderer.image(info),
