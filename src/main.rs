@@ -8,16 +8,16 @@ use elements::{
     CandyElement, CandySquare,
     text::{CandyText, TextAlignment},
 };
-use nalgebra::{Vector2, Vector4};
+use nalgebra::{Vector, Vector2, Vector4};
 use renderer::{
     CandyRenderer,
     candy::CandyDefaultRenderer,
-    twod::{BiDimensionalRenderer, Candy2DRenderer},
+    twod::{BiDimensionalPainter, BiDimensionalRenderer, Candy2DRenderer},
 };
 
 use skia_safe::{FontMgr, FontStyle};
 use text::font::CandyFont;
-use ui::tree::tree::CandyTree;
+use ui::tree::{node::ElementBuilder, tree::CandyTree};
 use winit::{
     dpi::PhysicalSize,
     event::MouseButton,
@@ -142,6 +142,24 @@ pub struct CandyDefaultHandler {
     ui: CandyTree<Candy2DRenderer>,
     state: f32,
 }
+fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (f32, f32, f32) {
+    let c = v * s;
+    let x = c * (1.0 - ((h / 60.0) % 2.0 - 1.0).abs());
+    let m = v - c;
+    let h = h as u32 % 360;
+
+    let (r, g, b) = match h {
+        0..=59 => (c, x, 0.0),
+        60..=119 => (x, c, 0.0),
+        120..=179 => (0.0, c, x),
+        180..=239 => (0.0, x, c),
+        240..=299 => (x, 0.0, c),
+        300..=359 => (c, 0.0, x),
+        _ => (0.0, 0.0, 0.0),
+    };
+
+    (r + m, g + m, b + m)
+}
 
 impl CandyHandler for CandyDefaultHandler {
     fn new(window: Window, config: Config) -> Self {
@@ -158,28 +176,28 @@ impl CandyHandler for CandyDefaultHandler {
     }
     fn on_mouse_move(&mut self, position: Vector2<f32>) {
         self.mouse_pos = position;
-        self.ui.append_root(CandyElement::Square(CandySquare::new(
+        self.renderer
+            .twod_renderer()
+            .twod_painter()
+            .background(&Vector4::new(0.0, 0.0, 0.0, 0.0));
+        self.ui.append_root(ElementBuilder::square(CandySquare::new(
             self.mouse_pos,
-            Vector2::new(1.0, 1.0),
-            Vector4::new(1.0, 1.0, 1.0, 1.0),
+            Vector2::new(5.0, 5.0),
+            {
+                let (r, g, b) = hsv_to_rgb(self.state, 1.0, 1.0);
+                Vector4::new(r, g, b, 0.8)
+            },
             None,
             None,
         )));
+        self.state += 1.0;
         self.window.request_redraw();
     }
     fn on_press(&mut self, button: MouseButton) {
-        self.ui.append_root(CandyElement::Square(CandySquare::new(
-            self.mouse_pos,
-            Vector2::new(10.0, 10.0),
-            Vector4::new(1.0, 0.0, 1.0, 1.0),
-            None,
-            None,
-        )));
+        self.ui.clear();
         self.window.request_redraw();
     }
     fn draw(&mut self) {
-        //self.element
-        //    .render(self.renderer.twod_renderer().twod_painter());
         self.ui.render_with(self.renderer.twod_renderer());
         self.renderer.flush();
     }

@@ -12,7 +12,7 @@ pub mod helpers;
 pub use candy2d::Candy2DRenderer;
 
 use crate::elements::{
-    image::{TwodCandyImg, CandyImage},
+    image::{CandyImage, TwodCandyImg},
     square::CandySquare,
     text::CandyText,
 };
@@ -60,6 +60,8 @@ pub trait BiDimensionalPainter: Sized {
 
     ///Method uses to draw the given `img` at the given `position`
     fn render_image(&mut self, info: &CandyImage<Self>);
+
+    fn background(&mut self, color: &Vector4<f32>);
 }
 
 pub struct RenderImageOptions {

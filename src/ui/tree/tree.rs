@@ -1,8 +1,8 @@
 use slotmap::SlotMap;
 
-use crate::{elements::CandyElement, renderer::twod::BiDimensionalPainter};
+use crate::renderer::twod::BiDimensionalPainter;
 
-use super::node::{CandyKey, CandyNode};
+use super::node::{CandyKey, CandyNode, ElementBuilder};
 
 pub type CandyRawTree<P> = SlotMap<CandyKey, CandyNode<P>>;
 ///Tree used to control the elements, as well as giving them a parent/children relation
@@ -40,7 +40,20 @@ where
     }
 
     ///Appends the given `root` on this ui as a 'root' element and returns it's ID
-    pub fn append_root(&mut self, root: CandyElement<P>) -> CandyKey {
-        self.elements.insert(CandyNode::new(root))
+    pub fn append_root(&mut self, element: ElementBuilder<P>) -> CandyKey {
+        let mut children = Vec::new();
+        for child in element.children {
+            let child_key = self.append_root(child);
+            children.push(child_key);
+        }
+        let mut node = CandyNode::new(element.inner);
+        node.add_children(children);
+        self.elements.insert(node)
+    }
+
+    #[inline]
+    ///Clears all the elements on this UI, thus theyre removed
+    pub fn clear(&mut self) {
+        self.elements.clear();
     }
 }

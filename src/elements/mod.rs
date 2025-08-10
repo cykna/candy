@@ -2,7 +2,7 @@ pub mod image;
 pub mod square;
 pub mod text;
 use image::CandyImage;
-use nalgebra::Vector2;
+use nalgebra::{Vector2, Vector4};
 use text::CandyText;
 
 pub use square::*;
@@ -85,3 +85,5 @@ impl<P: BiDimensionalPainter> CandyElement<P> {
         }
     }
 }
+
+pub type Rgba = Vector4<f32>;

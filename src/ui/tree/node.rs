@@ -1,6 +1,9 @@
 use slotmap::new_key_type;
 
-use crate::{elements::CandyElement, renderer::twod::BiDimensionalPainter};
+use crate::{
+    elements::{CandyElement, CandySquare},
+    renderer::twod::BiDimensionalPainter,
+};
 
 new_key_type! {pub struct CandyKey;}
 
@@ -20,6 +23,11 @@ impl<P: BiDimensionalPainter> CandyNode<P> {
             inner,
         }
     }
+
+    ///Adds the given `children` to be the children of this element
+    pub fn add_children(&mut self, mut children: Vec<CandyKey>) {
+        self.children.append(&mut children);
+    }
     ///Retrieves this Node children
     pub fn children(&self) -> &Vec<CandyKey> {
         &self.children
@@ -34,5 +42,36 @@ impl<P: BiDimensionalPainter> CandyNode<P> {
     #[inline]
     pub fn render(&self, painter: &mut P) {
         self.inner.render(painter);
+    }
+}
+
+///A builder for when adding a new element on the tree
+pub struct ElementBuilder<P: BiDimensionalPainter> {
+    pub(crate) children: Vec<ElementBuilder<P>>,
+    pub(crate) inner: CandyElement<P>,
+}
+
+impl<P: BiDimensionalPainter> ElementBuilder<P> {
+    #[inline]
+    ///Creates a new builder for a square
+    pub fn square(square: CandySquare) -> Self {
+        Self {
+            inner: CandyElement::Square(square),
+            children: Vec::new(),
+        }
+    }
+
+    #[inline]
+    pub fn new(element: CandyElement<P>) -> Self {
+        Self {
+            inner: element,
+            children: Vec::new(),
+        }
+    }
+
+    ///Appends the given elements on this builder
+    pub fn children(mut self, mut children: Vec<ElementBuilder<P>>) -> Self {
+        self.children.append(&mut children);
+        self
     }
 }

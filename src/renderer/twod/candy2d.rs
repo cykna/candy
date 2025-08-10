@@ -224,4 +224,7 @@ impl BiDimensionalPainter for Candy2DRenderer {
 
         canvas.restore();
     }
+    fn background(&mut self, color: &Vector4<f32>) {
+        self.canvas().clear(*vec4f32_to_color(color));
+    }
 }
