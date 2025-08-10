@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use slotmap::SlotMap;
 
 use crate::renderer::twod::BiDimensionalPainter;
@@ -32,10 +34,44 @@ where
         }
     }
 
-    ///Renders this ui with the given `painter`
-    pub fn render_with(&self, painter: &mut P) {
-        for (_, child) in self.elements.iter() {
-            child.render(painter);
+    ///Renders the given `element` using the `painter` and it's children. `set` is used to get track of which
+    ///elements were already drawn, and `key` is the key of the `element` is going to be drawed
+    pub fn render_element(
+        &self,
+        painter: &mut P,
+        element: &CandyNode<P>,
+        set: &mut HashSet<CandyKey>,
+        key: &CandyKey,
+    ) {
+        if set.contains(key) {
+            return;
+        }
+        set.insert(*key);
+        element.render(painter);
+        for child_key in element.children() {
+            if let Some(child) = self.elements.get(*child_key) {
+                self.render_element(painter, child, set, child_key);
+            }
+        }
+    }
+
+    ///Render all the tree using the given `painter`
+    pub fn render(&self, painter: &mut P) {
+        let mut set = HashSet::new();
+        for (key, el) in self.elements.iter() {
+            if set.contains(&key) {
+                continue;
+            }
+            self.render_element(painter, el, &mut set, &key);
+        }
+    }
+
+    ///Removes the element with the given `element` key and it's children recursively
+    pub fn remove_element(&mut self, element: CandyKey) {
+        if let Some(element) = self.elements.remove(element) {
+            for child in element.children() {
+                self.remove_element(*child);
+            }
         }
     }
 

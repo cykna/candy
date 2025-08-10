@@ -180,25 +180,28 @@ impl CandyHandler for CandyDefaultHandler {
             .twod_renderer()
             .twod_painter()
             .background(&Vector4::new(0.0, 0.0, 0.0, 0.0));
-        self.ui.append_root(ElementBuilder::square(CandySquare::new(
-            self.mouse_pos,
-            Vector2::new(5.0, 5.0),
-            {
-                let (r, g, b) = hsv_to_rgb(self.state, 1.0, 1.0);
-                Vector4::new(r, g, b, 0.8)
-            },
-            None,
-            None,
-        )));
         self.state += 1.0;
         self.window.request_redraw();
     }
     fn on_press(&mut self, button: MouseButton) {
         self.ui.clear();
+        self.ui.append_root(
+            ElementBuilder::square(CandySquare::new(
+                Vector2::new(50.0, 50.0),
+                Vector2::new(self.state, 20.0),
+                {
+                    let (r, g, b) = hsv_to_rgb(self.state, 1.0, 1.0);
+                    Vector4::new(r, g, b, 1.0)
+                },
+                None,
+                None,
+            ))
+            .children(vec![]),
+        );
         self.window.request_redraw();
     }
     fn draw(&mut self) {
-        self.ui.render_with(self.renderer.twod_renderer());
+        self.ui.render(self.renderer.twod_renderer());
         self.renderer.flush();
     }
     fn resize(&mut self, size: PhysicalSize<u32>) {

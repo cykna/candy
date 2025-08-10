@@ -26,5 +26,5 @@ pub trait CandyRenderer<TwoD: BiDimensionalRenderer, ThreeD: ThreeDimensionalRen
     fn flush(&mut self);
 
     ///Retrieves the internal renderer that controls the 2D
-    fn twod_renderer(&mut self) -> &mut impl BiDimensionalRenderer;
+    fn twod_renderer(&mut self) -> &mut TwoD;
 }
