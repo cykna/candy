@@ -1,6 +1,8 @@
-use std::collections::HashSet;
+use super::super::layout::CandyLayout;
+use std::{collections::HashSet, ops::Deref};
 
 use slotmap::SlotMap;
+use taffy::Style;
 
 use crate::renderer::twod::BiDimensionalPainter;
 
@@ -10,16 +12,22 @@ pub type CandyRawTree<P> = SlotMap<CandyKey, CandyNode<P>>;
 ///Tree used to control the elements, as well as giving them a parent/children relation
 pub struct CandyTree<P: BiDimensionalPainter> {
     elements: CandyRawTree<P>,
+    roots: Vec<CandyKey>,
+    layout: CandyLayout,
 }
 
 impl<P> CandyTree<P>
 where
     P: BiDimensionalPainter,
 {
-    pub fn new() -> Self {
-        Self {
+    pub fn new(width: f32, height: f32) -> Self {
+        let mut s = Self {
+            layout: CandyLayout::new(),
+            roots: Vec::new(),
             elements: SlotMap::with_key(),
-        }
+        };
+        s.resize(width, height);
+        s
     }
     ///Returns all the children of the element with the given `key`. None if the element doesn't exist
     pub fn children_of(&self, key: CandyKey) -> Option<Vec<&CandyNode<P>>> {
@@ -75,21 +83,75 @@ where
         }
     }
 
-    ///Appends the given `root` on this ui as a 'root' element and returns it's ID
+    #[inline]
     pub fn append_root(&mut self, element: ElementBuilder<P>) -> CandyKey {
+        self.append_element(element, None)
+    }
+
+    ///Appends the given `root` on this ui as a 'root' element and returns it's ID
+    pub fn append_element(
+        &mut self,
+        element: ElementBuilder<P>,
+        parent: Option<CandyKey>,
+    ) -> CandyKey {
+        let node = CandyNode::new(
+            element.inner,
+            self.layout
+                .create_element_style(
+                    parent.map(|parent_key| self.elements.get(parent_key).unwrap().style()),
+                    element
+                        .style_name
+                        .expect("Cannot create an element without styles"),
+                )
+                .unwrap(),
+        );
+        let out = self.elements.insert(node);
+        if let None = parent {
+            self.roots.push(out);
+        }
         let mut children = Vec::new();
         for child in element.children {
-            let child_key = self.append_root(child);
+            let child_key = self.append_element(child, Some(out));
             children.push(child_key);
         }
-        let mut node = CandyNode::new(element.inner);
-        node.add_children(children);
-        self.elements.insert(node)
+
+        self.elements.get_mut(out).unwrap().add_children(children);
+        out
     }
 
     #[inline]
     ///Clears all the elements on this UI, thus theyre removed
     pub fn clear(&mut self) {
         self.elements.clear();
+    }
+
+    ///Resizes the element owner of the given `key` and it's children. `processed_key` is used to get track
+    pub fn resize_element(&mut self, key: CandyKey) {
+        let mut keys = vec![key];
+        while let Some(key) = keys.pop() {
+            let Some(element) = self.elements.get_mut(key) else {
+                continue;
+            };
+            for child in element.children() {
+                keys.push(*child);
+            }
+
+            let layout = self.layout.layout_of(element.style()).unwrap();
+            element.resize(layout);
+        }
+    }
+
+    ///Resizes the layout of the UI-tree with the given `width` and `height` and recomputes the all the elements
+    pub fn resize(&mut self, width: f32, height: f32) {
+        self.layout.recalculate(width, height).unwrap();
+        let mut idx = 0;
+        while let Some(root) = self.roots.get(idx) {
+            self.resize_element(*root);
+            idx += 1;
+        }
+    }
+
+    pub fn create_style(&mut self, name: &str, style: Style) {
+        self.layout.create_style(name.into(), style);
     }
 }

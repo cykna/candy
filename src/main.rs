@@ -16,6 +16,7 @@ use renderer::{
 };
 
 use skia_safe::{FontMgr, FontStyle};
+use taffy::{Dimension, Size, Style};
 use text::font::CandyFont;
 use ui::tree::{node::ElementBuilder, tree::CandyTree};
 use winit::{
@@ -166,9 +167,20 @@ impl CandyHandler for CandyDefaultHandler {
         let tf = FontMgr::new()
             .legacy_make_typeface(Some("Inter"), FontStyle::default())
             .unwrap();
+        let mut ui = CandyTree::new(
+            window.inner_size().width as f32,
+            window.inner_size().height as f32,
+        );
+        ui.create_style(
+            "pedro",
+            Style {
+                size: Size::from_percent(0.5, 0.5),
+                ..Default::default()
+            },
+        );
         Self {
             state: 0.0,
-            ui: CandyTree::new(),
+            ui,
             mouse_pos: Vector2::new(0.0, 0.0),
             renderer: CandyDefaultRenderer::new(&window, &config),
             window,
@@ -188,7 +200,7 @@ impl CandyHandler for CandyDefaultHandler {
         self.ui.append_root(
             ElementBuilder::square(CandySquare::new(
                 Vector2::new(50.0, 50.0),
-                Vector2::new(self.state, 20.0),
+                Vector2::new(20.0, 20.0),
                 {
                     let (r, g, b) = hsv_to_rgb(self.state, 1.0, 1.0);
                     Vector4::new(r, g, b, 1.0)
@@ -196,7 +208,8 @@ impl CandyHandler for CandyDefaultHandler {
                 None,
                 None,
             ))
-            .children(vec![]),
+            .children(vec![])
+            .styled("pedro"),
         );
         self.window.request_redraw();
     }
@@ -204,9 +217,11 @@ impl CandyHandler for CandyDefaultHandler {
         self.ui.render(self.renderer.twod_renderer());
         self.renderer.flush();
     }
+
+    #[cfg(feature = "opengl")]
     fn resize(&mut self, size: PhysicalSize<u32>) {
-        #[cfg(feature = "opengl")]
         self.renderer.resize(&self.window, size.width, size.height);
+        self.ui.resize(size.width as f32, size.height as f32);
     }
     fn exit(&self) {}
 }

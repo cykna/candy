@@ -1,5 +1,6 @@
 use crate::text::font::CandyFont;
 use nalgebra::{Vector2, Vector4};
+use taffy::Layout;
 
 ///The alignment of a Text. Wheater it will be positioned on the Left, Right, or Center of it's parent
 ///Default is Center
@@ -74,5 +75,11 @@ impl CandyText {
         self.font.str_to_glyphs(self.content(), &mut glyphs);
         self.font.get_widths(&glyphs, rec.as_mut_slice());
         rec
+    }
+
+    #[inline]
+    pub fn resize(&mut self, layout: &Layout) {
+        self.position.x = layout.location.x;
+        self.position.y = layout.location.y;
     }
 }

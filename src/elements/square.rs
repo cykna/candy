@@ -1,4 +1,5 @@
 use nalgebra::{Vector2, Vector4};
+use taffy::Layout;
 
 ///A handler that contains information about how a square should be drawn.
 #[derive(Debug, Default)]
@@ -47,5 +48,12 @@ impl CandySquare {
     ///Gets the border radius of this square
     pub fn border_radius(&self) -> &Vector2<f32> {
         &self.border_radius
+    }
+
+    pub fn resize(&mut self, layout: &Layout) {
+        self.position.x = layout.location.x;
+        self.position.y = layout.location.y;
+        self.size.x = layout.size.width;
+        self.size.y = layout.size.height
     }
 }

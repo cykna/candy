@@ -3,6 +3,7 @@ pub mod square;
 pub mod text;
 use image::CandyImage;
 use nalgebra::{Vector2, Vector4};
+use taffy::Layout;
 use text::CandyText;
 
 pub use square::*;
@@ -15,6 +16,8 @@ pub trait CustomCandyElement<P: BiDimensionalPainter> {
     fn render(&self, renderer: &mut P);
     ///Retrieves the position of this element
     fn position(&self) -> &Vector2<f32>;
+
+    fn resize(&mut self, layout: &Layout);
 }
 
 ///An element on the UI tree which is rendered by the `P` Painter
@@ -82,6 +85,18 @@ impl<P: BiDimensionalPainter> CandyElement<P> {
             Self::Image(i) => i.position(),
             Self::Text(t) => t.position(),
             Self::Clickable { inner, .. } => inner.position(),
+        }
+    }
+
+    ///Resizes this element based on the given `layout`
+    #[inline]
+    pub fn resize(&mut self, layout: &Layout) {
+        match self {
+            Self::Square(s) => s.resize(layout),
+            Self::Custom(c) => c.resize(layout),
+            Self::Image(i) => i.resize(layout),
+            Self::Text(t) => t.resize(layout),
+            Self::Clickable { inner, .. } => inner.resize(layout),
         }
     }
 }
