@@ -17,6 +17,7 @@ use crate::elements::{
     text::CandyText,
 };
 
+#[derive(Debug)]
 pub struct Renderer2DEnvironment {
     surface: skia_safe::Surface,
     #[cfg(feature = "opengl")]
@@ -49,7 +50,7 @@ pub trait BiDimensionalRenderer {
 }
 
 ///A 2D painter used to draw 2D stuff on the screen
-pub trait BiDimensionalPainter: Sized {
+pub trait BiDimensionalPainter: Sized + std::fmt::Debug {
     type Image: TwodCandyImg;
     ///Method used to draw a square on the screen using the underlying renderer
     fn square(&mut self, square_info: &CandySquare);

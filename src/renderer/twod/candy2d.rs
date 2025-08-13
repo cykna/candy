@@ -24,6 +24,7 @@ use super::{
     helpers::{create_context, create_surface},
 };
 
+#[derive(Debug)]
 ///Default 2D renderer of Candy. By default a wrapper over skia-safe
 pub struct Candy2DRenderer {
     environment: Renderer2DEnvironment,

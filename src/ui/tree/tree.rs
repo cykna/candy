@@ -1,10 +1,11 @@
 use super::super::layout::CandyLayout;
-use std::{collections::HashSet, ops::Deref};
+use std::collections::HashSet;
 
+use nalgebra::Vector2;
 use slotmap::SlotMap;
 use taffy::Style;
 
-use crate::renderer::twod::BiDimensionalPainter;
+use crate::{elements::CandyElement, helpers::in_bounds_of, renderer::twod::BiDimensionalPainter};
 
 use super::node::{CandyKey, CandyNode, ElementBuilder};
 
@@ -14,6 +15,7 @@ pub struct CandyTree<P: BiDimensionalPainter> {
     elements: CandyRawTree<P>,
     roots: Vec<CandyKey>,
     layout: CandyLayout,
+    size: Vector2<f32>,
 }
 
 impl<P> CandyTree<P>
@@ -25,6 +27,7 @@ where
             layout: CandyLayout::new(),
             roots: Vec::new(),
             elements: SlotMap::with_key(),
+            size: Vector2::new(width, height),
         };
         s.resize(width, height);
         s
@@ -75,11 +78,23 @@ where
     }
 
     ///Removes the element with the given `element` key and it's children recursively
-    pub fn remove_element(&mut self, element: CandyKey) {
-        if let Some(element) = self.elements.remove(element) {
-            for child in element.children() {
-                self.remove_element(*child);
-            }
+    pub fn remove_element(&mut self, element_key: CandyKey) {
+        let Some(element) = self.elements.remove(element_key) else {
+            return;
+        };
+        if let Some(parent_id) = element.parent() {
+            self.elements.get_mut(parent_id).and_then(|parent| {
+                let Some(found) = parent.children().iter().position(|c| *c == element_key) else {
+                    return Some(());
+                };
+                parent.children_mut().swap_remove(found);
+                Some(())
+            });
+        } else if let Some(found) = self.roots.iter().position(|r| *r == element_key) {
+            self.roots.swap_remove(found);
+        }
+        for child in element.children() {
+            self.remove_element(*child);
         }
     }
 
@@ -94,17 +109,18 @@ where
         element: ElementBuilder<P>,
         parent: Option<CandyKey>,
     ) -> CandyKey {
-        let node = CandyNode::new(
-            element.inner,
-            self.layout
-                .create_element_style(
-                    parent.map(|parent_key| self.elements.get(parent_key).unwrap().style()),
-                    element
-                        .style_name
-                        .expect("Cannot create an element without styles"),
-                )
-                .unwrap(),
-        );
+        let node = CandyNode::new(element.inner, {
+            let parent = parent.map(|parent_key| self.elements.get(parent_key).unwrap().style());
+            if let Some(style_name) = element.style_name {
+                self.layout
+                    .create_element_style(parent, style_name)
+                    .unwrap()
+            } else {
+                self.layout
+                    .create_raw_style(parent, element.styled)
+                    .unwrap()
+            }
+        });
         let out = self.elements.insert(node);
         if let None = parent {
             self.roots.push(out);
@@ -114,8 +130,8 @@ where
             let child_key = self.append_element(child, Some(out));
             children.push(child_key);
         }
-
         self.elements.get_mut(out).unwrap().add_children(children);
+        self.resize_element(out);
         out
     }
 
@@ -123,6 +139,7 @@ where
     ///Clears all the elements on this UI, thus theyre removed
     pub fn clear(&mut self) {
         self.elements.clear();
+        self.roots.clear();
     }
 
     ///Resizes the element owner of the given `key` and it's children. `processed_key` is used to get track
@@ -141,8 +158,45 @@ where
         }
     }
 
+    ///Tests if the `position` is inside the bounds of some child of `element` if not, check for `element`
+    ///This function is recursive and used to follow z-index rules.
+    ///Returns the Key of the deepest element that reaches so, if none matches, returns None
+    pub fn test_hit(
+        &self,
+        element_key: CandyKey,
+        element: &CandyNode<P>,
+        position: Vector2<f32>,
+    ) -> Option<CandyKey> {
+        for child in element.children() {
+            if let Some(_) = self.test_hit(*child, self.elements.get(*child).unwrap(), position) {
+                return Some(*child);
+            };
+        }
+        let mut bounds = element.bounds();
+        if let CandyElement::Text(_) = &element.inner {
+            bounds.y -= bounds.w;
+        }
+        if in_bounds_of(bounds, position) {
+            Some(element_key)
+        } else {
+            None
+        }
+    }
+
+    ///Tries to get the key of the element which `position` is in bounds of. This will check for children first, if none, then it will check by the children parent.
+    pub fn get_element_at(&self, position: Vector2<f32>) -> Option<CandyKey> {
+        for root in self.roots.iter() {
+            if let Some(pos) = self.test_hit(*root, self.elements.get(*root).unwrap(), position) {
+                return Some(pos);
+            }
+        }
+        None
+    }
+
     ///Resizes the layout of the UI-tree with the given `width` and `height` and recomputes the all the elements
     pub fn resize(&mut self, width: f32, height: f32) {
+        self.size.x = width;
+        self.size.y = height;
         self.layout.recalculate(width, height).unwrap();
         let mut idx = 0;
         while let Some(root) = self.roots.get(idx) {

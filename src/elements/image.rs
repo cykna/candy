@@ -12,12 +12,13 @@ use crate::renderer::twod::BiDimensionalPainter;
 use super::CandySquare;
 
 /// A handler for Images on Candy. This is now shown due to rust limitations with dyn, but this is dependent of CandyImgConstructor
-pub trait TwodCandyImg: Any + Sized {
+pub trait TwodCandyImg: Any + Sized + std::fmt::Debug {
     fn from_source<P: AsRef<std::path::Path>>(path: P) -> std::io::Result<Self>;
     fn width(&self) -> u32;
     fn height(&self) -> u32;
 }
 
+#[derive(Debug)]
 ///An Image used to be drawn on by the painter P
 pub struct CandyImage<P: BiDimensionalPainter> {
     inner: P::Image,

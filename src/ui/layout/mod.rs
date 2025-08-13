@@ -74,6 +74,19 @@ impl CandyLayout {
         }
     }
 
+    ///Adds the given `style` on the tree, even tho it's not able to be referenced via names
+    pub fn create_raw_style(
+        &mut self,
+        parent: Option<NodeId>,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        let id = self.taffy.new_leaf(style).map_err(LayoutError::Taffy)?;
+        self.taffy
+            .add_child(parent.unwrap_or(self.root), id)
+            .map_err(LayoutError::Taffy)?;
+        Ok(id)
+    }
+
     ///Recalculates the tree based on the given `width` and `height`.
     pub fn recalculate(&mut self, width: f32, height: f32) -> Result<(), TaffyError> {
         self.taffy.compute_layout(

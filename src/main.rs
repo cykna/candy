@@ -4,11 +4,8 @@ pub mod renderer;
 pub mod text;
 pub mod ui;
 
-use elements::{
-    CandyElement, CandySquare,
-    text::{CandyText, TextAlignment},
-};
-use nalgebra::{Vector, Vector2, Vector4};
+use elements::CandySquare;
+use nalgebra::{Vector2, Vector4};
 use renderer::{
     CandyRenderer,
     candy::CandyDefaultRenderer,
@@ -16,7 +13,7 @@ use renderer::{
 };
 
 use skia_safe::{FontMgr, FontStyle};
-use taffy::{Dimension, Size, Style};
+use taffy::{LengthPercentageAuto, Size, Style, geometry::Rect};
 use text::font::CandyFont;
 use ui::tree::{node::ElementBuilder, tree::CandyTree};
 use winit::{
@@ -164,19 +161,46 @@ fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (f32, f32, f32) {
 
 impl CandyHandler for CandyDefaultHandler {
     fn new(window: Window, config: Config) -> Self {
-        let tf = FontMgr::new()
-            .legacy_make_typeface(Some("Inter"), FontStyle::default())
-            .unwrap();
         let mut ui = CandyTree::new(
             window.inner_size().width as f32,
             window.inner_size().height as f32,
         );
+
         ui.create_style(
             "pedro",
             Style {
                 size: Size::from_percent(0.5, 0.5),
                 ..Default::default()
             },
+        );
+
+        ui.append_root(
+            ElementBuilder::square(CandySquare::new(
+                Vector2::new(50.0, 50.0),
+                Vector2::new(20.0, 20.0),
+                {
+                    let (r, g, b) = hsv_to_rgb(0.5, 1.0, 1.0);
+                    Vector4::new(r, g, b, 1.0)
+                },
+                None,
+                None,
+            ))
+            .classed("pedro")
+            .children(vec![{
+                let tf = FontMgr::new()
+                    .legacy_make_typeface(Some("Inter"), FontStyle::default())
+                    .unwrap();
+                ElementBuilder::text("Marrapai", CandyFont::new(tf, 18.0)).styled(Style {
+                    position: taffy::Position::Absolute,
+                    margin: taffy::geometry::Rect::<LengthPercentageAuto> {
+                        left: LengthPercentageAuto::percent(0.5),
+                        right: LengthPercentageAuto::length(40.0),
+                        top: LengthPercentageAuto::percent(0.5),
+                        bottom: LengthPercentageAuto::percent(0.5),
+                    },
+                    ..Default::default()
+                })
+            }]),
         );
         Self {
             state: 0.0,
@@ -188,29 +212,17 @@ impl CandyHandler for CandyDefaultHandler {
     }
     fn on_mouse_move(&mut self, position: Vector2<f32>) {
         self.mouse_pos = position;
+    }
+    fn on_press(&mut self, button: MouseButton) {
+        self.state += 0.5;
+
         self.renderer
             .twod_renderer()
             .twod_painter()
             .background(&Vector4::new(0.0, 0.0, 0.0, 0.0));
-        self.state += 1.0;
-        self.window.request_redraw();
-    }
-    fn on_press(&mut self, button: MouseButton) {
-        self.ui.clear();
-        self.ui.append_root(
-            ElementBuilder::square(CandySquare::new(
-                Vector2::new(50.0, 50.0),
-                Vector2::new(20.0, 20.0),
-                {
-                    let (r, g, b) = hsv_to_rgb(self.state, 1.0, 1.0);
-                    Vector4::new(r, g, b, 1.0)
-                },
-                None,
-                None,
-            ))
-            .children(vec![])
-            .styled("pedro"),
-        );
+
+        let element = self.ui.get_element_at(self.mouse_pos);
+        println!("{element:?}");
         self.window.request_redraw();
     }
     fn draw(&mut self) {
