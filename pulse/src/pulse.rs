@@ -66,7 +66,7 @@ impl<T, K: Clone + Eq + Hash> Pulse<T, K> {
 
 ///An Observed Pulse is as a normal Pulse but it follows the observer pattern, so the dependencies are functions and there is no specific 'owner'
 pub struct ObservedPulse<T> {
-    dependents: Vec<Box<dyn FnOnce(&T)>>,
+    dependents: Vec<Box<dyn Fn(&T)>>,
     data: T,
 }
 
@@ -80,7 +80,7 @@ impl<T> ObservedPulse<T> {
 
     ///Adds the given dependency on this pulse, so when it modifies, the dependency with the given `dep` value is sent.
     ///The `dep` is intended to be the ID of the thing that depends on this Pulse
-    pub fn add_dependency<F: FnOnce(&T) + 'static>(&mut self, dep: F) {
+    pub fn add_dependency<F: Fn(&T) + 'static>(&mut self, dep: F) {
         self.dependents.push(Box::new(dep));
     }
 
