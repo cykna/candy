@@ -36,6 +36,16 @@ impl<P: BiDimensionalPainter> CandyNode<P> {
         self.style
     }
 
+    ///Removes the child with the given `key` and returns weather it was sucessfully removed or not
+    pub fn remove_child(&mut self, key: CandyKey) -> bool {
+        if let Some(index) = self.children.iter().position(|child| *child == key) {
+            self.children.swap_remove(index);
+            true
+        } else {
+            false
+        }
+    }
+
     ///Adds the given `children` to be the children of this element
     pub fn add_children(&mut self, mut children: Vec<CandyKey>) {
         self.children.append(&mut children);

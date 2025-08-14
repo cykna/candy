@@ -2,6 +2,7 @@ use super::super::layout::CandyLayout;
 use std::collections::HashSet;
 
 use nalgebra::Vector2;
+use pulse::{Pulse, flume};
 use slotmap::SlotMap;
 use taffy::Style;
 
@@ -16,6 +17,8 @@ pub struct CandyTree<P: BiDimensionalPainter> {
     roots: Vec<CandyKey>,
     layout: CandyLayout,
     size: Vector2<f32>,
+    rx: flume::Receiver<CandyKey>,
+    tx: flume::Sender<CandyKey>,
 }
 
 impl<P> CandyTree<P>
@@ -23,15 +26,25 @@ where
     P: BiDimensionalPainter,
 {
     pub fn new(width: f32, height: f32) -> Self {
+        let (tx, rx) = unbounded();
         let mut s = Self {
             layout: CandyLayout::new(),
             roots: Vec::new(),
             elements: SlotMap::with_key(),
             size: Vector2::new(width, height),
+            rx,
+            tx,
         };
         s.resize(width, height);
         s
     }
+
+    ///Creates a new Pulse where this tree is Owner of
+    #[inline]
+    pub fn create_signal<T>(&self, data: T) -> Pulse<T, CandyKey> {
+        pulse::Pulse::new(data, self.tx.clone())
+    }
+
     ///Returns all the children of the element with the given `key`. None if the element doesn't exist
     pub fn children_of(&self, key: CandyKey) -> Option<Vec<&CandyNode<P>>> {
         if let Some(element) = self.elements.get(key) {
@@ -47,7 +60,7 @@ where
 
     ///Renders the given `element` using the `painter` and it's children. `set` is used to get track of which
     ///elements were already drawn, and `key` is the key of the `element` is going to be drawed
-    pub fn render_element(
+    fn render_element(
         &self,
         painter: &mut P,
         element: &CandyNode<P>,
@@ -77,27 +90,28 @@ where
         }
     }
 
-    ///Removes the element with the given `element` key and it's children recursively
+    ///Removes the element with the given `element_key` from the tree. Removes it as well from the parent if it's got some, else, tries to remove it from the root
+    ///Does the same for it's children recursively
     pub fn remove_element(&mut self, element_key: CandyKey) {
         let Some(element) = self.elements.remove(element_key) else {
             return;
         };
+
         if let Some(parent_id) = element.parent() {
-            self.elements.get_mut(parent_id).and_then(|parent| {
-                let Some(found) = parent.children().iter().position(|c| *c == element_key) else {
-                    return Some(());
-                };
-                parent.children_mut().swap_remove(found);
-                Some(())
-            });
+            let _ = self
+                .elements
+                .get_mut(parent_id)
+                .map(|parent| parent.remove_child(element_key));
         } else if let Some(found) = self.roots.iter().position(|r| *r == element_key) {
             self.roots.swap_remove(found);
         }
+
         for child in element.children() {
             self.remove_element(*child);
         }
     }
 
+    ///Appends the given element to the root
     #[inline]
     pub fn append_root(&mut self, element: ElementBuilder<P>) -> CandyKey {
         self.append_element(element, None)
@@ -161,18 +175,21 @@ where
     ///Tests if the `position` is inside the bounds of some child of `element` if not, check for `element`
     ///This function is recursive and used to follow z-index rules.
     ///Returns the Key of the deepest element that reaches so, if none matches, returns None
-    pub fn test_hit(
+    pub fn find_deepest_at(
         &self,
         element_key: CandyKey,
         element: &CandyNode<P>,
         position: Vector2<f32>,
     ) -> Option<CandyKey> {
         for child in element.children() {
-            if let Some(_) = self.test_hit(*child, self.elements.get(*child).unwrap(), position) {
+            if let Some(_) =
+                self.find_deepest_at(*child, self.elements.get(*child).unwrap(), position)
+            {
                 return Some(*child);
             };
         }
         let mut bounds = element.bounds();
+        //Resolve due to offset
         if let CandyElement::Text(_) = &element.inner {
             bounds.y -= bounds.w;
         }
@@ -183,10 +200,12 @@ where
         }
     }
 
-    ///Tries to get the key of the element which `position` is in bounds of. This will check for children first, if none, then it will check by the children parent.
+    ///Tries to get the key of the element which `position` is in bounds of. This will check for children first, if none, then it will check for the children parent.
     pub fn get_element_at(&self, position: Vector2<f32>) -> Option<CandyKey> {
         for root in self.roots.iter() {
-            if let Some(pos) = self.test_hit(*root, self.elements.get(*root).unwrap(), position) {
+            if let Some(pos) =
+                self.find_deepest_at(*root, self.elements.get(*root).unwrap(), position)
+            {
                 return Some(pos);
             }
         }
