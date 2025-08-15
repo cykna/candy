@@ -22,11 +22,13 @@ impl CandyLayout {
                 ..Default::default()
             })
             .unwrap();
-        Self {
+        let mut out = Self {
             taffy,
             root,
             styles: FastHashMap::default(),
-        }
+        };
+        out.create_style("".into(), Style::default());
+        out
     }
     ///Gets the style at the specified index which is child of `parent`
     #[inline]

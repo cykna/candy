@@ -4,7 +4,7 @@ pub mod renderer;
 pub mod text;
 pub mod ui;
 
-use elements::CandySquare;
+use elements::{CandyElement, CandySquare};
 use nalgebra::{Vector2, Vector4};
 use renderer::{
     CandyRenderer,
@@ -15,7 +15,13 @@ use renderer::{
 use skia_safe::{FontMgr, FontStyle};
 use taffy::{LengthPercentageAuto, Size, Style, geometry::Rect};
 use text::font::CandyFont;
-use ui::tree::{node::ElementBuilder, tree::CandyTree};
+use ui::{
+    component::{Component, ComponentRenderer},
+    tree::{
+        node::{CandyKey, CandyNode, ElementBuilder},
+        tree::CandyTree,
+    },
+};
 use winit::{
     dpi::PhysicalSize,
     event::MouseButton,
@@ -137,26 +143,56 @@ pub struct CandyDefaultHandler {
     mouse_pos: Vector2<f32>,
     window: Window,
     renderer: CandyDefaultRenderer,
-    ui: CandyTree<Candy2DRenderer>,
+    ui: CandyTree,
     state: f32,
 }
-fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (f32, f32, f32) {
-    let c = v * s;
-    let x = c * (1.0 - ((h / 60.0) % 2.0 - 1.0).abs());
-    let m = v - c;
-    let h = h as u32 % 360;
 
-    let (r, g, b) = match h {
-        0..=59 => (c, x, 0.0),
-        60..=119 => (x, c, 0.0),
-        120..=179 => (0.0, c, x),
-        180..=239 => (0.0, x, c),
-        240..=299 => (x, 0.0, c),
-        300..=359 => (c, 0.0, x),
-        _ => (0.0, 0.0, 0.0),
-    };
+struct P {}
 
-    (r + m, g + m, b + m)
+struct S {
+    node: CandyNode<ComponentRenderer>,
+    children: Vec<Box<dyn Component>>,
+}
+
+impl Component for S {
+    fn new(tree: &mut CandyTree) -> Self
+    where
+        Self: Sized,
+    {
+        Self {
+            node: ElementBuilder::square(CandySquare::new(
+                Vector2::new(0.0, 0.0),
+                Vector2::new(0.0, 0.0),
+                Vector4::new(1.0, 1.0, 0.0, 1.0),
+                None,
+                None,
+            ))
+            .classed("pedro")
+            .build(tree),
+            children: Vec::new(),
+        }
+    }
+    fn inner(&self) -> &CandyNode<ComponentRenderer> {
+        &self.node
+    }
+    fn inner_mut(&mut self) -> &mut CandyNode<ComponentRenderer> {
+        &mut self.node
+    }
+    fn resize(&mut self, layout: &ui::layout::CandyLayout) {
+        let layout = layout.layout_of(self.node.layout()).unwrap();
+        self.node.resize(layout);
+    }
+
+    fn render(&self, painter: &mut ComponentRenderer) {
+        self.node.render(painter);
+    }
+
+    fn children(&self) -> &Vec<Box<dyn Component>> {
+        &self.children
+    }
+    fn children_mut(&mut self) -> &mut Vec<Box<dyn Component>> {
+        &mut self.children
+    }
 }
 
 impl CandyHandler for CandyDefaultHandler {
@@ -173,35 +209,6 @@ impl CandyHandler for CandyDefaultHandler {
                 ..Default::default()
             },
         );
-
-        ui.append_root(
-            ElementBuilder::square(CandySquare::new(
-                Vector2::new(50.0, 50.0),
-                Vector2::new(20.0, 20.0),
-                {
-                    let (r, g, b) = hsv_to_rgb(0.5, 1.0, 1.0);
-                    Vector4::new(r, g, b, 1.0)
-                },
-                None,
-                None,
-            ))
-            .classed("pedro")
-            .children(vec![{
-                let tf = FontMgr::new()
-                    .legacy_make_typeface(Some("Inter"), FontStyle::default())
-                    .unwrap();
-                ElementBuilder::text("Marrapai", CandyFont::new(tf, 18.0)).styled(Style {
-                    position: taffy::Position::Absolute,
-                    margin: taffy::geometry::Rect::<LengthPercentageAuto> {
-                        left: LengthPercentageAuto::percent(0.5),
-                        right: LengthPercentageAuto::length(40.0),
-                        top: LengthPercentageAuto::percent(0.5),
-                        bottom: LengthPercentageAuto::percent(0.5),
-                    },
-                    ..Default::default()
-                })
-            }]),
-        );
         Self {
             state: 0.0,
             ui,
@@ -215,14 +222,12 @@ impl CandyHandler for CandyDefaultHandler {
     }
     fn on_press(&mut self, button: MouseButton) {
         self.state += 0.5;
-
+        self.ui.append_component::<S>();
         self.renderer
             .twod_renderer()
             .twod_painter()
             .background(&Vector4::new(0.0, 0.0, 0.0, 0.0));
 
-        let element = self.ui.get_element_at(self.mouse_pos);
-        println!("{element:?}");
         self.window.request_redraw();
     }
     fn draw(&mut self) {
