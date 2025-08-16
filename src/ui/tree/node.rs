@@ -1,19 +1,14 @@
-use std::marker::PhantomData;
-
 use nalgebra::{Vector2, Vector4};
 use slotmap::new_key_type;
 
 use smol_str::SmolStr;
-use taffy::{Layout, NodeId, Style};
 
 use crate::{
     elements::{CandyElement, CandySquare, text::CandyText},
     renderer::twod::BiDimensionalPainter,
     text::font::CandyFont,
-    ui::component::{Component, ComponentRenderer},
+    ui::component::ComponentRenderer,
 };
-
-use super::tree::CandyTree;
 
 new_key_type! {pub struct CandyKey;}
 
@@ -22,19 +17,17 @@ new_key_type! {pub struct CandyKey;}
 ///It's used to handle the UI tree and everything from the UI that can be defined as a N-ary Tree
 pub struct CandyNode<P: BiDimensionalPainter> {
     pub(crate) inner: CandyElement<P>,
-    style: NodeId,
+    pub(crate) children: Vec<CandyElement<P>>,
 }
 
 impl<P: BiDimensionalPainter> CandyNode<P> {
-    pub fn new(inner: CandyElement<P>, style: NodeId) -> Self {
-        Self { inner, style }
+    pub fn new(inner: CandyElement<P>) -> Self {
+        Self {
+            inner,
+            children: Vec::new(),
+        }
     }
-    pub fn layout(&self) -> NodeId {
-        self.style
-    }
-    pub fn resize(&mut self, layout: &Layout) {
-        self.inner.resize(layout);
-    }
+
     pub fn render(&self, renderer: &mut P) {
         self.inner.render(renderer);
     }
@@ -79,13 +72,9 @@ impl ElementBuilder {
             style_name: None,
         }
     }
-    pub fn classed(mut self, style: &str) -> Self {
-        self.style_name = Some(style.into());
-        self
-    }
 
     #[inline]
-    pub fn build(self, tree: &mut CandyTree) -> CandyNode<ComponentRenderer> {
-        tree.create_node(None, self)
+    pub fn build(self) -> CandyNode<ComponentRenderer> {
+        CandyNode::new(self.inner)
     }
 }

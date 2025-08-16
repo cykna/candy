@@ -5,7 +5,7 @@ use glutin::{
     prelude::GlSurface,
     surface::{SurfaceAttributesBuilder, WindowSurface},
 };
-use nalgebra::{Vector2, Vector4};
+use nalgebra::Vector4;
 use raw_window_handle::HasWindowHandle;
 use skia_safe::{
     Canvas, Color4f, Paint, Point, RRect, Rect, SamplingOptions, canvas::SrcRectConstraint,
@@ -20,7 +20,7 @@ use crate::{
 };
 
 use super::{
-    BiDimensionalPainter, BiDimensionalRenderer, RenderImageOptions, Renderer2DEnvironment,
+    BiDimensionalPainter, BiDimensionalRenderer, Renderer2DEnvironment,
     helpers::{create_context, create_surface},
 };
 
