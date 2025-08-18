@@ -27,14 +27,27 @@ impl CandySquare {
             border_radius: radius.unwrap_or(Vector2::zeros()),
         }
     }
+
+    ///Gets the position of this square
+    pub fn position_mut(&mut self) -> &mut Vector2<f32> {
+        &mut self.position
+    }
+
+    ///Gets the actual size of this square
+    pub fn size_mut(&mut self) -> &mut Vector2<f32> {
+        &mut self.size
+    }
+
     ///Gets the position of this square
     pub fn position(&self) -> &Vector2<f32> {
         &self.position
     }
+
     ///Gets the actual size of this square
     pub fn size(&self) -> &Vector2<f32> {
         &self.size
     }
+
     ///Gets the color of this square
     pub fn background_color(&self) -> &Vector4<f32> {
         &self.color
@@ -55,5 +68,26 @@ impl CandySquare {
         self.position.y = layout.location.y;
         self.size.x = layout.size.width;
         self.size.y = layout.size.height
+    }
+
+    pub fn with_r(mut self, r: f32) -> Self {
+        self.color.x = r;
+        self
+    }
+    pub fn with_g(mut self, g: f32) -> Self {
+        self.color.y = g;
+        self
+    }
+    pub fn with_b(mut self, b: f32) -> Self {
+        self.color.z = b;
+        self
+    }
+    pub fn with_a(mut self, a: f32) -> Self {
+        self.color.w = a;
+        self
+    }
+    pub fn with_color(mut self, color: Vector4<f32>) -> Self {
+        self.color = color;
+        self
     }
 }

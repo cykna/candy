@@ -1,6 +1,6 @@
 use super::super::layout::CandyLayout;
 use std::{
-    collections::HashSet,
+    collections::{HashSet, VecDeque},
     ops::{Deref, DerefMut},
 };
 
@@ -16,7 +16,7 @@ use taffy::{Layout, NodeId, Style};
 use crate::{
     helpers::in_bounds_of,
     ui::{
-        component::{Component, ComponentRenderer},
+        component::{Component, ComponentRenderer, DummyComponent},
         layout::error::LayoutError,
     },
 };
@@ -49,6 +49,15 @@ impl<M> CandyTree<M> {
         s
     }
 
+    pub fn get_element_with_id(&self, key: CandyKey) -> Option<&Box<dyn Component<M>>> {
+        self.elements.get(key)
+    }
+
+    pub fn get_mut_element_with_id(&mut self, key: CandyKey) -> Option<&mut Box<dyn Component<M>>> {
+        self.elements.get_mut(key)
+    }
+
+    ///Gets the size of the Tree. This should be the equivalent to the window it's at
     pub fn size(&self) -> Vector2<f32> {
         self.size
     }
@@ -64,7 +73,7 @@ impl<M> CandyTree<M> {
         if let Some(element) = self.elements.get(key) {
             let mut out = Vec::new();
             for child in element.children() {
-                out.push(&self.elements[*child]);
+                out.push(&self.elements[child]);
             }
             Some(out)
         } else {
@@ -99,12 +108,10 @@ impl<M> CandyTree<M> {
         }
     }
 
-    pub fn append_component<C: Component<M> + 'static>(
-        &mut self,
-        parent: Option<CandyKey>,
-    ) -> CandyKey {
-        let component = Box::new(C::new(self, parent));
-        self.append_element(component)
+    pub fn append_component<C: Component<M> + 'static>(&mut self, parent: Option<CandyKey>) -> () {
+        //let element = self.elements.insert(Box::new(DummyComponent));
+        //self.elements[element] = Box::new(C::new(self, parent, element));
+        //element
     }
 
     ///Appends the given `root` on this ui as a 'root' element and returns it's ID
@@ -147,7 +154,7 @@ impl<M> CandyTree<M> {
         position: Vector2<f32>,
     ) -> Option<&'a Box<dyn Component<M>>> {
         for child in element.children() {
-            if let Some(e) = self.find_deepest_at(self.elements.get(*child).unwrap(), position) {
+            if let Some(e) = self.find_deepest_at(self.elements.get(child).unwrap(), position) {
                 return Some(e);
             };
         }

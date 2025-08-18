@@ -1,19 +1,31 @@
+use std::marker::PhantomData;
+
 use nalgebra::Vector2;
 use winit::{event_loop::EventLoop, window::WindowAttributes};
 
-use crate::handler::CandyHandler;
+use crate::{
+    handler::{CandyDefaultHandler, CandyHandler},
+    ui::component::RootComponent,
+};
 
 #[derive(Default, Debug)]
-pub struct CandyWindow<T> {
+pub struct CandyWindow<Root, T = CandyDefaultHandler<Root>>
+where
+    Root: RootComponent,
+    T: CandyHandler<Root>,
+{
+    root: PhantomData<Root>,
     handler: Option<T>,
     attribs: WindowAttributes,
 }
-impl<T> CandyWindow<T>
+impl<Root, T> CandyWindow<Root, T>
 where
-    T: CandyHandler,
+    Root: RootComponent,
+    T: CandyHandler<Root>,
 {
     pub fn new(attribs: WindowAttributes) -> Self {
         Self {
+            root: PhantomData,
             handler: None,
             attribs,
         }
@@ -52,9 +64,10 @@ where
     }
 }
 
-impl<T> winit::application::ApplicationHandler for CandyWindow<T>
+impl<Root, T> winit::application::ApplicationHandler for CandyWindow<Root, T>
 where
-    T: CandyHandler,
+    Root: RootComponent,
+    T: CandyHandler<Root>,
 {
     fn resumed(&mut self, _: &winit::event_loop::ActiveEventLoop) {
         #[cfg(not(feature = "opengl"))]

@@ -8,7 +8,7 @@ use text::CandyText;
 
 pub use square::*;
 
-use crate::renderer::twod::BiDimensionalPainter;
+use crate::{renderer::twod::BiDimensionalPainter, ui::component::ComponentRenderer};
 
 ///A trait used to create custom elements.
 pub trait CustomCandyElement<P: BiDimensionalPainter>: std::fmt::Debug {
@@ -22,7 +22,7 @@ pub trait CustomCandyElement<P: BiDimensionalPainter>: std::fmt::Debug {
 }
 
 ///An element on the UI tree which is rendered by the `P` Painter
-pub enum CandyElement<P: BiDimensionalPainter> {
+pub enum CandyElement<P: BiDimensionalPainter = ComponentRenderer> {
     Square(CandySquare),
     Image(CandyImage<P>),
     Text(CandyText),

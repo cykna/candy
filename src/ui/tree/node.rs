@@ -17,7 +17,7 @@ new_key_type! {pub struct CandyKey;}
 ///It's used to handle the UI tree and everything from the UI that can be defined as a N-ary Tree
 pub struct CandyNode<P: BiDimensionalPainter> {
     pub(crate) inner: CandyElement<P>,
-    pub(crate) children: Vec<CandyElement<P>>,
+    pub(crate) children: Vec<CandyNode<P>>,
 }
 
 impl<P: BiDimensionalPainter> CandyNode<P> {
@@ -26,6 +26,10 @@ impl<P: BiDimensionalPainter> CandyNode<P> {
             inner,
             children: Vec::new(),
         }
+    }
+
+    pub fn children_mut(&mut self) -> &mut Vec<CandyNode<P>> {
+        &mut self.children
     }
 
     pub fn render(&self, renderer: &mut P) {
@@ -41,6 +45,7 @@ impl<P: BiDimensionalPainter> CandyNode<P> {
 ///A builder for when adding a new element on the tree
 pub struct ElementBuilder {
     pub(crate) inner: CandyElement<ComponentRenderer>,
+    pub(crate) children: Vec<CandyNode<ComponentRenderer>>,
     pub(crate) style_name: Option<SmolStr>,
 }
 
@@ -53,6 +58,7 @@ impl ElementBuilder {
                 font,
                 Vector4::new(1.0, 1.0, 1.0, 1.0),
             )),
+            children: Vec::new(),
             style_name: None,
         }
     }
@@ -61,6 +67,7 @@ impl ElementBuilder {
     pub fn square(square: CandySquare) -> Self {
         Self {
             inner: CandyElement::Square(square),
+            children: Vec::new(),
             style_name: None,
         }
     }
@@ -69,12 +76,20 @@ impl ElementBuilder {
     pub fn new(element: CandyElement<ComponentRenderer>) -> Self {
         Self {
             inner: element,
+            children: Vec::new(),
             style_name: None,
         }
     }
 
     #[inline]
-    pub fn build(self) -> CandyNode<ComponentRenderer> {
-        CandyNode::new(self.inner)
+    pub fn child(mut self, child: CandyNode<ComponentRenderer>) -> Self {
+        self.children.push(child);
+        self
+    }
+
+    pub fn build(mut self) -> CandyNode<ComponentRenderer> {
+        let mut node = CandyNode::new(self.inner);
+        node.children_mut().append(&mut self.children);
+        node
     }
 }
