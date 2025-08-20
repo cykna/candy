@@ -195,14 +195,16 @@ pub fn hsv_to_rgb8(hsv: Hsv) -> (u8, u8, u8) {
 
 impl State {
     fn resize_children(&mut self) {
-        let mut style =
-            styling::layout::Layout::default().with_corner(styling::layout::Corner::TopLeft);
+        let mut style = styling::layout::Layout::default()
+            .with_corner(styling::layout::Corner::TopLeft)
+            .with_direction(styling::layout::Direction::Horizontal)
+            .with_gap(Vector2::new(Size::Length(5.0), Size::Length(5.0)));
         for _ in &self.squares {
             style = style.with_definition(styling::layout::DefinitionRect {
                 x: Size::Length(0.0),
                 y: Size::Length(0.0),
-                width: Size::Percent(0.05),
-                height: Size::Percent(0.05),
+                width: Size::Percent(0.25),
+                height: Size::Percent(0.25),
             });
         }
         for (idx, r) in style

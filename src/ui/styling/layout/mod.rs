@@ -80,6 +80,11 @@ impl Layout {
         }
     }
 
+    pub fn with_direction(mut self, direction: Direction) -> Self {
+        self.direction = direction;
+        self
+    }
+
     pub fn with_corner(mut self, corner: Corner) -> Self {
         self.corner = corner;
         self
@@ -95,62 +100,12 @@ impl Layout {
         self
     }
 
-    fn calc_space_between(
-        x: &mut f32,
-        y: &mut f32,
-        rect: &Rect,
-        out: &mut Rect,
-        def: DefinitionRect,
-        recip: f32,
-    ) {
-        match def.y {
-            Size::Length(defy) => {
-                out.y = defy + *y;
-                *y += defy
-            }
-            Size::Percent(defy) => {
-                out.y = defy * rect.y + *y;
-                *y += defy * rect.y;
-            }
-        }
-        match def.height {
-            Size::Length(defh) => {
-                out.height = defh * recip * 2.0;
-                *y += out.height;
-            }
-            Size::Percent(defh) => {
-                out.height = defh * rect.height * recip * 2.0;
-                *y += out.height;
-            }
-        }
-
-        if *y > rect.right() {
-            *y = 0.0;
-        }
-
-        match def.x {
-            Size::Length(defx) => {
-                out.x = defx + *x;
-            }
-            Size::Percent(defx) => {
-                out.x = defx * rect.x + *x;
-            }
-        }
-        match def.width {
-            Size::Length(defw) => {
-                out.width = defw;
-            }
-            Size::Percent(defw) => {
-                out.width = defw * rect.width;
-            }
-        }
-    }
-
     fn calc_vertical(
         metrics: &mut CalculationMetrics,
         rect: &Rect,
         out: &mut Rect,
         def: DefinitionRect,
+        gap: Vector2<f32>,
     ) {
         match def.x {
             Size::Length(defx) => out.x = defx + metrics.offset_x,
@@ -171,58 +126,45 @@ impl Layout {
         }
 
         metrics.largest_x = metrics.largest_x.max(out.width);
-        metrics.offset_y += out.height;
+        metrics.offset_y += out.height + gap.y;
         if metrics.offset_y >= rect.bottom() {
             metrics.offset_y = 0.0;
-            metrics.offset_x += metrics.largest_x;
+            metrics.offset_x += metrics.largest_x + gap.x;
             metrics.largest_x = 0.0;
         }
     }
 
     fn calc_horizontal(
-        x: &mut f32,
-        y: &mut f32,
+        metrics: &mut CalculationMetrics,
         rect: &Rect,
         out: &mut Rect,
         def: DefinitionRect,
-        recip: f32,
+        gap: Vector2<f32>,
     ) {
         match def.x {
-            Size::Length(defx) => {
-                out.x = defx + *x;
-                *x += defx;
-            }
-            Size::Percent(defx) => {
-                out.x = defx * rect.x * recip;
-                *x += defx * rect.x;
-            }
+            Size::Length(defx) => out.x = defx + metrics.offset_x,
+            Size::Percent(defx) => out.x = defx * rect.width + metrics.offset_x,
         }
         match def.width {
-            Size::Length(defw) => {
-                out.width = defw;
-                *x += defw;
-            }
-            Size::Percent(defw) => {
-                out.width = defw * rect.width;
-                *x += defw * rect.width;
-            }
+            Size::Length(defw) => out.width = defw,
+            Size::Percent(defw) => out.width = defw * rect.width,
         }
 
         match def.y {
-            Size::Length(defy) => {
-                out.y = (defy + *y) * recip;
-            }
-            Size::Percent(defy) => {
-                out.x = defy * rect.y * recip;
-            }
+            Size::Length(defy) => out.y = defy + metrics.offset_y,
+            Size::Percent(defy) => out.y = defy * rect.height + metrics.offset_y,
         }
         match def.height {
-            Size::Length(defh) => {
-                out.height = defh * recip;
-            }
-            Size::Percent(defh) => {
-                out.height = defh * rect.height * recip;
-            }
+            Size::Length(defh) => out.height = defh,
+            Size::Percent(defh) => out.height = defh * rect.height,
+        }
+
+        metrics.largest_y = metrics.largest_y.max(out.height);
+        metrics.offset_x += out.width + gap.x;
+        if metrics.offset_x >= rect.right() {
+            metrics.offset_x = 0.0;
+            metrics.offset_y += metrics.largest_y + gap.y;
+            metrics.largest_y = 0.0;
         }
     }
 
@@ -232,26 +174,32 @@ impl Layout {
         direction: &Direction,
         def: DefinitionRect,
         rect: &Rect,
-        offset_x: &mut f32,
-        offset_y: &mut f32,
-        recip: f32,
+        gap: Vector2<f32>,
     ) -> Rect {
         let mut out = Rect::default();
         match direction {
-            Direction::Vertical => Self::calc_vertical(metrics, rect, &mut out, def),
-            Direction::Horizontal => {
-                Self::calc_horizontal(offset_x, offset_y, rect, &mut out, def, recip)
-            }
+            Direction::Vertical => Self::calc_vertical(metrics, rect, &mut out, def, gap),
+            Direction::Horizontal => Self::calc_horizontal(metrics, rect, &mut out, def, gap),
         }
         out
     }
 
+    pub fn calculate_gap(&self, rect: &Rect) -> Vector2<f32> {
+        let x = match self.gap.x {
+            Size::Length(gx) => gx,
+            Size::Percent(gx) => gx * rect.width,
+        };
+        let y = match self.gap.y {
+            Size::Length(gy) => gy,
+            Size::Percent(gy) => gy * rect.height,
+        };
+        Vector2::new(x, y)
+    }
+
     pub fn calculate(self, rect: Rect) -> Vec<Rect> {
-        let mut x = 0.0;
-        let mut y = 0.0;
-        let recip = (self.boxes.len() as f32).recip();
         let mut out = Vec::with_capacity(self.boxes.len());
         let mut metrics = CalculationMetrics::default();
+        let gap = self.calculate_gap(&rect);
         for def in self.boxes {
             out.push(Self::calc_definition(
                 &mut metrics,
@@ -259,9 +207,7 @@ impl Layout {
                 &self.direction,
                 def,
                 &rect,
-                &mut x,
-                &mut y,
-                recip,
+                gap,
             ));
         }
         out
