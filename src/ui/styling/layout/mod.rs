@@ -116,7 +116,7 @@ impl Layout {
         self.padding = padding;
         self
     }
-
+    ///Calculates a Rect on the vertical based on the parent `rect`
     fn calc_vertical(
         metrics: &mut CalculationMetrics,
         rect: &Rect,
@@ -154,6 +154,7 @@ impl Layout {
         }
     }
 
+    ///Calculates a Rect on the horizontal based on the parent `rect`
     fn calc_horizontal(
         metrics: &mut CalculationMetrics,
         rect: &Rect,
@@ -192,6 +193,8 @@ impl Layout {
         }
     }
 
+    ///Based on the direction of the layout and the `def` calculates a rect that corresponds, to the order it's being created
+    ///and the size of the parent `rect`
     fn calc_definition(
         metrics: &mut CalculationMetrics,
         corner: &Corner,
@@ -208,6 +211,7 @@ impl Layout {
         out
     }
 
+    ///Calculates the padding in pixels of this Layout
     pub fn calculate_padding(&self, rect: &Rect) -> Vector4<f32> {
         let x = match self.padding.x {
             Size::Length(x) => x,
@@ -229,6 +233,7 @@ impl Layout {
         Vector4::new(x, y, r, b)
     }
 
+    ///Calculates the gap in Pixels of this Layout
     pub fn calculate_gap(&self, rect: &Rect) -> Vector2<f32> {
         let x = match self.gap.x {
             Size::Length(gx) => gx,
@@ -241,6 +246,8 @@ impl Layout {
         Vector2::new(x, y)
     }
 
+    ///Calculates this layout based on its values and the boxes defined. Note that it will generate N Rects, where N is the amount of boxes added before calculating it.
+    ///The boxes are in order of pushing, so the Nth Rect on the out vector is correspondent to the Nth push
     pub fn calculate(self, mut rect: Rect) -> Vec<Rect> {
         let mut out = Vec::with_capacity(self.boxes.len());
 
