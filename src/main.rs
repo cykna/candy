@@ -198,7 +198,13 @@ impl State {
         let mut style = styling::layout::Layout::default()
             .with_corner(styling::layout::Corner::TopLeft)
             .with_direction(styling::layout::Direction::Horizontal)
-            .with_gap(Vector2::new(Size::Length(5.0), Size::Length(5.0)));
+            .with_gap(Vector2::new(Size::Length(10.0), Size::Length(10.0)))
+            .with_padding(Vector4::new(
+                Size::Length(10.0),
+                Size::Length(50.0),
+                Size::Length(10.0),
+                Size::Length(10.0),
+            ));
         for _ in &self.squares {
             style = style.with_definition(styling::layout::DefinitionRect {
                 x: Size::Length(0.0),

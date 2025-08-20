@@ -1,4 +1,4 @@
-use nalgebra::Vector2;
+use nalgebra::{Vector2, Vector4};
 
 use crate::helpers::rect::Rect;
 
@@ -25,7 +25,7 @@ pub enum Size {
 
 impl Default for Size {
     fn default() -> Self {
-        Size::Percent(1.0)
+        Size::Length(0.0)
     }
 }
 
@@ -53,12 +53,24 @@ struct CalculationMetrics {
     pub(crate) largest_y: f32,
 }
 
+impl CalculationMetrics {
+    pub fn new(offset_x: f32, offset_y: f32) -> Self {
+        Self {
+            offset_x,
+            offset_y,
+            largest_x: 0.0,
+            largest_y: 0.0,
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct Layout {
     boxes: Vec<DefinitionRect>,
     gap: Vector2<Size>,
     corner: Corner,
     direction: Direction,
+    padding: Vector4<Size>,
 }
 
 impl Layout {
@@ -100,6 +112,11 @@ impl Layout {
         self
     }
 
+    pub fn with_padding(mut self, padding: Vector4<Size>) -> Self {
+        self.padding = padding;
+        self
+    }
+
     fn calc_vertical(
         metrics: &mut CalculationMetrics,
         rect: &Rect,
@@ -107,28 +124,29 @@ impl Layout {
         def: DefinitionRect,
         gap: Vector2<f32>,
     ) {
-        match def.x {
-            Size::Length(defx) => out.x = defx + metrics.offset_x,
-            Size::Percent(defx) => out.x = defx * rect.width + metrics.offset_x,
-        }
-        match def.width {
-            Size::Length(defw) => out.width = defw,
-            Size::Percent(defw) => out.width = defw * rect.width,
-        }
+        out.x = match def.x {
+            Size::Length(defx) => defx + metrics.offset_x,
+            Size::Percent(defx) => defx * rect.width + metrics.offset_x,
+        };
+        out.width = match def.width {
+            Size::Length(defw) => defw,
+            Size::Percent(defw) => defw * rect.width,
+        };
 
-        match def.y {
-            Size::Length(defy) => out.y = defy + metrics.offset_y,
-            Size::Percent(defy) => out.y = defy * rect.height + metrics.offset_y,
-        }
-        match def.height {
-            Size::Length(defh) => out.height = defh,
-            Size::Percent(defh) => out.height = defh * rect.height,
-        }
+        out.y = match def.y {
+            Size::Length(defy) => defy + metrics.offset_y,
+            Size::Percent(defy) => defy * rect.height + metrics.offset_y,
+        };
+        out.height = match def.height {
+            Size::Length(defh) => defh,
+            Size::Percent(defh) => defh * rect.height,
+        };
 
         metrics.largest_x = metrics.largest_x.max(out.width);
+
         metrics.offset_y += out.height + gap.y;
         if metrics.offset_y >= rect.bottom() {
-            metrics.offset_y = 0.0;
+            metrics.offset_y = rect.y;
             metrics.offset_x += metrics.largest_x + gap.x;
             metrics.largest_x = 0.0;
         }
@@ -141,28 +159,30 @@ impl Layout {
         def: DefinitionRect,
         gap: Vector2<f32>,
     ) {
-        match def.x {
-            Size::Length(defx) => out.x = defx + metrics.offset_x,
-            Size::Percent(defx) => out.x = defx * rect.width + metrics.offset_x,
-        }
-        match def.width {
-            Size::Length(defw) => out.width = defw,
-            Size::Percent(defw) => out.width = defw * rect.width,
-        }
+        out.x = match def.x {
+            Size::Length(defx) => defx + metrics.offset_x,
+            Size::Percent(defx) => defx * rect.width + metrics.offset_x,
+        };
+        out.width = match def.width {
+            Size::Length(defw) => defw,
+            Size::Percent(defw) => defw * rect.width,
+        };
 
-        match def.y {
-            Size::Length(defy) => out.y = defy + metrics.offset_y,
-            Size::Percent(defy) => out.y = defy * rect.height + metrics.offset_y,
-        }
-        match def.height {
-            Size::Length(defh) => out.height = defh,
-            Size::Percent(defh) => out.height = defh * rect.height,
-        }
+        out.y = match def.y {
+            Size::Length(defy) => defy + metrics.offset_y,
+            Size::Percent(defy) => defy * rect.height + metrics.offset_y,
+        };
+        out.height = match def.height {
+            Size::Length(defh) => defh,
+            Size::Percent(defh) => defh * rect.height,
+        };
 
         metrics.largest_y = metrics.largest_y.max(out.height);
+
         metrics.offset_x += out.width + gap.x;
+
         if metrics.offset_x >= rect.right() {
-            metrics.offset_x = 0.0;
+            metrics.offset_x = rect.x;
             metrics.offset_y += metrics.largest_y + gap.y;
             metrics.largest_y = 0.0;
         }
@@ -184,6 +204,27 @@ impl Layout {
         out
     }
 
+    pub fn calculate_padding(&self, rect: &Rect) -> Vector4<f32> {
+        let x = match self.padding.x {
+            Size::Length(x) => x,
+            Size::Percent(x) => rect.width * x,
+        };
+        let y = match self.padding.y {
+            Size::Length(y) => y,
+            Size::Percent(y) => rect.height * y,
+        };
+
+        let r = match self.padding.z {
+            Size::Length(z) => z,
+            Size::Percent(z) => rect.width * z,
+        };
+        let b = match self.padding.w {
+            Size::Length(w) => w,
+            Size::Percent(w) => rect.height * w,
+        };
+        Vector4::new(x, y, r, b)
+    }
+
     pub fn calculate_gap(&self, rect: &Rect) -> Vector2<f32> {
         let x = match self.gap.x {
             Size::Length(gx) => gx,
@@ -196,10 +237,20 @@ impl Layout {
         Vector2::new(x, y)
     }
 
-    pub fn calculate(self, rect: Rect) -> Vec<Rect> {
+    pub fn calculate(self, mut rect: Rect) -> Vec<Rect> {
         let mut out = Vec::with_capacity(self.boxes.len());
-        let mut metrics = CalculationMetrics::default();
+
+        {
+            let padding = self.calculate_padding(&rect);
+            rect.x += padding.x;
+            rect.y += padding.y;
+            rect.width -= padding.z + padding.x;
+            rect.height -= padding.w + padding.y;
+        }
+
         let gap = self.calculate_gap(&rect);
+        let mut metrics = CalculationMetrics::new(rect.x, rect.y);
+
         for def in self.boxes {
             out.push(Self::calc_definition(
                 &mut metrics,
