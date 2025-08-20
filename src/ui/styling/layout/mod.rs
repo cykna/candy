@@ -145,8 +145,10 @@ impl Layout {
         metrics.largest_x = metrics.largest_x.max(out.width);
 
         metrics.offset_y += out.height + gap.y;
-        if metrics.offset_y >= rect.bottom() {
-            metrics.offset_y = rect.y;
+        if metrics.offset_y > rect.bottom() {
+            out.y = rect.y;
+            out.x += metrics.largest_x + gap.x;
+            metrics.offset_y = rect.y + out.height + gap.y;
             metrics.offset_x += metrics.largest_x + gap.x;
             metrics.largest_x = 0.0;
         }
@@ -181,8 +183,10 @@ impl Layout {
 
         metrics.offset_x += out.width + gap.x;
 
-        if metrics.offset_x >= rect.right() {
-            metrics.offset_x = rect.x;
+        if metrics.offset_x > rect.right() {
+            out.x = rect.x;
+            out.y += metrics.largest_y + gap.y;
+            metrics.offset_x = rect.x + out.width + gap.x;
             metrics.offset_y += metrics.largest_y + gap.y;
             metrics.largest_y = 0.0;
         }
