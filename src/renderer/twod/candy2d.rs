@@ -18,7 +18,11 @@ use winit::{dpi::PhysicalSize, window::Window};
 
 use crate::{
     elements::{image::CandyImage, square::CandySquare, text::CandyText},
-    helpers::vec4f32_to_color,
+    helpers::{vec4f32_to_color, vec4f32_to_color_value},
+    ui::{
+        component::Component,
+        styling::fx::{Effect, ShadowEffect},
+    },
 };
 
 use super::{
@@ -144,28 +148,40 @@ impl BiDimensionalRenderer for Candy2DRenderer {
 }
 
 impl Candy2DRenderer {
-    ///Creates a new paint with all the configurations needed to draw `info` square properly
-    pub(crate) fn create_paint_for_square(&mut self, info: &CandySquare) {
-        let color = unsafe { std::mem::transmute::<_, &Color4f>(info.background_color()) };
-        self.paint.set_color4f(color, None);
-
-        self.paint.set_style(skia_safe::PaintStyle::Fill);
+    pub(crate) fn prepare_shadow(&mut self, shadow: ShadowEffect) {
         let filter = image_filters::drop_shadow(
-            Point::new(0.0, 0.0),
-            (10.0, 10.0),
-            Color4f::new(1.0, 1.0, 0.0, 1.0),
+            Point::new(shadow.color.x, shadow.color.y),
+            (shadow.blur.x, shadow.blur.y),
+            vec4f32_to_color_value(shadow.color),
             None,
             None,
             CropRect::NO_CROP_RECT,
         );
         self.paint.set_image_filter(filter);
     }
+
+    ///Prepares the newxt drawing to draw with the effects of the given `component`
+    #[inline]
+    pub fn prepare_for_effects_of<C: Component>(&mut self, component: &C) {
+        self.prepare_for_effect(component.effects());
+    }
+
+    ///Creates a new paint with all the configurations needed to draw `info` square properly
+    pub fn prepare_for_effect(&mut self, effect: impl Effect) {
+        if let Some(shadow) = effect.shadow() {
+            self.prepare_shadow(shadow)
+        };
+    }
 }
 
 impl BiDimensionalPainter for Candy2DRenderer {
     type Image = skia_safe::Image;
     fn square(&mut self, square_info: &CandySquare) {
-        self.create_paint_for_square(square_info);
+        let color = unsafe { std::mem::transmute::<_, &Color4f>(square_info.background_color()) };
+        self.paint.set_color4f(color, None);
+
+        self.paint.set_style(skia_safe::PaintStyle::Fill);
+
         let radius = square_info.border_radius();
 
         let position = square_info.position();

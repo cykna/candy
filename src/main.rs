@@ -21,6 +21,8 @@ use winit::{event::MouseButton, window::Window};
 #[cfg(feature = "opengl")]
 pub use glutin::config::Config;
 
+use crate::ui::styling::fx::Effect;
+
 pub enum Msg {
     None,
     MarkUndirty,
@@ -33,6 +35,18 @@ pub struct Text {
 
 pub struct Square {
     info: CandySquare,
+}
+
+struct RedShadow;
+
+impl Effect for RedShadow {
+    fn shadow(&self) -> Option<styling::fx::ShadowEffect> {
+        Some(styling::fx::ShadowEffect {
+            offset: Vector2::zeros(),
+            color: Vector4::new(1.0, 0.0, 0.0, 1.0),
+            blur: Vector2::new(10.0, 10.0),
+        })
+    }
 }
 
 impl Square {
@@ -68,7 +82,12 @@ impl Component for Square {
         }
     }
 
+    fn effects(&self) -> impl Effect {
+        RedShadow
+    }
+
     fn render(&self, renderer: &mut ComponentRenderer) {
+        renderer.prepare_for_effects_of(self);
         renderer.square(&self.info);
     }
     fn on_message(&mut self, msg: Msg) -> Msg {
@@ -238,32 +257,34 @@ impl State {
     }
 }
 
-impl RootComponent for State {
+impl Component for State {
     type Message = Msg;
-    fn click(&mut self, _: Vector2<f32>, _: MouseButton) -> bool {
-        self.data += 0.1;
-        let hsv = hsv_to_rgb(self.data, 1.0, 1.0);
-        self.squares.push(Square::new(hsv.0, hsv.1, hsv.2));
-        self.resize_children();
-        true
-    }
-    fn resize(&mut self, width: f32, height: f32) {
-        self.w = width;
-        self.h = height;
+    fn resize(&mut self, rect: Rect) {
+        self.w = rect.width;
+        self.h = rect.height;
         self.resize_children();
     }
-    fn render(&self, renderer: &mut ComponentRenderer) -> Self::Message {
+    fn render(&self, renderer: &mut ComponentRenderer) {
         renderer.background(&Vector4::new(0.0, 0.0, 0.0, 0.0));
         for s in &self.squares {
             s.render(renderer);
         }
-        Self::Message::MarkUndirty
     }
     fn on_message(&mut self, msg: Self::Message) -> Self::Message {
         match msg {
             _ => {}
         }
         Self::Message::None
+    }
+}
+
+impl RootComponent for State {
+    fn click(&mut self, _: Vector2<f32>, _: MouseButton) -> bool {
+        self.data += 0.1;
+        let hsv = hsv_to_rgb(self.data, 1.0, 1.0);
+        self.squares.push(Square::new(hsv.0, hsv.1, hsv.2));
+        self.resize_children();
+        true
     }
 }
 

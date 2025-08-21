@@ -66,13 +66,17 @@ where
         };
     }
     fn draw(&mut self) {
-        let msg = self.root.render(self.renderer.twod_renderer());
+        self.root.render(self.renderer.twod_renderer());
         self.renderer.flush();
-        self.root.on_message(msg);
     }
 
     fn resize(&mut self, size: PhysicalSize<u32>) {
-        self.root.resize(size.width as f32, size.height as f32);
+        self.root.resize(crate::helpers::rect::Rect {
+            x: 0.0,
+            y: 0.0,
+            width: size.width as f32,
+            height: size.height as f32,
+        });
         #[cfg(feature = "opengl")]
         {
             self.renderer.resize(&self.window, size.width, size.height);
