@@ -1,6 +1,5 @@
 use crate::text::font::CandyFont;
 use nalgebra::{Vector2, Vector4};
-use taffy::Layout;
 
 #[derive(Debug)]
 ///A handler that contains on how to draw an specific text
@@ -49,11 +48,5 @@ impl CandyText {
     pub fn bounds(&self) -> Vector4<f32> {
         let (_, rect) = self.font.measure_str(self.content(), None);
         Vector4::new(rect.x(), rect.y(), rect.width(), rect.height())
-    }
-
-    #[inline]
-    pub fn resize(&mut self, layout: &Layout) {
-        self.position.x = layout.location.x;
-        self.position.y = layout.location.y;
     }
 }

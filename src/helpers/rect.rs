@@ -1,5 +1,5 @@
 #[repr(C)]
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug, Clone, PartialEq)]
 pub struct Rect {
     pub x: f32,
     pub y: f32,

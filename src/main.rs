@@ -23,6 +23,7 @@ pub use glutin::config::Config;
 
 pub enum Msg {
     None,
+    MarkUndirty,
     Write(String),
 }
 
@@ -51,11 +52,20 @@ impl Square {
 impl Component for Square {
     type Message = Msg;
     fn resize(&mut self, rect: Rect) {
-        self.info.position_mut().x = rect.x;
-        self.info.position_mut().y = rect.y;
+        if rect
+            != (Rect {
+                x: self.info.position().x,
+                y: self.info.position().y,
+                width: self.info.size().x,
+                height: self.info.size().y,
+            })
+        {
+            self.info.position_mut().x = rect.x;
+            self.info.position_mut().y = rect.y;
 
-        self.info.size_mut().x = rect.width;
-        self.info.size_mut().y = rect.height;
+            self.info.size_mut().x = rect.width;
+            self.info.size_mut().y = rect.height;
+        }
     }
 
     fn render(&self, renderer: &mut ComponentRenderer) {
@@ -230,7 +240,7 @@ impl State {
 
 impl RootComponent for State {
     type Message = Msg;
-    fn click(&mut self, position: Vector2<f32>, button: MouseButton) -> bool {
+    fn click(&mut self, _: Vector2<f32>, _: MouseButton) -> bool {
         self.data += 0.1;
         let hsv = hsv_to_rgb(self.data, 1.0, 1.0);
         self.squares.push(Square::new(hsv.0, hsv.1, hsv.2));
@@ -242,19 +252,17 @@ impl RootComponent for State {
         self.h = height;
         self.resize_children();
     }
-    fn render(&self, renderer: &mut ComponentRenderer) {
-        renderer.square(&CandySquare::new(
-            Vector2::new(0.0, 0.0),
-            Vector2::new(self.w, self.h),
-            Vector4::new(0.0, 0.0, 0.0, 0.0),
-            None,
-            None,
-        ));
+    fn render(&self, renderer: &mut ComponentRenderer) -> Self::Message {
+        renderer.background(&Vector4::new(0.0, 0.0, 0.0, 0.0));
         for s in &self.squares {
             s.render(renderer);
         }
+        Self::Message::MarkUndirty
     }
     fn on_message(&mut self, msg: Self::Message) -> Self::Message {
+        match msg {
+            _ => {}
+        }
         Self::Message::None
     }
 }

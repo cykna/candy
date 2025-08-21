@@ -66,8 +66,9 @@ where
         };
     }
     fn draw(&mut self) {
-        self.root.render(self.renderer.twod_renderer());
+        let msg = self.root.render(self.renderer.twod_renderer());
         self.renderer.flush();
+        self.root.on_message(msg);
     }
 
     fn resize(&mut self, size: PhysicalSize<u32>) {

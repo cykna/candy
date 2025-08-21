@@ -5,7 +5,6 @@ use std::{
 
 use nalgebra::{Vector2, Vector4};
 use skia_safe::{Data, Image};
-use taffy::Layout;
 
 use crate::renderer::twod::BiDimensionalPainter;
 
@@ -74,11 +73,6 @@ impl<P: BiDimensionalPainter> CandyImage<P> {
     ///Returns the inner image handle
     pub fn image_handler(&self) -> &P::Image {
         &self.inner
-    }
-
-    #[inline]
-    pub fn resize(&mut self, layout: &Layout) {
-        self.square.resize(layout);
     }
 }
 

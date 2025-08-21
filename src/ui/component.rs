@@ -30,6 +30,6 @@ pub trait RootComponent: Default {
         false
     }
     fn resize(&mut self, width: f32, height: f32);
-    fn render(&self, renderer: &mut ComponentRenderer);
+    fn render(&self, renderer: &mut ComponentRenderer) -> Self::Message;
     fn on_message(&mut self, msg: Self::Message) -> Self::Message;
 }

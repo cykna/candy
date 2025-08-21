@@ -116,6 +116,7 @@ impl Layout {
         self.padding = padding;
         self
     }
+
     ///Calculates a Rect on the vertical based on the parent `rect`
     fn calc_vertical(
         metrics: &mut CalculationMetrics,
