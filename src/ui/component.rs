@@ -33,7 +33,7 @@ pub trait Component {
 pub trait RootComponent: Default + Component {
     ///Emitted when some click arrives. The `position` is the position of the click relative to the top left corner of the window
     ///Returns weather a redraw should be made
-    fn click(&mut self, position: Vector2<f32>, button: MouseButton) -> bool {
+    fn click(&mut self, _: Vector2<f32>, _: MouseButton) -> bool {
         false
     }
 }

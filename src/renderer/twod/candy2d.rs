@@ -199,7 +199,7 @@ impl BiDimensionalPainter for Candy2DRenderer {
         self.canvas()
             .draw_round_rect(&rect, radius.x, radius.y, &paint);
 
-        if border_color.w == 0.0 {
+        if border_color.w == 0.0 || square_info.border_width() == 0.0 {
             return;
         };
         paint
@@ -208,7 +208,7 @@ impl BiDimensionalPainter for Candy2DRenderer {
                 None,
             )
             .set_style(skia_safe::PaintStyle::Stroke)
-            .set_stroke_width(2.0);
+            .set_stroke_width(square_info.border_width());
         self.canvas()
             .draw_round_rect(&rect, radius.x, radius.y, &paint);
     }

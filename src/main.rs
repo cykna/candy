@@ -11,6 +11,7 @@ use helpers::rect::Rect;
 use nalgebra::{Vector2, Vector4};
 use renderer::twod::BiDimensionalPainter;
 
+use skia_safe::FontMgr;
 use ui::{
     component::{Component, ComponentRenderer, RootComponent},
     styling::{self, layout::Size},
@@ -21,7 +22,7 @@ use winit::{event::MouseButton, window::Window};
 #[cfg(feature = "opengl")]
 pub use glutin::config::Config;
 
-use crate::ui::styling::fx::Effect;
+use crate::{elements::text::CandyText, ui::styling::fx::Effect};
 
 pub enum Msg {
     None,
@@ -37,15 +38,24 @@ pub struct Square {
     info: CandySquare,
 }
 
-struct RedShadow;
+struct Shadow {
+    r: f32,
+    g: f32,
+    b: f32,
+}
 
-impl Effect for RedShadow {
+impl Effect for Shadow {
     fn shadow(&self) -> Option<styling::fx::ShadowEffect> {
         Some(styling::fx::ShadowEffect {
-            offset: Vector2::zeros(),
-            color: Vector4::new(1.0, 0.0, 0.0, 1.0),
+            offset: Vector2::new(5.0, 10.0),
+            color: Vector4::new(self.r, self.g, self.b, 1.0),
             blur: Vector2::new(10.0, 10.0),
         })
+    }
+}
+impl Shadow {
+    pub fn new(r: f32, g: f32, b: f32) -> Self {
+        Self { r, g, b }
     }
 }
 
@@ -83,14 +93,15 @@ impl Component for Square {
     }
 
     fn effects(&self) -> impl Effect {
-        RedShadow
+        let color = self.info.background_color();
+        Shadow::new(1.0 - color.x, 1.0 - color.y, 1.0 - color.z)
     }
 
     fn render(&self, renderer: &mut ComponentRenderer) {
         renderer.prepare_for_effects_of(self);
         renderer.square(&self.info);
     }
-    fn on_message(&mut self, msg: Msg) -> Msg {
+    fn on_message(&mut self, _: Msg) -> Msg {
         Msg::None
     }
 }

@@ -8,6 +8,7 @@ pub struct CandySquare {
     position: Vector2<f32>,
     size: Vector2<f32>,
     border_radius: Vector2<f32>,
+    border_width: f32,
     pub(crate) dirty: bool,
 }
 
@@ -25,8 +26,21 @@ impl CandySquare {
             color,
             border_color: border.unwrap_or(Vector4::zeros()),
             border_radius: radius.unwrap_or(Vector2::zeros()),
+            border_width: 0.0,
             dirty: true,
         }
+    }
+
+    ///Sets the border width of this square
+    pub fn with_border_width(mut self, width: f32) -> Self {
+        self.border_width = width;
+        self
+    }
+
+    ///Retrieves the border width of this square
+    #[inline]
+    pub fn border_width(&self) -> f32 {
+        self.border_width
     }
 
     ///Gets the position of this square

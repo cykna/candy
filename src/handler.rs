@@ -3,11 +3,7 @@ use nalgebra::{Vector2, Vector4};
 use winit::{dpi::PhysicalSize, event::MouseButton, window::Window};
 
 use crate::{
-    renderer::{
-        CandyRenderer,
-        candy::CandyDefaultRenderer,
-        twod::{BiDimensionalPainter, BiDimensionalRenderer},
-    },
+    renderer::{CandyRenderer, candy::CandyDefaultRenderer},
     ui::component::RootComponent,
 };
 
