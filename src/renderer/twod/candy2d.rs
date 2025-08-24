@@ -8,21 +8,15 @@ use glutin::{
 use nalgebra::Vector4;
 use raw_window_handle::HasWindowHandle;
 use skia_safe::{
-    Canvas, Color4f, Paint, Point, RRect, Rect, SamplingOptions,
-    canvas::SrcRectConstraint,
+    Canvas, Paint, Point, RRect, Rect, SamplingOptions, canvas::SrcRectConstraint,
     gpu::gl::FramebufferInfo,
-    image_filters::{self, CropRect},
 };
 use std::{ffi::CString, num::NonZero};
 use winit::{dpi::PhysicalSize, window::Window};
 
 use crate::{
-    elements::{image::CandyImage, square::CandySquare, text::CandyText},
-    helpers::{vec4f32_to_color, vec4f32_to_color_value},
-    ui::{
-        component::Component,
-        styling::fx::{Effect, ShadowEffect},
-    },
+    elements::{DrawRule, image::CandyImage, square::CandySquare, text::CandyText},
+    helpers::vec4f32_to_color,
 };
 
 use super::{
@@ -34,7 +28,6 @@ use super::{
 ///Default 2D renderer of Candy. By default a wrapper over skia-safe
 pub struct Candy2DRenderer {
     environment: Renderer2DEnvironment,
-    paint: Paint,
 }
 
 impl Candy2DRenderer {
@@ -113,7 +106,6 @@ impl BiDimensionalRenderer for Candy2DRenderer {
     fn new(window: &Window, config: &Config) -> Self {
         Self {
             environment: Self::create_environment(window, config),
-            paint: Paint::new(Color4f::new(0.0, 0.0, 0.0, 0.0), None),
         }
     }
 
@@ -147,68 +139,32 @@ impl BiDimensionalRenderer for Candy2DRenderer {
     }
 }
 
-impl Candy2DRenderer {
-    pub(crate) fn prepare_shadow(&mut self, shadow: ShadowEffect) {
-        let filter = image_filters::drop_shadow(
-            Point::new(shadow.color.x, shadow.color.y),
-            (shadow.blur.x, shadow.blur.y),
-            vec4f32_to_color_value(shadow.color),
-            None,
-            None,
-            CropRect::NO_CROP_RECT,
-        );
-        self.paint.set_image_filter(filter);
-    }
-
-    ///Prepares the newxt drawing to draw with the effects of the given `component`
-    #[inline]
-    pub fn prepare_for_effects_of<C: Component>(&mut self, component: &C) {
-        self.prepare_for_effect(component.effects());
-    }
-
-    ///Creates a new paint with all the configurations needed to draw `info` square properly
-    pub fn prepare_for_effect(&mut self, effect: impl Effect) {
-        if let Some(shadow) = effect.shadow() {
-            self.prepare_shadow(shadow)
-        };
-    }
-}
-
 impl BiDimensionalPainter for Candy2DRenderer {
     type Image = skia_safe::Image;
-    fn square(&mut self, square_info: &CandySquare) {
-        let color = unsafe { std::mem::transmute::<_, &Color4f>(square_info.background_color()) };
-        self.paint.set_color4f(color, None);
-
-        self.paint.set_style(skia_safe::PaintStyle::Fill);
-
+    fn square(&mut self, square_info: &CandySquare, rule: &DrawRule) {
         let radius = square_info.border_radius();
-
-        let position = square_info.position();
-        let size = square_info.size();
-        let rect = Rect::new(
-            position.x,
-            position.y,
-            position.x + size.x,
-            position.y + size.y,
-        );
-
-        let border_color = square_info.border_color();
-
-        let mut paint = self.paint.clone();
+        let rect = {
+            let position = square_info.position();
+            let size = square_info.size();
+            Rect::new(
+                position.x,
+                position.y,
+                position.x + size.x,
+                position.y + size.y,
+            )
+        };
         self.canvas()
-            .draw_round_rect(&rect, radius.x, radius.y, &paint);
+            .draw_round_rect(rect, radius.x, radius.y, &rule.inner);
+        let border_color = square_info.border_color();
 
         if border_color.w == 0.0 || square_info.border_width() == 0.0 {
             return;
-        };
+        }
+        let mut paint = Paint::new(vec4f32_to_color(border_color), None);
         paint
-            .set_color4f(
-                unsafe { std::mem::transmute::<_, &Color4f>(square_info.border_color()) },
-                None,
-            )
             .set_style(skia_safe::PaintStyle::Stroke)
             .set_stroke_width(square_info.border_width());
+
         self.canvas()
             .draw_round_rect(&rect, radius.x, radius.y, &paint);
     }
@@ -220,17 +176,15 @@ impl BiDimensionalPainter for Candy2DRenderer {
             .draw_circle(Point::new(position.x, position.y), radius, &paint);
     }
 
-    fn text(&mut self, info: &CandyText) {
-        let mut paint = Paint::new(vec4f32_to_color(info.color()), None);
-        paint.set_anti_alias(true);
+    fn text(&mut self, info: &CandyText, rule: &DrawRule) {
         self.canvas().draw_str(
             info.content(),
             Point::new(info.position().x, info.position().y),
             &info.font(),
-            &paint,
+            &rule.inner,
         );
     }
-    fn render_image(&mut self, image: &CandyImage<Self>) {
+    fn render_image(&mut self, image: &CandyImage<Self>, rule: &DrawRule) {
         let w = image.real_width();
         let h = image.real_height();
         let position = image.position();
@@ -240,8 +194,6 @@ impl BiDimensionalPainter for Candy2DRenderer {
             position.x + w as f32,
             position.y + h as f32,
         );
-
-        let paint = Paint::default();
 
         let canvas = self.canvas();
 
@@ -261,7 +213,7 @@ impl BiDimensionalPainter for Candy2DRenderer {
             )),
             rect,
             SamplingOptions::default(),
-            &paint,
+            &rule.inner,
         );
 
         canvas.restore();

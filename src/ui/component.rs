@@ -1,11 +1,7 @@
 use nalgebra::Vector2;
 use winit::event::MouseButton;
 
-use crate::{
-    helpers::rect::Rect,
-    renderer::twod::Candy2DRenderer,
-    ui::styling::fx::{Effect, NoEffect},
-};
+use crate::{elements::DrawRule, helpers::rect::Rect, renderer::twod::Candy2DRenderer};
 
 #[cfg(any(
     feature = "default",
@@ -24,9 +20,11 @@ pub trait Component {
     fn resize(&mut self, rect: Rect);
     ///Method called when this component is requested to redraw with the given `renderer`
     fn render(&self, renderer: &mut ComponentRenderer);
-    fn effects(&self) -> impl Effect {
-        NoEffect
-    }
+
+    fn rule(&self) -> &DrawRule;
+
+    fn update_rule(&mut self) {}
+
     fn on_message(&mut self, msg: Self::Message) -> Self::Message;
 }
 

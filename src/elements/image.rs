@@ -35,7 +35,6 @@ impl<P: BiDimensionalPainter> CandyImage<P> {
             square: square.unwrap_or(CandySquare::new(
                 Vector2::zeros(),
                 Vector2::new(inner.width() as f32, inner.height() as f32),
-                Vector4::zeros(),
                 None,
                 None,
             )),

@@ -12,6 +12,7 @@ pub mod helpers;
 pub use candy2d::Candy2DRenderer;
 
 use crate::elements::{
+    DrawRule,
     image::{CandyImage, TwodCandyImg},
     square::CandySquare,
     text::CandyText,
@@ -53,16 +54,16 @@ pub trait BiDimensionalRenderer {
 pub trait BiDimensionalPainter: Sized + std::fmt::Debug {
     type Image: TwodCandyImg;
     ///Method used to draw a square on the screen using the underlying renderer
-    fn square(&mut self, square_info: &CandySquare);
+    fn square(&mut self, square_info: &CandySquare, rule: &DrawRule);
     ///Method used to draw a circle on the screen using the underlying renderer
     fn circle(&mut self, position: &Vector2<f32>, color: &Vector4<f32>, radius: f32);
     ///Method used to draw a text on the screen using the underlying renderer
-    fn text(&mut self, info: &CandyText);
+    fn text(&mut self, info: &CandyText, rule: &DrawRule);
 
     ///Method uses to draw the given `img` at the given `position`
-    fn render_image(&mut self, info: &CandyImage<Self>);
+    fn render_image(&mut self, info: &CandyImage<Self>, rule: &DrawRule);
 
-    fn background(&mut self, color: &Vector4<f32>);
+    fn background(&mut self, rule: &Vector4<f32>);
 }
 
 pub struct RenderImageOptions {

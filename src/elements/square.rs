@@ -3,7 +3,6 @@ use nalgebra::{Vector2, Vector4};
 ///A handler that contains information about how a square should be drawn.
 #[derive(Debug, Default)]
 pub struct CandySquare {
-    color: Vector4<f32>,
     border_color: Vector4<f32>,
     position: Vector2<f32>,
     size: Vector2<f32>,
@@ -16,14 +15,12 @@ impl CandySquare {
     pub fn new(
         position: Vector2<f32>,
         size: Vector2<f32>,
-        color: Vector4<f32>,
         border: Option<Vector4<f32>>,
         radius: Option<Vector2<f32>>,
     ) -> Self {
         Self {
             position,
             size,
-            color,
             border_color: border.unwrap_or(Vector4::zeros()),
             border_radius: radius.unwrap_or(Vector2::zeros()),
             border_width: 0.0,
@@ -67,11 +64,6 @@ impl CandySquare {
         &self.size
     }
 
-    ///Gets the color of this square
-    pub fn background_color(&self) -> &Vector4<f32> {
-        &self.color
-    }
-
     ///Gets the border color of this square
     pub fn border_color(&self) -> &Vector4<f32> {
         &self.border_color
@@ -80,38 +72,5 @@ impl CandySquare {
     ///Gets the border radius of this square
     pub fn border_radius(&self) -> &Vector2<f32> {
         &self.border_radius
-    }
-
-    ///Modifies the red of the color of this square to be `r`
-    pub fn with_r(mut self, r: f32) -> Self {
-        self.dirty = true;
-        self.color.x = r;
-        self
-    }
-
-    ///Modifies the green of the color of this square to be `g`
-    pub fn with_g(mut self, g: f32) -> Self {
-        self.dirty = true;
-        self.color.y = g;
-        self
-    }
-    ///Modifies the blue of the color of this square to be `b`
-    pub fn with_b(mut self, b: f32) -> Self {
-        self.dirty = true;
-        self.color.z = b;
-        self
-    }
-    ///Modifies the alpha of the color of this square to be `a`
-    pub fn with_a(mut self, a: f32) -> Self {
-        self.dirty = true;
-        self.color.w = a;
-        self
-    }
-    ///Modifies the color of this square to be the given `color`
-    #[inline]
-    pub fn with_color(mut self, color: Vector4<f32>) -> Self {
-        self.dirty = true;
-        self.color = color;
-        self
     }
 }

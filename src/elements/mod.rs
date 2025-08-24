@@ -1,3 +1,5 @@
+mod draw_rule;
+pub use draw_rule::*;
 pub mod image;
 pub mod square;
 pub mod text;
@@ -65,18 +67,6 @@ impl<P: BiDimensionalPainter> CandyElement<P> {
         Self::Custom(Box::new(custom))
     }
 
-    #[inline]
-    ///Requests to the `renderer` to draw this element
-    pub fn render(&self, renderer: &mut P) {
-        match self {
-            Self::Square(info) => renderer.square(info),
-            Self::Image(info) => renderer.render_image(info),
-            Self::Text(info) => renderer.text(info),
-            Self::Clickable { inner, .. } => inner.render(renderer),
-            Self::Custom(custom) => custom.render(renderer),
-        }
-    }
-
     ///Retrieves the position on the ui of this element
     pub fn position(&self) -> &Vector2<f32> {
         match self {
@@ -96,6 +86,12 @@ impl<P: BiDimensionalPainter> CandyElement<P> {
             Self::Text(t) => Vector2::new(t.bounds().z, t.bounds().w),
             Self::Clickable { inner, .. } => inner.size(),
         }
+    }
+
+    pub fn bounds(&self) -> Vector4<f32> {
+        let size = self.size();
+        let pos = self.position();
+        Vector4::new(pos.x, pos.y, size.x, size.y)
     }
 }
 
@@ -117,5 +113,3 @@ where
         }
     }
 }
-
-pub type Rgba = Vector4<f32>;

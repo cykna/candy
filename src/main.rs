@@ -8,7 +8,7 @@ pub mod window;
 
 use elements::CandySquare;
 use helpers::rect::Rect;
-use nalgebra::{Vector2, Vector4};
+use nalgebra::{SimdValue, Vector2, Vector4};
 use renderer::twod::BiDimensionalPainter;
 
 use skia_safe::FontMgr;
@@ -22,7 +22,10 @@ use winit::{event::MouseButton, window::Window};
 #[cfg(feature = "opengl")]
 pub use glutin::config::Config;
 
-use crate::{elements::text::CandyText, ui::styling::fx::Effect};
+use crate::{
+    elements::DrawRule,
+    ui::styling::fx::{Effect, Shadow},
+};
 
 pub enum Msg {
     None,
@@ -35,46 +38,27 @@ pub struct Text {
 }
 
 pub struct Square {
+    rule: DrawRule,
     info: CandySquare,
-}
-
-struct Shadow {
-    r: f32,
-    g: f32,
-    b: f32,
-}
-
-impl Effect for Shadow {
-    fn shadow(&self) -> Option<styling::fx::ShadowEffect> {
-        Some(styling::fx::ShadowEffect {
-            offset: Vector2::new(5.0, 10.0),
-            color: Vector4::new(self.r, self.g, self.b, 1.0),
-            blur: Vector2::new(10.0, 10.0),
-        })
-    }
-}
-impl Shadow {
-    pub fn new(r: f32, g: f32, b: f32) -> Self {
-        Self { r, g, b }
-    }
 }
 
 impl Square {
     pub fn new(r: f32, g: f32, b: f32) -> Self {
+        let mut rule = DrawRule::new();
+        rule.set_color(&Vector4::new(r, g, b, 1.0));
+
         Self {
-            info: CandySquare::new(
-                Vector2::zeros(),
-                Vector2::zeros(),
-                Vector4::new(r, g, b, 1.0),
-                None,
-                None,
-            ),
+            rule,
+            info: CandySquare::new(Vector2::zeros(), Vector2::zeros(), None, None),
         }
     }
 }
 
 impl Component for Square {
     type Message = Msg;
+    fn rule(&self) -> &DrawRule {
+        &self.rule
+    }
     fn resize(&mut self, rect: Rect) {
         if rect
             != (Rect {
@@ -92,14 +76,24 @@ impl Component for Square {
         }
     }
 
-    fn effects(&self) -> impl Effect {
-        let color = self.info.background_color();
-        Shadow::new(1.0 - color.x, 1.0 - color.y, 1.0 - color.z)
+    fn update_rule(&mut self) {
+        let color = self.rule.get_color();
+        let shadow = Shadow::new()
+            .with_color(Vector4::new(1.0, 1.0, 1.0, 2.0) - color)
+            .with_blur(Vector2::new(30.0, 10.0));
+
+        let rect = skia_safe::Rect {
+            left: self.info.position().x,
+            top: self.info.position().y,
+            right: self.info.position().x + self.info.size().x,
+            bottom: self.info.position().y + self.info.size().y,
+        };
+
+        self.rule.apply_effect(shadow, rect);
     }
 
     fn render(&self, renderer: &mut ComponentRenderer) {
-        renderer.prepare_for_effects_of(self);
-        renderer.square(&self.info);
+        renderer.square(&self.info, &self.rule);
     }
     fn on_message(&mut self, _: Msg) -> Msg {
         Msg::None
@@ -111,6 +105,7 @@ struct State {
     w: f32,
     h: f32,
     data: f32,
+    rule: DrawRule,
     squares: Vec<Square>,
 }
 pub struct Hsv {
@@ -264,19 +259,25 @@ impl State {
             .enumerate()
         {
             self.squares[idx].resize(r);
+            self.squares[idx].update_rule();
         }
     }
 }
 
 impl Component for State {
     type Message = Msg;
+
+    fn rule(&self) -> &DrawRule {
+        &self.rule
+    }
+
     fn resize(&mut self, rect: Rect) {
         self.w = rect.width;
         self.h = rect.height;
         self.resize_children();
     }
     fn render(&self, renderer: &mut ComponentRenderer) {
-        renderer.background(&Vector4::new(0.0, 0.0, 0.0, 0.0));
+        renderer.background(&Vector4::new(0.0, 0.1, 0.2, 1.0));
         for s in &self.squares {
             s.render(renderer);
         }
@@ -293,7 +294,10 @@ impl RootComponent for State {
     fn click(&mut self, _: Vector2<f32>, _: MouseButton) -> bool {
         self.data += 0.1;
         let hsv = hsv_to_rgb(self.data, 1.0, 1.0);
-        self.squares.push(Square::new(hsv.0, hsv.1, hsv.2));
+        let mut s = Square::new(hsv.0, hsv.1, hsv.2);
+        s.update_rule();
+        self.squares.push(s);
+
         self.resize_children();
         true
     }
