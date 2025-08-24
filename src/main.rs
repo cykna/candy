@@ -8,10 +8,10 @@ pub mod window;
 
 use elements::CandySquare;
 use helpers::rect::Rect;
-use nalgebra::{SimdValue, Vector2, Vector4};
+use nalgebra::{Vector2, Vector4};
 use renderer::twod::BiDimensionalPainter;
 
-use skia_safe::FontMgr;
+use skia_safe::{FontMgr, FontStyle, Typeface};
 use ui::{
     component::{Component, ComponentRenderer, RootComponent},
     styling::{self, layout::Size},
@@ -23,8 +23,9 @@ use winit::{event::MouseButton, window::Window};
 pub use glutin::config::Config;
 
 use crate::{
-    elements::DrawRule,
-    ui::styling::fx::{Effect, Shadow},
+    elements::{DrawRule, text::CandyText},
+    text::{font::CandyFont, manager::FontManager},
+    ui::styling::fx::Shadow,
 };
 
 pub enum Msg {
@@ -33,21 +34,24 @@ pub enum Msg {
     Write(String),
 }
 
-pub struct Text {
-    text: String,
-}
-
 pub struct Square {
+    text: CandyText,
     rule: DrawRule,
     info: CandySquare,
 }
 
 impl Square {
-    pub fn new(r: f32, g: f32, b: f32) -> Self {
+    pub fn new(r: f32, g: f32, b: f32, font: CandyFont) -> Self {
         let mut rule = DrawRule::new();
         rule.set_color(&Vector4::new(r, g, b, 1.0));
 
         Self {
+            text: CandyText::new(
+                "pedro",
+                Vector2::new(50.0, 50.0),
+                font,
+                Vector4::new(1.0, 1.0, 1.0, 1.0),
+            ),
             rule,
             info: CandySquare::new(Vector2::zeros(), Vector2::zeros(), None, None),
         }
@@ -73,14 +77,16 @@ impl Component for Square {
 
             self.info.size_mut().x = rect.width;
             self.info.size_mut().y = rect.height;
+            self.text.position_mut().x = rect.x;
+            self.text.position_mut().y = rect.y;
         }
     }
 
     fn update_rule(&mut self) {
         let color = self.rule.get_color();
         let shadow = Shadow::new()
-            .with_color(Vector4::new(1.0, 1.0, 1.0, 2.0) - color)
-            .with_blur(Vector2::new(30.0, 10.0));
+            .with_color(color)
+            .with_blur(Vector2::new(5.0, 5.0));
 
         let rect = skia_safe::Rect {
             left: self.info.position().x,
@@ -93,7 +99,7 @@ impl Component for Square {
     }
 
     fn render(&self, renderer: &mut ComponentRenderer) {
-        renderer.square(&self.info, &self.rule);
+        renderer.text(&self.text, &self.rule);
     }
     fn on_message(&mut self, _: Msg) -> Msg {
         Msg::None
@@ -107,6 +113,7 @@ struct State {
     data: f32,
     rule: DrawRule,
     squares: Vec<Square>,
+    manager: FontManager,
 }
 pub struct Hsv {
     /// Hue in [0,1). 0 and 1 represent the same angle.
@@ -294,7 +301,12 @@ impl RootComponent for State {
     fn click(&mut self, _: Vector2<f32>, _: MouseButton) -> bool {
         self.data += 0.1;
         let hsv = hsv_to_rgb(self.data, 1.0, 1.0);
-        let mut s = Square::new(hsv.0, hsv.1, hsv.2);
+        let mut s = Square::new(
+            hsv.0,
+            hsv.1,
+            hsv.2,
+            self.manager.create_font("Nimbus Roman", 24.0),
+        );
         s.update_rule();
         self.squares.push(s);
 

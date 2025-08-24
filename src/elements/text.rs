@@ -33,6 +33,11 @@ impl CandyText {
     }
 
     ///Gets the inner position of this text
+    pub fn position_mut(&mut self) -> &mut Vector2<f32> {
+        &mut self.position
+    }
+
+    ///Gets the inner position of this text
     #[inline]
     pub fn position(&self) -> &Vector2<f32> {
         &self.position

@@ -1,15 +1,12 @@
 use nalgebra::Vector4;
-use skia_safe::Blender;
+
 use skia_safe::Color4f;
 use skia_safe::image_filters;
 use skia_safe::image_filters::CropRect;
 
-use skia_safe::ColorChannel;
-use skia_safe::ColorFilter;
 use skia_safe::Paint;
 use skia_safe::Point;
 use skia_safe::Rect;
-use skia_safe::SamplingOptions;
 
 use crate::helpers::vec4f32_to_color;
 use crate::helpers::vec4f32_to_color_value;

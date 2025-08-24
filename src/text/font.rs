@@ -10,7 +10,7 @@ pub struct CandyFont {
 impl CandyFont {
     pub fn from_file(path: &str, size: f32) -> Option<Self> {
         let f = File::open(path).ok()?;
-        println!("{f:?}");
+
         let mut reader = BufReader::new(f);
 
         Some(Self::new(
