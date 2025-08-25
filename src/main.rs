@@ -48,21 +48,18 @@ impl Square {
         Self {
             text: CandyText::new(
                 "pedro",
-                Vector2::new(50.0, 50.0),
+                Vector2::zeros(),
                 font,
-                Vector4::new(1.0, 1.0, 1.0, 1.0),
+               
             ),
             rule,
-            info: CandySquare::new(Vector2::zeros(), Vector2::zeros(), None, None),
+            info: CandySquare::new(Vector2::zeros(), Vector2::zeros(),
         }
     }
 }
 
 impl Component for Square {
     type Message = Msg;
-    fn rule(&self) -> &DrawRule {
-        &self.rule
-    }
     fn resize(&mut self, rect: Rect) {
         if rect
             != (Rect {
@@ -82,24 +79,8 @@ impl Component for Square {
         }
     }
 
-    fn update_rule(&mut self) {
-        let color = self.rule.get_color();
-        let shadow = Shadow::new()
-            .with_color(color)
-            .with_blur(Vector2::new(5.0, 5.0));
-
-        let rect = skia_safe::Rect {
-            left: self.info.position().x,
-            top: self.info.position().y,
-            right: self.info.position().x + self.info.size().x,
-            bottom: self.info.position().y + self.info.size().y,
-        };
-
-        self.rule.apply_effect(shadow, rect);
-    }
-
     fn render(&self, renderer: &mut ComponentRenderer) {
-        renderer.text(&self.text, &self.rule);
+        renderer.text(&self.text);
     }
     fn on_message(&mut self, _: Msg) -> Msg {
         Msg::None
@@ -111,7 +92,6 @@ struct State {
     w: f32,
     h: f32,
     data: f32,
-    rule: DrawRule,
     squares: Vec<Square>,
     manager: FontManager,
 }
@@ -274,10 +254,6 @@ impl State {
 impl Component for State {
     type Message = Msg;
 
-    fn rule(&self) -> &DrawRule {
-        &self.rule
-    }
-
     fn resize(&mut self, rect: Rect) {
         self.w = rect.width;
         self.h = rect.height;
@@ -298,6 +274,15 @@ impl Component for State {
 }
 
 impl RootComponent for State {
+    fn new() -> Self {
+        Self {
+            w: 0.0,
+            h: 0.0,
+            data: 0.0,
+            squares: Vec::new(),
+            manager: FontManager::new()
+        }
+    }
     fn click(&mut self, _: Vector2<f32>, _: MouseButton) -> bool {
         self.data += 0.1;
         let hsv = hsv_to_rgb(self.data, 1.0, 1.0);

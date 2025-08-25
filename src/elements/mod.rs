@@ -83,7 +83,7 @@ impl<P: BiDimensionalPainter> CandyElement<P> {
             Self::Square(s) => *s.size(),
             Self::Custom(c) => *c.size(),
             Self::Image(i) => *i.size(),
-            Self::Text(t) => Vector2::new(t.bounds().z, t.bounds().w),
+            Self::Text(t) => Vector2::new(t.bounds().width, t.bounds().height),
             Self::Clickable { inner, .. } => inner.size(),
         }
     }

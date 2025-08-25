@@ -54,14 +54,14 @@ pub trait BiDimensionalRenderer {
 pub trait BiDimensionalPainter: Sized + std::fmt::Debug {
     type Image: TwodCandyImg;
     ///Method used to draw a square on the screen using the underlying renderer
-    fn square(&mut self, square_info: &CandySquare, rule: &DrawRule);
+    fn square(&mut self, square_info: &CandySquare);
     ///Method used to draw a circle on the screen using the underlying renderer
     fn circle(&mut self, position: &Vector2<f32>, color: &Vector4<f32>, radius: f32);
     ///Method used to draw a text on the screen using the underlying renderer
-    fn text(&mut self, info: &CandyText, rule: &DrawRule);
+    fn text(&mut self, info: &CandyText);
 
     ///Method uses to draw the given `img` at the given `position`
-    fn render_image(&mut self, info: &CandyImage<Self>, rule: &DrawRule);
+    fn render_image(&mut self, info: &CandyImage<Self>);
 
     fn background(&mut self, rule: &Vector4<f32>);
 }

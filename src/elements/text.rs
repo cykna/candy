@@ -1,22 +1,24 @@
-use crate::text::font::CandyFont;
+use crate::{
+    elements::DrawRule, helpers::rect::Rect, text::font::CandyFont, ui::styling::style::Style,
+};
 use nalgebra::{Vector2, Vector4};
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 ///A handler that contains on how to draw an specific text
 pub struct CandyText {
     font: CandyFont,
-    color: Vector4<f32>,
     text: String,
     position: Vector2<f32>,
+    pub(crate) rule: DrawRule,
 }
 
 impl CandyText {
-    pub fn new(text: &str, position: Vector2<f32>, font: CandyFont, color: Vector4<f32>) -> Self {
+    pub fn new(text: &str, position: Vector2<f32>, font: CandyFont) -> Self {
         Self {
             text: text.to_string(),
             position,
             font,
-            color,
+            rule: DrawRule::new(),
         }
     }
 
@@ -24,6 +26,12 @@ impl CandyText {
     #[inline]
     pub fn content(&self) -> &str {
         &self.text
+    }
+
+    ///Gets the content of this text
+    #[inline]
+    pub fn content_mut(&mut self) -> &mut String {
+        &mut self.text
     }
 
     ///Gets the inner font of this text
@@ -42,16 +50,26 @@ impl CandyText {
     pub fn position(&self) -> &Vector2<f32> {
         &self.position
     }
-    ///Gets the color of this text
-    #[inline]
-    pub fn color(&self) -> &Vector4<f32> {
-        &self.color
+    pub fn resize(&mut self, rect: Rect) {
+        self.position.x = rect.x;
+        self.position.y = rect.y;
     }
 
     ///Gets the bounds of this Text. XY are the position while ZW are width and height
     #[inline]
-    pub fn bounds(&self) -> Vector4<f32> {
+    pub fn bounds(&self) -> Rect {
         let (_, rect) = self.font.measure_str(self.content(), None);
-        Vector4::new(rect.x(), rect.y(), rect.width(), rect.height())
+        Rect {
+            x: rect.y(),
+            y: rect.y(),
+            width: rect.width(),
+            height: rect.height(),
+        }
+    }
+
+    ///Applies the given style to this square
+    #[inline]
+    pub fn apply_style(&mut self, style: &impl Style) {
+        self.rule.apply_style(style);
     }
 }

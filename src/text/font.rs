@@ -2,7 +2,7 @@ use std::{fs::File, io::BufReader, ops::Deref};
 
 use skia_safe::{Font, FontMgr, Typeface};
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct CandyFont {
     font: Font,
 }

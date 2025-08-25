@@ -1,4 +1,4 @@
-use nalgebra::{Vector2, Vector4};
+use nalgebra::Vector2;
 
 use winit::{dpi::PhysicalSize, event::MouseButton, window::Window};
 
@@ -49,7 +49,7 @@ where
             mouse_pos: Vector2::new(0.0, 0.0),
             renderer: CandyDefaultRenderer::new(&window, &config),
             window,
-            root: Root::default(),
+            root: Root::new(),
         }
     }
     #[inline]

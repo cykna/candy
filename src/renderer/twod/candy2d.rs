@@ -15,7 +15,7 @@ use std::{ffi::CString, num::NonZero};
 use winit::{dpi::PhysicalSize, window::Window};
 
 use crate::{
-    elements::{DrawRule, image::CandyImage, square::CandySquare, text::CandyText},
+    elements::{image::CandyImage, square::CandySquare, text::CandyText},
     helpers::vec4f32_to_color,
 };
 
@@ -141,8 +141,9 @@ impl BiDimensionalRenderer for Candy2DRenderer {
 
 impl BiDimensionalPainter for Candy2DRenderer {
     type Image = skia_safe::Image;
-    fn square(&mut self, square_info: &CandySquare, rule: &DrawRule) {
-        let radius = square_info.border_radius();
+    fn square(&mut self, square_info: &CandySquare) {
+        let rule = &square_info.rule;
+        let radius = rule.border_radius;
         let rect = {
             let position = square_info.position();
             let size = square_info.size();
@@ -155,15 +156,15 @@ impl BiDimensionalPainter for Candy2DRenderer {
         };
         self.canvas()
             .draw_round_rect(rect, radius.x, radius.y, &rule.inner);
-        let border_color = square_info.border_color();
+        let border_color = rule.border_color;
 
-        if border_color.w == 0.0 || square_info.border_width() == 0.0 {
+        if border_color.w == 0.0 || rule.border_width == 0.0 {
             return;
         }
-        let mut paint = Paint::new(vec4f32_to_color(border_color), None);
+        let mut paint = Paint::new(vec4f32_to_color(&border_color), None);
         paint
             .set_style(skia_safe::PaintStyle::Stroke)
-            .set_stroke_width(square_info.border_width());
+            .set_stroke_width(rule.border_width);
 
         self.canvas()
             .draw_round_rect(&rect, radius.x, radius.y, &paint);
@@ -176,7 +177,8 @@ impl BiDimensionalPainter for Candy2DRenderer {
             .draw_circle(Point::new(position.x, position.y), radius, &paint);
     }
 
-    fn text(&mut self, info: &CandyText, rule: &DrawRule) {
+    fn text(&mut self, info: &CandyText) {
+        let rule = &info.rule;
         self.canvas().draw_str(
             info.content(),
             Point::new(info.position().x, info.position().y),
@@ -184,7 +186,8 @@ impl BiDimensionalPainter for Candy2DRenderer {
             &rule.inner,
         );
     }
-    fn render_image(&mut self, image: &CandyImage<Self>, rule: &DrawRule) {
+    fn render_image(&mut self, image: &CandyImage<Self>) {
+        let rule = &image.rule;
         let w = image.real_width();
         let h = image.real_height();
         let position = image.position();
@@ -200,7 +203,7 @@ impl BiDimensionalPainter for Candy2DRenderer {
         canvas.save();
 
         canvas.clip_rrect(
-            &RRect::new_rect_xy(&rect, image.border_radius().x, image.border_radius().y),
+            &RRect::new_rect_xy(&rect, rule.border_radius.x, rule.border_radius.y),
             None,
             true,
         );
