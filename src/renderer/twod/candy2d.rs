@@ -143,6 +143,7 @@ impl BiDimensionalPainter for Candy2DRenderer {
     type Image = skia_safe::Image;
     fn square(&mut self, square_info: &CandySquare) {
         let rule = &square_info.rule;
+
         let radius = rule.border_radius;
         let rect = {
             let position = square_info.position();
@@ -154,6 +155,7 @@ impl BiDimensionalPainter for Candy2DRenderer {
                 position.y + size.y,
             )
         };
+
         self.canvas()
             .draw_round_rect(rect, radius.x, radius.y, &rule.inner);
         let border_color = rule.border_color;
@@ -179,6 +181,7 @@ impl BiDimensionalPainter for Candy2DRenderer {
 
     fn text(&mut self, info: &CandyText) {
         let rule = &info.rule;
+
         self.canvas().draw_str(
             info.content(),
             Point::new(info.position().x, info.position().y),

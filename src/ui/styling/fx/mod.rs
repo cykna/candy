@@ -7,7 +7,7 @@ pub struct ShadowEffect {
     pub blur: Vector2<f32>,
 }
 
-pub trait Effect {
+pub trait Effect: Default {
     fn shadow(&self) -> Option<ShadowEffect> {
         None
     }

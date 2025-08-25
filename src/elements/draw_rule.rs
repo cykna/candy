@@ -12,6 +12,7 @@ use skia_safe::Rect;
 use crate::helpers::vec4f32_to_color;
 use crate::helpers::vec4f32_to_color_value;
 use crate::ui::styling::fx::Effect;
+use crate::ui::styling::fx::NoEffect;
 use crate::ui::styling::style::Style;
 
 #[derive(Debug, Default)]
@@ -62,13 +63,18 @@ impl DrawRule {
                 CropRect::from(rect),
             ))
         };
-
+        if effects.is_empty() {
+            return;
+        }
         let out = image_filters::merge(effects, CropRect::from(&rect));
         self.inner.set_image_filter(out);
     }
 
     pub fn apply_style(&mut self, style: &impl Style) {
-        self.apply_effect(style.effect(), Rect::new_empty());
+        let effect = style.effect();
+
+        self.apply_effect(style.effect(), Rect::new(0.0, 0.0, 2000.0, 2000.0));
+
         self.set_color(&style.color());
         self.border_color = style.border_color();
         self.border_radius = style.border_radius();

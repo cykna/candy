@@ -11,7 +11,6 @@ use helpers::rect::Rect;
 use nalgebra::{Vector2, Vector4};
 use renderer::twod::BiDimensionalPainter;
 
-use skia_safe::{FontMgr, FontStyle, Typeface};
 use ui::{
     component::{Component, ComponentRenderer, RootComponent},
     styling::{self, layout::Size},
@@ -25,7 +24,6 @@ pub use glutin::config::Config;
 use crate::{
     elements::{DrawRule, text::CandyText},
     text::{font::CandyFont, manager::FontManager},
-    ui::styling::fx::Shadow,
 };
 
 pub enum Msg {
@@ -46,14 +44,9 @@ impl Square {
         rule.set_color(&Vector4::new(r, g, b, 1.0));
 
         Self {
-            text: CandyText::new(
-                "pedro",
-                Vector2::zeros(),
-                font,
-               
-            ),
+            text: CandyText::new("pedro", Vector2::zeros(), font),
             rule,
-            info: CandySquare::new(Vector2::zeros(), Vector2::zeros(),
+            info: CandySquare::new(Vector2::zeros(), Vector2::zeros()),
         }
     }
 }
@@ -246,7 +239,6 @@ impl State {
             .enumerate()
         {
             self.squares[idx].resize(r);
-            self.squares[idx].update_rule();
         }
     }
 }
@@ -280,19 +272,19 @@ impl RootComponent for State {
             h: 0.0,
             data: 0.0,
             squares: Vec::new(),
-            manager: FontManager::new()
+            manager: FontManager::new(),
         }
     }
     fn click(&mut self, _: Vector2<f32>, _: MouseButton) -> bool {
         self.data += 0.1;
         let hsv = hsv_to_rgb(self.data, 1.0, 1.0);
-        let mut s = Square::new(
+        let s = Square::new(
             hsv.0,
             hsv.1,
             hsv.2,
             self.manager.create_font("Nimbus Roman", 24.0),
         );
-        s.update_rule();
+
         self.squares.push(s);
 
         self.resize_children();

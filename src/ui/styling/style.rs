@@ -9,7 +9,7 @@ pub trait Style {
     }
 
     ///Retrieves the effects of this Style
-    fn effect(&self) -> impl Effect {
+    fn effect(&self) -> impl Effect + 'static {
         NoEffect
     }
 

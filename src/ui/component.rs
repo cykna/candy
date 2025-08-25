@@ -26,14 +26,14 @@ pub trait Component {
     ///Method called when this component is requested to redraw with the given `renderer`
     fn render(&self, renderer: &mut ComponentRenderer);
 
-    fn style(&self) -> impl Style {
+    fn style(&self) -> impl Style + 'static {
         DefaultStyle
     }
 
     fn on_message(&mut self, msg: Self::Message) -> Self::Message;
 }
 
-pub trait RootComponent: Default + Component {
+pub trait RootComponent: Component {
     fn new() -> Self;
     ///Emitted when some click arrives. The `position` is the position of the click relative to the top left corner of the window
     ///Returns weather a redraw should be made
