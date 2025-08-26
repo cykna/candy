@@ -24,4 +24,8 @@ impl Rect {
     pub fn contains(&self, pos: Vector2<f32>) -> bool {
         pos.x >= self.x && pos.y >= self.y && pos.x <= self.right() && pos.y <= self.bottom()
     }
+
+    pub fn center(&self) -> Vector2<f32> {
+        Vector2::new(self.x + self.width * 0.5, self.y + self.height * 0.5)
+    }
 }

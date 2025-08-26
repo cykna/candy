@@ -10,6 +10,13 @@ pub struct Shadow {
 }
 
 impl Shadow {
+    ///Creates a new Shadow with the provided `color`
+    pub fn colored(color: Vector4<f32>) -> Self {
+        Self {
+            color,
+            ..Default::default()
+        }
+    }
     pub fn new() -> Self {
         Self::default()
     }

@@ -1,12 +1,7 @@
 use nalgebra::Vector2;
 use winit::event::MouseButton;
 
-use crate::{
-    elements::DrawRule,
-    helpers::rect::Rect,
-    renderer::twod::Candy2DRenderer,
-    ui::styling::style::{DefaultStyle, Style},
-};
+use crate::{helpers::rect::Rect, renderer::twod::Candy2DRenderer, ui::styling::style::Style};
 
 #[cfg(any(
     feature = "default",
@@ -20,17 +15,14 @@ pub type ComponentRenderer = Candy2DRenderer;
 pub type ComponentRenderer = external_renderer::UiRenderer;
 
 pub trait Component {
-    type Message;
     ///Method called when some parent tries to resize this component. The `rect` parameter is the bounds calculated
     fn resize(&mut self, rect: Rect);
     ///Method called when this component is requested to redraw with the given `renderer`
     fn render(&self, renderer: &mut ComponentRenderer);
 
-    fn style(&self) -> impl Style + 'static {
-        DefaultStyle
-    }
-
-    fn on_message(&mut self, msg: Self::Message) -> Self::Message;
+    fn apply_style<S>(&mut self, style: &S)
+    where
+        S: Style;
 }
 
 pub trait RootComponent: Component {

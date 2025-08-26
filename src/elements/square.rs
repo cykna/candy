@@ -12,8 +12,7 @@ pub struct CandySquare {
 
 impl CandySquare {
     pub fn new(position: Vector2<f32>, size: Vector2<f32>) -> Self {
-        let mut rule = DrawRule::new();
-        rule.set_color(&Vector4::new(1.0, 0.0, 0.0, 1.0));
+        let rule = DrawRule::new();
         Self {
             position,
             size,
@@ -63,5 +62,11 @@ impl CandySquare {
     #[inline]
     pub fn apply_style(&mut self, style: &impl Style) {
         self.rule.apply_style(style);
+    }
+
+    #[inline]
+    pub fn with_style(mut self, style: &impl Style) -> Self {
+        self.rule.apply_style(style);
+        self
     }
 }

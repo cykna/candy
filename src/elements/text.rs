@@ -72,4 +72,10 @@ impl CandyText {
     pub fn apply_style(&mut self, style: &impl Style) {
         self.rule.apply_style(style);
     }
+
+    #[inline]
+    pub fn with_style(mut self, style: &impl Style) -> Self {
+        self.rule.apply_style(style);
+        self
+    }
 }
