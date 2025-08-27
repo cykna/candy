@@ -7,6 +7,7 @@ pub mod text;
 pub mod ui;
 pub mod window;
 
+use crate::{components::Button, ui::styling::fx::Effect};
 use elements::CandySquare;
 use helpers::rect::Rect;
 use nalgebra::{Vector2, Vector4};
@@ -24,9 +25,10 @@ use winit::{event::MouseButton, window::Window};
 pub use glutin::config::Config;
 
 use crate::{
+    components::Text,
     elements::text::CandyText,
     text::{font::CandyFont, manager::FontManager},
-    ui::styling::{fx::Effect, style::Style},
+    ui::styling::style::Style,
 };
 
 pub enum Msg {
@@ -57,9 +59,11 @@ impl Style for Red {
         Vector2::new(5.0, 5.0)
     }
 
-    fn effect(&self) -> impl Effect + 'static {
-        Shadow::colored((self.border_color() + Vector4::new(1.0, 1.0, 1.0, 1.0)) * 0.5)
-            .with_blur(Vector2::new(10.0, 10.0))
+    fn effect(&self) -> Box<dyn Effect> {
+        Box::new(
+            Shadow::colored((self.border_color() + Vector4::new(1.0, 1.0, 1.0, 1.0)) * 0.5)
+                .with_blur(Vector2::new(10.0, 10.0)),
+        )
     }
 }
 
@@ -96,6 +100,8 @@ impl Component for Square {
         renderer.square(&self.info);
         renderer.text(&self.text);
     }
+
+    fn apply_style(&mut self, _: &dyn Style) {}
 }
 
 #[derive(Default)]
@@ -103,7 +109,7 @@ struct State {
     w: f32,
     h: f32,
     data: f32,
-    squares: Vec<Square>,
+    squares: Vec<Button<Msg>>,
     manager: FontManager,
 }
 impl State {
@@ -153,22 +159,70 @@ impl Component for State {
             s.render(renderer);
         }
     }
+    fn apply_style(&mut self, _: &dyn Style) {}
+}
+
+pub struct RedShadow;
+impl Style for RedShadow {
+    fn effect(&self) -> Box<dyn crate::ui::styling::fx::Effect> {
+        Box::new(RedShadow)
+    }
+    fn background_color(&self) -> Vector4<f32> {
+        Vector4::new(0.0, 1.0, 1.0, 0.5)
+    }
+    fn color(&self) -> Vector4<f32> {
+        Vector4::new(1.0, 1.0, 0.0, 1.0)
+    }
+}
+
+impl Effect for RedShadow {
+    fn shadow(&self) -> Option<crate::ui::styling::fx::ShadowEffect> {
+        Some(crate::ui::styling::fx::ShadowEffect {
+            color: Vector4::new(1.0, 0.0, 0.0, 1.0),
+            offset: Vector2::new(20.0, 20.0),
+            blur: Vector2::new(10.0, 10.0),
+        })
+    }
 }
 
 impl RootComponent for State {
     fn new() -> Self {
+        let font = FontManager::new();
+        let content = font.create_font("Fira Sans", 24.0);
         Self {
             w: 0.0,
             h: 0.0,
             data: 0.0,
-            squares: Vec::new(),
-            manager: FontManager::new(),
+            squares: vec![{
+                let mut btn = Button::new(Text::new_content("Hello World", content), |pos, btn| {
+                    println!("Ola amigo {pos} {btn:?}");
+                    Msg::None
+                });
+                btn.apply_style(&RedShadow);
+                btn
+            }],
+            manager: font,
         }
     }
-    fn click(&mut self, _: Vector2<f32>, _: MouseButton) -> bool {
+    fn click(&mut self, pos: Vector2<f32>, btn: MouseButton) -> bool {
         self.data += 0.1;
 
-        let s = Square::new(self.manager.create_font("Nimbus Roman", 24.0));
+        for button in &self.squares {
+            if let Some(_) = button.try_exec(pos, btn) {
+                return false;
+            };
+        }
+        let val = std::sync::Arc::new(self.data);
+        let clone = val.clone();
+        let font = self.manager.create_font("Nimbus Roman", 24.0);
+        let s = Button::new(
+            Text::new_content(&format!("{}", &self.data), font),
+            move |pos, btn| {
+                println!("O dobro é: {}", *clone * pos);
+                Msg::None
+            },
+        )
+        .with_style(&RedShadow);
 
         self.squares.push(s);
 

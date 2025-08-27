@@ -12,7 +12,6 @@ use skia_safe::Rect;
 use crate::helpers::vec4f32_to_color;
 use crate::helpers::vec4f32_to_color_value;
 use crate::ui::styling::fx::Effect;
-use crate::ui::styling::fx::NoEffect;
 use crate::ui::styling::style::Style;
 
 #[derive(Debug, Default)]
@@ -20,6 +19,7 @@ pub struct DrawRule {
     pub(crate) border_color: Vector4<f32>,
     pub(crate) border_radius: Vector2<f32>,
     pub(crate) border_width: f32,
+
     pub(crate) inner: Paint,
 }
 
@@ -41,7 +41,7 @@ impl DrawRule {
         self.inner.set_color4f(vec4f32_to_color(color), None);
     }
 
-    pub fn apply_effect(&mut self, effect: impl Effect, mut rect: Rect) {
+    pub fn apply_effect(&mut self, effect: &dyn Effect, mut rect: Rect) {
         let mut effects = Vec::new();
         if let Some(shadow) = effect.shadow() {
             rect = {
@@ -70,12 +70,10 @@ impl DrawRule {
         self.inner.set_image_filter(out);
     }
 
-    pub fn apply_style(&mut self, style: &impl Style) {
-        let effect = style.effect();
+    pub fn apply_style(&mut self, style: &dyn Style) {
+        self.apply_effect(&*style.effect(), Rect::new(0.0, 0.0, 2000.0, 2000.0));
 
-        self.apply_effect(style.effect(), Rect::new(0.0, 0.0, 2000.0, 2000.0));
-
-        self.set_color(&style.color());
+        self.set_color(&style.background_color());
         self.border_color = style.border_color();
         self.border_radius = style.border_radius();
         self.border_width = style.border_width();

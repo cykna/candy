@@ -1,9 +1,13 @@
+use std::ops::{Deref, DerefMut};
+
 use nalgebra::Vector2;
 use winit::event::MouseButton;
 
 use crate::{
-    components::Text, elements::CandySquare, renderer::twod::BiDimensionalPainter,
-    ui::component::Component,
+    components::Text,
+    elements::CandySquare,
+    renderer::twod::BiDimensionalPainter,
+    ui::{component::Component, styling::style::Style},
 };
 
 pub struct Button<Msg> {
@@ -14,10 +18,10 @@ pub struct Button<Msg> {
 
 impl<Msg> Component for Button<Msg> {
     fn resize(&mut self, rect: crate::helpers::rect::Rect) {
-        let bounds = self.text.bounds().center();
+        let bounds = self.text.bounds();
         let center = rect.center();
-        self.text.position_mut().x = center.x - bounds.x;
-        self.text.position_mut().y = center.y - bounds.y;
+        self.text.position_mut().x = center.x - bounds.width * 0.5;
+        self.text.position_mut().y = center.y + bounds.height * 0.5;
         *self.rect.position_mut() = Vector2::new(rect.x, rect.y);
         *self.rect.size_mut() = Vector2::new(rect.width, rect.height);
     }
@@ -25,10 +29,7 @@ impl<Msg> Component for Button<Msg> {
         renderer.square(&self.rect);
         self.text.render(renderer);
     }
-    fn apply_style<S>(&mut self, style: &S)
-    where
-        S: crate::ui::styling::style::Style,
-    {
+    fn apply_style(&mut self, style: &dyn Style) {
         self.text.apply_style(style);
         self.rect.apply_style(style);
     }
@@ -60,5 +61,35 @@ impl<Msg> Button<Msg> {
     ///Forces the execution of the function of this button even though it was not actually clicked
     pub fn force_execution(&self, pos: Vector2<f32>, btn: MouseButton) -> Msg {
         (self.func)(pos, btn)
+    }
+
+    #[inline]
+    ///Retrieves the content of the text of this button
+    pub fn content(&self) -> &str {
+        self.text.content()
+    }
+    #[inline]
+    ///Retrieves the content of the text of this button
+    pub fn content_mut(&mut self) -> &mut String {
+        self.text.content_mut()
+    }
+
+    #[inline]
+    pub fn with_style(mut self, style: &dyn Style) -> Self {
+        self.apply_style(style);
+        self
+    }
+}
+
+impl<Msg> Deref for Button<Msg> {
+    type Target = CandySquare;
+    fn deref(&self) -> &Self::Target {
+        &self.rect
+    }
+}
+
+impl<Msg> DerefMut for Button<Msg> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.rect
     }
 }

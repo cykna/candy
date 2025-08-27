@@ -60,12 +60,12 @@ impl CandySquare {
 
     ///Applies the given style to this square
     #[inline]
-    pub fn apply_style(&mut self, style: &impl Style) {
+    pub fn apply_style(&mut self, style: &dyn Style) {
         self.rule.apply_style(style);
     }
 
     #[inline]
-    pub fn with_style(mut self, style: &impl Style) -> Self {
+    pub fn with_style(mut self, style: &dyn Style) -> Self {
         self.rule.apply_style(style);
         self
     }

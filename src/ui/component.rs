@@ -20,9 +20,7 @@ pub trait Component {
     ///Method called when this component is requested to redraw with the given `renderer`
     fn render(&self, renderer: &mut ComponentRenderer);
 
-    fn apply_style<S>(&mut self, style: &S)
-    where
-        S: Style;
+    fn apply_style(&mut self, style: &dyn Style);
 }
 
 pub trait RootComponent: Component {

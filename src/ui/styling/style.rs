@@ -23,12 +23,16 @@ where
 pub trait Style {
     ///Retrieves the color of this Style
     fn color(&self) -> Vector4<f32> {
+        Vector4::new(0.0, 0.0, 0.0, 1.0)
+    }
+
+    fn background_color(&self) -> Vector4<f32> {
         Vector4::new(1.0, 1.0, 1.0, 1.0)
     }
 
     ///Retrieves the effects of this Style
-    fn effect(&self) -> impl Effect + 'static {
-        NoEffect
+    fn effect(&self) -> Box<dyn Effect> {
+        Box::new(NoEffect)
     }
 
     fn border_color(&self) -> Vector4<f32> {

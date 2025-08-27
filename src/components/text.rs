@@ -38,18 +38,20 @@ impl Component for Text {
         pos.y = rect.y;
     }
 
-    fn apply_style<S>(&mut self, style: S)
-    where
-        S: Style,
-    {
-        self.inner.apply_style(&style);
+    fn apply_style(&mut self, style: &dyn Style) {
+        self.inner.apply_style(style);
     }
 }
 
 impl Text {
-    pub fn new(font: CandyFont, style: impl Style + 'static) -> Self {
+    pub fn new(font: CandyFont) -> Self {
         Self {
-            inner: CandyText::new("", Vector2::zeros(), font).with_style(&style),
+            inner: CandyText::new("", Vector2::zeros(), font),
+        }
+    }
+    pub fn new_content(content: &str, font: CandyFont) -> Self {
+        Self {
+            inner: CandyText::new(content, Vector2::zeros(), font),
         }
     }
 }

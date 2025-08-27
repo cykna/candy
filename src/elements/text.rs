@@ -1,5 +1,8 @@
 use crate::{
-    elements::DrawRule, helpers::rect::Rect, text::font::CandyFont, ui::styling::style::Style,
+    elements::DrawRule,
+    helpers::{rect::Rect, vec4f32_to_color},
+    text::font::CandyFont,
+    ui::styling::style::Style,
 };
 use nalgebra::{Vector2, Vector4};
 
@@ -18,7 +21,11 @@ impl CandyText {
             text: text.to_string(),
             position,
             font,
-            rule: DrawRule::new(),
+            rule: {
+                let mut rule = DrawRule::new();
+                rule.set_color(&Vector4::new(1.0, 1.0, 1.0, 1.0));
+                rule
+            },
         }
     }
 
@@ -69,13 +76,19 @@ impl CandyText {
 
     ///Applies the given style to this square
     #[inline]
-    pub fn apply_style(&mut self, style: &impl Style) {
+    pub fn apply_style(&mut self, style: &dyn Style) {
         self.rule.apply_style(style);
+        self.rule
+            .inner
+            .set_color4f(vec4f32_to_color(&style.color()), None);
     }
 
     #[inline]
-    pub fn with_style(mut self, style: &impl Style) -> Self {
+    pub fn with_style(mut self, style: &dyn Style) -> Self {
         self.rule.apply_style(style);
+        self.rule
+            .inner
+            .set_color4f(vec4f32_to_color(&style.color()), None);
         self
     }
 }
