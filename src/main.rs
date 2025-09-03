@@ -7,6 +7,7 @@ pub mod text;
 pub mod ui;
 pub mod window;
 
+use crate::components::Input;
 use crate::{components::Button, ui::styling::fx::Effect};
 use elements::CandySquare;
 use helpers::rect::Rect;
@@ -104,12 +105,12 @@ impl Component for Square {
     fn apply_style(&mut self, _: &dyn Style) {}
 }
 
-#[derive(Default)]
 struct State {
     w: f32,
     h: f32,
     data: f32,
     squares: Vec<Button<Msg>>,
+    input: Input,
     manager: FontManager,
 }
 impl State {
@@ -124,6 +125,12 @@ impl State {
                 Size::Length(5.0),
                 Size::Length(10.0),
             ));
+        self.input.resize(Rect {
+            x: 100.0,
+            y: 100.0,
+            width: 500.0,
+            height: 100.0,
+        });
         for _ in &self.squares {
             style = style.with_definition(styling::layout::DefinitionRect {
                 x: Size::Length(0.0),
@@ -158,6 +165,7 @@ impl Component for State {
         for s in &self.squares {
             s.render(renderer);
         }
+        self.input.render(renderer);
     }
     fn apply_style(&mut self, _: &dyn Style) {}
 }
@@ -185,6 +193,19 @@ impl Effect for RedShadow {
     }
 }
 
+pub struct InputStyle;
+impl Style for InputStyle {
+    fn color(&self) -> Vector4<f32> {
+        Vector4::new(1.0, 1.0, 1.0, 1.0)
+    }
+    fn background_color(&self) -> Vector4<f32> {
+        Vector4::new(0.0, 1.0, 1.0, 0.7)
+    }
+    fn effect(&self) -> Box<dyn crate::ui::styling::fx::Effect> {
+        Box::new(RedShadow)
+    }
+}
+
 impl RootComponent for State {
     fn new() -> Self {
         let font = FontManager::new();
@@ -193,6 +214,11 @@ impl RootComponent for State {
             w: 0.0,
             h: 0.0,
             data: 0.0,
+            input: {
+                let mut inp = Input::new(Text::new_content("Pascal", content.clone()));
+                inp.apply_style(&InputStyle);
+                inp
+            },
             squares: vec![{
                 let mut btn = Button::new(Text::new_content("Hello World", content), |pos, btn| {
                     println!("Ola amigo {pos} {btn:?}");

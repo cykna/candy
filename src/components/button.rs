@@ -6,6 +6,7 @@ use winit::event::MouseButton;
 use crate::{
     components::Text,
     elements::CandySquare,
+    helpers::center,
     renderer::twod::BiDimensionalPainter,
     ui::{component::Component, styling::style::Style},
 };
@@ -18,10 +19,7 @@ pub struct Button<Msg> {
 
 impl<Msg> Component for Button<Msg> {
     fn resize(&mut self, rect: crate::helpers::rect::Rect) {
-        let bounds = self.text.bounds();
-        let center = rect.center();
-        self.text.position_mut().x = center.x - bounds.width * 0.5;
-        self.text.position_mut().y = center.y + bounds.height * 0.5;
+        *self.text.position_mut() = center(&self.text.bounds(), &rect);
         *self.rect.position_mut() = Vector2::new(rect.x, rect.y);
         *self.rect.size_mut() = Vector2::new(rect.width, rect.height);
     }
@@ -36,6 +34,7 @@ impl<Msg> Component for Button<Msg> {
 }
 
 impl<Msg> Button<Msg> {
+    ///Creates a new Button with the given `text` centered and executing `f` when clicked
     pub fn new<F>(text: Text, f: F) -> Self
     where
         F: Fn(Vector2<f32>, MouseButton) -> Msg + 'static,

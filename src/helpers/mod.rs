@@ -22,3 +22,10 @@ pub fn in_bounds_of(rect: Vector4<f32>, position: Vector2<f32>) -> bool {
     (position.x >= rect.x && position.x <= rect.x + rect.z)
         && (position.y >= rect.y && position.y <= rect.y + rect.w)
 }
+
+#[inline]
+///Retrieves the position where the `child` square will be centered on `parent` square
+pub fn center(child: &Rect, parent: &Rect) -> Vector2<f32> {
+    let center = parent.center();
+    Vector2::new(center.x - child.width * 0.5, center.y + child.height * 0.5)
+}

@@ -9,6 +9,7 @@ use crate::{
     ui::{component::Component, styling::style::Style},
 };
 
+#[derive(Debug)]
 pub struct Text {
     inner: CandyText,
 }
@@ -44,11 +45,13 @@ impl Component for Text {
 }
 
 impl Text {
+    ///Creates a new Empty Text with the specified `font`
     pub fn new(font: CandyFont) -> Self {
         Self {
             inner: CandyText::new("", Vector2::zeros(), font),
         }
     }
+    ///Creates a new Text with the given `content` and using the specified `font`
     pub fn new_content(content: &str, font: CandyFont) -> Self {
         Self {
             inner: CandyText::new(content, Vector2::zeros(), font),

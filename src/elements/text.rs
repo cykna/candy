@@ -67,8 +67,8 @@ impl CandyText {
     pub fn bounds(&self) -> Rect {
         let (_, rect) = self.font.measure_str(self.content(), None);
         Rect {
-            x: rect.y(),
-            y: rect.y(),
+            x: self.position.x + rect.x(),
+            y: self.position.y + rect.y(),
             width: rect.width(),
             height: rect.height(),
         }
