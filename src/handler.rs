@@ -22,6 +22,9 @@ where
     fn resize(&mut self, size: PhysicalSize<u32>);
     fn on_mouse_move(&mut self, position: Vector2<f32>);
     fn on_press(&mut self, button: MouseButton);
+
+    fn request_redraw(&self);
+
     fn exit(&self);
 }
 pub struct CandyDefaultHandler<Root>
@@ -52,6 +55,11 @@ where
             root: Root::new(),
         }
     }
+
+    fn request_redraw(&self) {
+        self.window.request_redraw();
+    }
+
     #[inline]
     fn on_mouse_move(&mut self, position: Vector2<f32>) {
         self.mouse_pos = position;
@@ -61,6 +69,7 @@ where
             self.window.request_redraw();
         };
     }
+
     fn draw(&mut self) {
         self.root.render(self.renderer.twod_renderer());
         self.renderer.flush();

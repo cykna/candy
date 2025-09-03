@@ -20,6 +20,7 @@ use ui::{
     styling::{self, layout::Size},
 };
 use window::CandyWindow;
+use winit::keyboard::Key;
 use winit::{event::MouseButton, window::Window};
 
 #[cfg(feature = "opengl")]
@@ -229,6 +230,27 @@ impl RootComponent for State {
             }],
             manager: font,
         }
+    }
+
+    fn keydown(
+        &mut self,
+        key: winit::keyboard::Key<winit::keyboard::SmolStr>,
+        loc: winit::keyboard::KeyLocation,
+    ) -> bool {
+        if let Key::Character(c) = key {
+            self.input.write_str(&c);
+            true
+        } else {
+            false
+        }
+    }
+
+    fn keyup(
+        &mut self,
+        _: winit::keyboard::Key<winit::keyboard::SmolStr>,
+        _: winit::keyboard::KeyLocation,
+    ) -> bool {
+        false
     }
     fn click(&mut self, pos: Vector2<f32>, btn: MouseButton) -> bool {
         self.data += 0.1;

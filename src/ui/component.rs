@@ -1,5 +1,8 @@
 use nalgebra::Vector2;
-use winit::event::MouseButton;
+use winit::{
+    event::MouseButton,
+    keyboard::{Key, KeyLocation, SmolStr},
+};
 
 use crate::{helpers::rect::Rect, renderer::twod::Candy2DRenderer, ui::styling::style::Style};
 
@@ -28,6 +31,15 @@ pub trait RootComponent: Component {
     ///Emitted when some click arrives. The `position` is the position of the click relative to the top left corner of the window
     ///Returns weather a redraw should be made
     fn click(&mut self, _: Vector2<f32>, _: MouseButton) -> bool {
+        false
+    }
+
+    ///Emitted when some key on the keyboard is pressed
+    ///Returns wather a redraw should be made
+    fn keydown(&mut self, _: Key<SmolStr>, _: KeyLocation) -> bool {
+        false
+    }
+    fn keyup(&mut self, _: Key<SmolStr>, _: KeyLocation) -> bool {
         false
     }
 }
