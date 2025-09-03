@@ -61,10 +61,31 @@ impl Input {
     pub fn update_cursor(&mut self) {
         let content_bounds = self.content.bounds();
         self.cursor_square.position_mut().x = {
-            let percent = self.cursor as f32 * self.content.font().size() * 0.53;
+            let percent = self.cursor as f32 * self.content.font().size() * 0.55
+                - self.content.font().size() * 0.5;
             percent + self.content.position().x
         };
         self.cursor_square.position_mut().y = content_bounds.y - 1.0;
+    }
+
+    ///Moves the cursor to the right by the given `amount` of chars updates it's GUI
+    #[inline]
+    pub fn move_right(&mut self, amount: usize) {
+        if amount == 0 {
+            return;
+        }
+        self.cursor = (self.cursor + amount).min(self.content().len());
+        self.update_cursor();
+    }
+
+    ///Moves the cursor to the left by the given `amount` of chars and updates it's GUI
+    #[inline]
+    pub fn move_left(&mut self, amount: usize) {
+        if amount == 0 {
+            return;
+        }
+        self.cursor = self.cursor.saturating_sub(amount);
+        self.update_cursor();
     }
 
     #[inline]
@@ -90,14 +111,10 @@ impl Component for Input {
 
         let content_bounds = self.content.bounds();
         //y center
-        self.content.position_mut().y = rect.center().y + content_bounds.height * 0.6;
+        self.content.position_mut().y = rect.center().y + content_bounds.height * 0.5;
         self.content.position_mut().x = rect.x;
 
-        self.cursor_square.position_mut().x = {
-            let percent = self.cursor as f32 * self.content.font().size() * 0.5;
-            percent + self.content.position().x
-        };
-        self.cursor_square.position_mut().y = content_bounds.y - 1.0;
+        self.update_cursor();
         self.cursor_square.size_mut().y = content_bounds.height + 2.0;
         self.cursor_square.size_mut().x = 1.0;
     }

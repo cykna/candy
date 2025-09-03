@@ -126,11 +126,11 @@ impl State {
                 Size::Length(5.0),
                 Size::Length(10.0),
             ));
-        self.input.resize(Rect {
-            x: 100.0,
-            y: 100.0,
-            width: 500.0,
-            height: 100.0,
+        style = style.with_definition(styling::layout::DefinitionRect {
+            x: Size::Length(0.0),
+            y: Size::Length(0.0),
+            width: Size::Percent(0.25),
+            height: Size::Length(50.0),
         });
         for _ in &self.squares {
             style = style.with_definition(styling::layout::DefinitionRect {
@@ -150,7 +150,11 @@ impl State {
             .into_iter()
             .enumerate()
         {
-            self.squares[idx].resize(r);
+            if idx == 0 {
+                self.input.resize(r);
+            } else {
+                self.squares[idx - 1].resize(r);
+            }
         }
     }
 }
@@ -237,11 +241,20 @@ impl RootComponent for State {
         key: winit::keyboard::Key<winit::keyboard::SmolStr>,
         loc: winit::keyboard::KeyLocation,
     ) -> bool {
-        if let Key::Character(c) = key {
-            self.input.write_str(&c);
-            true
-        } else {
-            false
+        match key {
+            Key::Character(c) => {
+                self.input.write_str(&c);
+                true
+            }
+            Key::Named(key) => {
+                if let winit::keyboard::NamedKey::ArrowLeft = key {
+                    self.input.move_left(1);
+                    true
+                } else {
+                    false
+                }
+            }
+            _ => false,
         }
     }
 
