@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 use nalgebra::Vector2;
 
 use crate::{
@@ -57,12 +59,18 @@ impl Input {
         self.content.content()
     }
 
+    ///Retrieves weather the cursor is at the end of the content of this Input
+    #[inline]
+    pub fn is_cursor_at_end(&self) -> bool {
+        self.cursor == self.content().len()
+    }
+
     ///Updates the cursor position on the GUI. In fact, if it did change the position, sets the cursor square to be there
     pub fn update_cursor(&mut self) {
         let content_bounds = self.content.bounds();
         self.cursor_square.position_mut().x = {
-            let percent = self.cursor as f32 * self.content.font().size() * 0.55
-                - self.content.font().size() * 0.5;
+            let percent =
+                self.cursor as f32 * self.content.font().size() * 0.55 - self.content.font().size();
             percent + self.content.position().x
         };
         self.cursor_square.position_mut().y = content_bounds.y - 1.0;
@@ -103,6 +111,26 @@ impl Input {
         self.cursor += str.len();
         self.update_cursor();
     }
+
+    ///Gets a range containing the indices of all the visible chars on this input based on the cursor position
+    pub fn visible_chars(&self) -> Range<usize> {
+        let size = self.content.font().size();
+        let bounds = self.content.bounds();
+        let visible_amount = (bounds.width * size.recip() * 2.0) as usize;
+        if self.is_cursor_at_end() {
+            if visible_amount <= self.content().len() {
+                self.cursor - visible_amount..self.cursor
+            } else {
+                0..self.cursor + 1
+            }
+        } else {
+            if visible_amount <= self.content().len() {
+                self.cursor.max(visible_amount) - visible_amount.min(self.cursor)..self.cursor
+            } else {
+                0..self.content().len()
+            }
+        }
+    }
 }
 
 impl Component for Input {
@@ -120,7 +148,7 @@ impl Component for Input {
     }
     fn render(&self, renderer: &mut crate::ui::component::ComponentRenderer) {
         renderer.square(&self.rect);
-        renderer.text(&self.content);
+        renderer.text_sliced(&self.content, self.visible_chars());
         renderer.square(&self.cursor_square);
     }
     fn apply_style(&mut self, style: &dyn crate::ui::styling::style::Style) {

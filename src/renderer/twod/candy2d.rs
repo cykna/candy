@@ -11,7 +11,7 @@ use skia_safe::{
     Canvas, Paint, Point, RRect, Rect, SamplingOptions, canvas::SrcRectConstraint,
     gpu::gl::FramebufferInfo,
 };
-use std::{ffi::CString, num::NonZero};
+use std::{ffi::CString, num::NonZero, ops::Range};
 use winit::{dpi::PhysicalSize, window::Window};
 
 use crate::{
@@ -179,15 +179,54 @@ impl BiDimensionalPainter for Candy2DRenderer {
             .draw_circle(Point::new(position.x, position.y), radius, &paint);
     }
 
-    fn text(&mut self, info: &CandyText) {
+    fn text_sliced(&mut self, info: &CandyText, range: Range<usize>) {
         let rule = &info.rule;
 
-        self.canvas().draw_str(
+        let bounds = info.bounds();
+        let canvas = self.canvas();
+        canvas.save();
+        canvas.clip_rect(
+            Rect {
+                left: bounds.x,
+                top: bounds.y,
+                right: bounds.x + bounds.width,
+                bottom: bounds.y + bounds.height,
+            },
+            None,
+            Some(true),
+        );
+        canvas.draw_str(
+            &info.content()[range],
+            Point::new(info.position().x, info.position().y),
+            &info.font(),
+            &rule.inner,
+        );
+        canvas.restore();
+    }
+
+    fn text(&mut self, info: &CandyText) {
+        let rule = &info.rule;
+        let canvas = self.canvas();
+        canvas.save();
+        let bounds = info.bounds();
+        println!("{bounds:?}");
+        canvas.clip_rect(
+            Rect {
+                left: bounds.x,
+                top: bounds.y,
+                right: bounds.x + bounds.width,
+                bottom: bounds.y + bounds.height,
+            },
+            None,
+            Some(true),
+        );
+        canvas.draw_str(
             info.content(),
             Point::new(info.position().x, info.position().y),
             &info.font(),
             &rule.inner,
         );
+        canvas.restore();
     }
     fn render_image(&mut self, image: &CandyImage<Self>) {
         let rule = &image.rule;

@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 use glutin::{
     config::Config,
     context::PossiblyCurrentContext,
@@ -57,6 +59,9 @@ pub trait BiDimensionalPainter: Sized + std::fmt::Debug {
     fn square(&mut self, square_info: &CandySquare);
     ///Method used to draw a circle on the screen using the underlying renderer
     fn circle(&mut self, position: &Vector2<f32>, color: &Vector4<f32>, radius: f32);
+
+    fn text_sliced(&mut self, info: &CandyText, range: Range<usize>);
+
     ///Method used to draw a text on the screen using the underlying renderer
     fn text(&mut self, info: &CandyText);
 

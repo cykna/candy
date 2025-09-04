@@ -12,6 +12,7 @@ pub struct CandyText {
     font: CandyFont,
     text: String,
     position: Vector2<f32>,
+    size: Vector2<f32>,
     pub(crate) rule: DrawRule,
 }
 
@@ -19,6 +20,7 @@ impl CandyText {
     pub fn new(text: &str, position: Vector2<f32>, font: CandyFont) -> Self {
         Self {
             text: text.to_string(),
+            size: Vector2::zeros(),
             position,
             font,
             rule: {
@@ -48,6 +50,17 @@ impl CandyText {
     }
 
     ///Gets the inner position of this text
+    pub fn size_mut(&mut self) -> &mut Vector2<f32> {
+        &mut self.size
+    }
+
+    ///Gets the inner position of this text
+    #[inline]
+    pub fn size(&self) -> &Vector2<f32> {
+        &self.size
+    }
+
+    ///Gets the inner position of this text
     pub fn position_mut(&mut self) -> &mut Vector2<f32> {
         &mut self.position
     }
@@ -57,20 +70,45 @@ impl CandyText {
     pub fn position(&self) -> &Vector2<f32> {
         &self.position
     }
+
+    #[inline]
     pub fn resize(&mut self, rect: Rect) {
         self.position.x = rect.x;
         self.position.y = rect.y;
+        self.size.x = rect.width;
+        self.size.y = rect.height;
     }
 
-    ///Gets the bounds of this Text. XY are the position while ZW are width and height
+    ///Gets the width of this Text
+    pub fn text_width(&self) -> f32 {
+        self.font
+            .measure_str(&self.content(), Some(&self.rule.inner))
+            .0
+    }
+
+    ///Gets the bounds of this Text.
     #[inline]
-    pub fn bounds(&self) -> Rect {
-        let (_, rect) = self.font.measure_str(self.content(), None);
+    pub fn text_bounds(&self) -> Rect {
+        let (_, rect) = self
+            .font
+            .measure_str(self.content(), Some(&self.rule.inner));
         Rect {
-            x: self.position.x + rect.x(),
-            y: self.position.y + rect.y(),
+            x: rect.x(),
+            y: rect.y(),
             width: rect.width(),
             height: rect.height(),
+        }
+    }
+
+    #[inline]
+    ///Gets the bounds of this Text on the GUI. Note that even a text contains a Rect to determine where it should stop rendering, what this function does is to retrieve it, even though the text underflows it.
+    ///If you are trying to get the bounds of the text itself, without caring about where it should be drawn, use `text_bounds` instead
+    pub fn bounds(&self) -> Rect {
+        Rect {
+            x: self.position.x,
+            y: self.position.y,
+            width: self.size.x,
+            height: self.size.y,
         }
     }
 
