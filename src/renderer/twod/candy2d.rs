@@ -209,11 +209,10 @@ impl BiDimensionalPainter for Candy2DRenderer {
         let canvas = self.canvas();
         canvas.save();
         let bounds = info.bounds();
-        println!("{bounds:?}");
         canvas.clip_rect(
             Rect {
-                left: bounds.x,
-                top: bounds.y,
+                left: bounds.x - info.font().size(),
+                top: bounds.y - info.font().size(),
                 right: bounds.x + bounds.width,
                 bottom: bounds.y + bounds.height,
             },

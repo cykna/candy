@@ -19,7 +19,8 @@ pub struct Button<Msg> {
 
 impl<Msg> Component for Button<Msg> {
     fn resize(&mut self, rect: crate::helpers::rect::Rect) {
-        *self.text.position_mut() = center(&self.text.bounds(), &rect);
+        *self.text.position_mut() = center(&self.text.text_bounds(), &rect);
+        *self.text.size_mut() = Vector2::new(rect.width, rect.y);
         *self.rect.position_mut() = Vector2::new(rect.x, rect.y);
         *self.rect.size_mut() = Vector2::new(rect.width, rect.height);
     }
