@@ -11,13 +11,13 @@ use crate::{
     ui::{component::Component, styling::style::Style},
 };
 
-pub struct Button<Msg> {
+pub struct Button<'a, Msg> {
     text: Text,
     rect: CandySquare,
-    func: Box<dyn Fn(Vector2<f32>, MouseButton) -> Msg>,
+    func: Box<dyn Fn(Vector2<f32>, MouseButton) -> Msg + 'a>,
 }
 
-impl<Msg> Component for Button<Msg> {
+impl<'a, Msg> Component for Button<'a, Msg> {
     fn resize(&mut self, rect: crate::helpers::rect::Rect) {
         *self.text.position_mut() = center(&self.text.text_bounds(), &rect);
         *self.text.size_mut() = Vector2::new(rect.width, rect.y);
@@ -34,11 +34,11 @@ impl<Msg> Component for Button<Msg> {
     }
 }
 
-impl<Msg> Button<Msg> {
+impl<'a, Msg> Button<'a, Msg> {
     ///Creates a new Button with the given `text` centered and executing `f` when clicked
     pub fn new<F>(text: Text, f: F) -> Self
     where
-        F: Fn(Vector2<f32>, MouseButton) -> Msg + 'static,
+        F: (Fn(Vector2<f32>, MouseButton) -> Msg) + 'a,
     {
         Self {
             text,
@@ -81,14 +81,14 @@ impl<Msg> Button<Msg> {
     }
 }
 
-impl<Msg> Deref for Button<Msg> {
+impl<'a, Msg> Deref for Button<'a, Msg> {
     type Target = CandySquare;
     fn deref(&self) -> &Self::Target {
         &self.rect
     }
 }
 
-impl<Msg> DerefMut for Button<Msg> {
+impl<'a, Msg> DerefMut for Button<'a, Msg> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.rect
     }
