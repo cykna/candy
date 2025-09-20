@@ -1,4 +1,4 @@
-use std::ops::Range;
+use std::ops::{Deref, DerefMut, Range};
 
 use nalgebra::Vector2;
 
@@ -10,41 +10,127 @@ use crate::{
     ui::component::Component,
 };
 
-pub enum InputType {
-    Text,
-    Numeric,
-    Password,
+#[derive(Debug)]
+pub enum Input {
+    Text(RawInput),
+    Numeric(RawInput),
+    Password(RawInput, String),
 }
 
-pub struct Input {
+#[derive(Debug)]
+pub struct RawInput {
     content: Text,
     rect: CandySquare,
     cursor_square: CandySquare,
     cursor: usize,
-    kind: InputType,
 }
 
 impl Input {
-    ///Creates a new Input with InputType == Number, so it won't show the content being written
-    pub fn new_password(content: Text) -> Self {
-        Self {
-            rect: CandySquare::default(),
-            cursor_square: CandySquare::default(),
-            cursor: content.content().len(),
-            content,
-            kind: InputType::Password,
-        }
+    ///Creates a new Input that accepts Strings in general as long as they're utf8 with the initial text being the provided `content`
+    pub fn new(content: Text) -> Self {
+        Self::Text(RawInput::new(content))
     }
-    ///Creates a new Input with InputType == Number, so it will only accept numeric values
+
+    ///Creates a new Input that accepts Strings in general as long as they're utf8 with the initial text being the provided `content`
     pub fn new_numeric(content: Text) -> Self {
-        Self {
-            rect: CandySquare::default(),
-            cursor_square: CandySquare::default(),
-            cursor: content.content().len(),
-            content,
-            kind: InputType::Numeric,
+        Self::Numeric(RawInput::new(content))
+    }
+
+    ///Creates a new Input that accepts Strings in general as long as they're utf8 with the initial text being the provided `content`
+    pub fn new_password(mut content: Text) -> Self {
+        let text = content.content().to_string();
+        {
+            let len = content.content().chars().count();
+            let text_ref = content.content_mut();
+            text_ref.clear();
+            text_ref.push_str(str::from_utf8(&vec![b'*'; len]).unwrap());
+        }
+
+        Self::Password(RawInput::new(content), text)
+    }
+
+    #[inline]
+    ///Retrieves the raw input which contains the data and logic
+    fn raw(&self) -> &RawInput {
+        match self {
+            Self::Text(t) => t,
+            Self::Numeric(t) => t,
+            Self::Password(t, _) => t,
         }
     }
+    #[inline]
+    ///Retrieves the raw input which contains the data and logic
+    fn raw_mut(&mut self) -> &mut RawInput {
+        match self {
+            Self::Text(t) => t,
+            Self::Numeric(t) => t,
+            Self::Password(t, _) => t,
+        }
+    }
+
+    ///Writes the given `ch` at the current cursor position and moves it to after the current char
+    pub fn write(&mut self, ch: char) {
+        match self {
+            Self::Text(t) => {
+                t.content.content_mut().insert(t.cursor, ch);
+                t.cursor += ch.len_utf8();
+                t.update_cursor();
+            }
+            Self::Numeric(t) if ch.is_numeric() => {
+                t.content.content_mut().insert(t.cursor, ch);
+                t.cursor += ch.len_utf8();
+                t.update_cursor();
+            }
+            Self::Password(t, content) => {
+                t.content.content_mut().insert(t.cursor, '*');
+                content.insert(t.cursor, ch);
+                t.update_cursor();
+            }
+            _ => {}
+        }
+    }
+
+    ///Writes the given `str` at the current cursor position and moves it to the end of the inserted content
+    pub fn write_str(&mut self, str: &str) {
+        match self {
+            Self::Text(t) => {
+                t.content.content_mut().insert_str(t.cursor, str);
+                t.cursor += str.len();
+                t.update_cursor();
+            }
+            Self::Numeric(t) if str.parse::<f32>().is_ok() => {
+                t.content.content_mut().insert_str(t.cursor, str);
+                t.cursor += str.len();
+                t.update_cursor();
+            }
+            Self::Password(t, content) => {
+                let len = str.len();
+                let vec = vec![b'*'; len];
+                t.content
+                    .content_mut()
+                    .insert_str(t.cursor, unsafe { str::from_utf8_unchecked(&vec) });
+                content.insert_str(t.cursor, str);
+                t.cursor += len;
+                t.update_cursor();
+            }
+            _ => {}
+        }
+    }
+}
+
+impl Deref for Input {
+    type Target = RawInput;
+    fn deref(&self) -> &Self::Target {
+        self.raw()
+    }
+}
+impl DerefMut for Input {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.raw_mut()
+    }
+}
+
+impl RawInput {
     ///Creates a new Input which will accept any kind of char as long as it's utf8 valid
     pub fn new(content: Text) -> Self {
         Self {
@@ -52,7 +138,6 @@ impl Input {
             rect: CandySquare::default(),
             cursor: content.content().len(),
             content,
-            kind: InputType::Text,
         }
     }
 
@@ -76,19 +161,19 @@ impl Input {
 
     ///Updates the cursor position on the GUI. In fact, if it did change the position, sets the cursor square to be there
     pub fn update_cursor(&mut self) {
-        fn char_to_byte_index(s: &str, char_idx: usize) -> usize {
+        fn char_to_byte_index(s: &str, char_idx: usize) -> (usize, usize) {
             s.char_indices()
                 .nth(char_idx)
-                .map(|(i, _)| i)
-                .unwrap_or(s.len()) // if char_idx == len, return end of string
+                .map(|(i, c)| (i, c.len_utf8()))
+                .unwrap_or((s.len(), 1)) // if char_idx == len, return end of string
         }
         let visible = self.visible_chars();
-        let start_byte = char_to_byte_index(self.content(), visible.start);
-        let cursor_byte = char_to_byte_index(self.content(), self.cursor);
+        let start_byte = char_to_byte_index(self.content(), visible.start).0;
+        let (indice, len) = char_to_byte_index(self.content(), self.cursor);
         self.cursor_square.position_mut().x = {
             self.content
                 .font()
-                .width_for(&self.content()[start_byte..cursor_byte])
+                .width_for(&self.content()[start_byte..indice - (len - 1)])
                 + self.content.font().size() * 0.25
         };
         //totally arbitary numbers. seriosuly, i just tested until i found that it was 0.75
@@ -97,17 +182,20 @@ impl Input {
     }
 
     ///Moves the cursor to the right by the given `amount` of chars updates it's GUI
-    #[inline]
-    pub fn move_right(&mut self, amount: usize) {
-        if amount == 0 {
+    pub fn move_right(&mut self, mut amount: usize) {
+        if amount == 0 || self.is_cursor_at_end() {
             return;
         }
-        self.cursor = (self.cursor + amount).min(self.content().len());
+        while amount > 0 {
+            let char_size = char_size_init(self.content().as_bytes()[self.cursor - 1]) as usize;
+            self.cursor += char_size;
+            amount -= 1;
+        }
+        self.cursor = self.cursor.min(self.content().len());
         self.update_cursor();
     }
 
     ///Moves the cursor to the left by the given `amount` of chars and updates it's GUI
-    #[inline]
     pub fn move_left(&mut self, mut amount: usize) {
         if amount == 0 || self.cursor == 0 {
             return;
@@ -118,22 +206,6 @@ impl Input {
             amount -= 1;
         }
 
-        self.update_cursor();
-    }
-
-    #[inline]
-    ///Writes the given `ch` at the current cursor position and moves it to after the current char
-    pub fn write(&mut self, ch: char) {
-        self.content.content_mut().insert(self.cursor, ch);
-        self.cursor += ch.len_utf8();
-        self.update_cursor();
-    }
-
-    #[inline]
-    ///Writes the given `str` at the current cursor position and moves it to the end of the inserted content
-    pub fn write_str(&mut self, str: &str) {
-        self.content.content_mut().insert_str(self.cursor, str);
-        self.cursor += str.len();
         self.update_cursor();
     }
 

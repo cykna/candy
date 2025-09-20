@@ -66,7 +66,7 @@ impl CalculationMetrics {
 
 #[derive(Default)]
 pub struct Layout {
-    boxes: Vec<DefinitionRect>,
+    pub(crate) boxes: Vec<DefinitionRect>,
     gap: Vector2<Size>,
     corner: Corner,
     direction: Direction,
@@ -92,27 +92,27 @@ impl Layout {
         }
     }
 
-    pub fn with_direction(mut self, direction: Direction) -> Self {
+    pub fn with_direction(&mut self, direction: Direction) -> &mut Self {
         self.direction = direction;
         self
     }
 
-    pub fn with_corner(mut self, corner: Corner) -> Self {
+    pub fn with_corner(&mut self, corner: Corner) -> &mut Self {
         self.corner = corner;
         self
     }
 
-    pub fn with_definition(mut self, def: DefinitionRect) -> Self {
+    pub fn with_definition(&mut self, def: DefinitionRect) -> &mut Self {
         self.boxes.push(def);
         self
     }
 
-    pub fn with_gap(mut self, gap: Vector2<Size>) -> Self {
+    pub fn with_gap(&mut self, gap: Vector2<Size>) -> &mut Self {
         self.gap = gap;
         self
     }
 
-    pub fn with_padding(mut self, padding: Vector4<Size>) -> Self {
+    pub fn with_padding(&mut self, padding: Vector4<Size>) -> &mut Self {
         self.padding = padding;
         self
     }
@@ -122,7 +122,7 @@ impl Layout {
         metrics: &mut CalculationMetrics,
         rect: &Rect,
         out: &mut Rect,
-        def: DefinitionRect,
+        def: &DefinitionRect,
         gap: Vector2<f32>,
     ) {
         out.x = match def.x {
@@ -160,7 +160,7 @@ impl Layout {
         metrics: &mut CalculationMetrics,
         rect: &Rect,
         out: &mut Rect,
-        def: DefinitionRect,
+        def: &DefinitionRect,
         gap: Vector2<f32>,
     ) {
         out.x = match def.x {
@@ -200,7 +200,7 @@ impl Layout {
         metrics: &mut CalculationMetrics,
         corner: &Corner,
         direction: &Direction,
-        def: DefinitionRect,
+        def: &DefinitionRect,
         rect: &Rect,
         gap: Vector2<f32>,
     ) -> Rect {
@@ -249,7 +249,7 @@ impl Layout {
 
     ///Calculates this layout based on its values and the boxes defined. Note that it will generate N Rects, where N is the amount of boxes added before calculating it.
     ///The boxes are in order of pushing, so the Nth Rect on the out vector is correspondent to the Nth push
-    pub fn calculate(self, mut rect: Rect) -> Vec<Rect> {
+    pub fn calculate(&self, mut rect: Rect) -> Vec<Rect> {
         let mut out = Vec::with_capacity(self.boxes.len());
 
         {
@@ -263,7 +263,7 @@ impl Layout {
         let gap = self.calculate_gap(&rect);
         let mut metrics = CalculationMetrics::new(rect.x, rect.y);
 
-        for def in self.boxes {
+        for def in &self.boxes {
             out.push(Self::calc_definition(
                 &mut metrics,
                 &self.corner,
