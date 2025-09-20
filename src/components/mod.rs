@@ -1,4 +1,5 @@
 mod container;
+mod image;
 mod input;
 mod text;
 pub use input::*;
