@@ -257,6 +257,15 @@ impl RootComponent for State {
     ) -> bool {
         false
     }
+    fn on_mouse_move(&mut self, pos: Vector2<f32>) -> bool {
+        if self.data.is_dragging() {
+            self.data.on_cursor(pos);
+            self.data.update_positions();
+            true
+        } else {
+            false
+        }
+    }
     fn click(&mut self, pos: Vector2<f32>, btn: MouseButton) -> bool {
         self.data.on_mouse(pos);
 

@@ -122,6 +122,13 @@ impl Scrollable {
         };
         self.old_cursor = pos;
     }
+
+    ///Updates the positions of all the elements inside this scrollable based on the scroll offset
+    pub fn update_positions(&mut self) {
+        for child in self.container.children_mut() {
+            child.position_mut().y += self.offset;
+        }
+    }
 }
 
 impl Deref for Scrollable {
@@ -141,9 +148,6 @@ impl Component for Scrollable {
         let rects = self.layout.calculate(rect, true);
         self.scrollbar.resize(rects[0].clone());
         self.container.resize(rects[1].clone());
-        for child in self.container.children_mut() {
-            child.position_mut().y += self.offset;
-        }
     }
     fn render(&self, renderer: &mut crate::ui::component::ComponentRenderer) {
         self.container.render(renderer);

@@ -63,6 +63,9 @@ where
     #[inline]
     fn on_mouse_move(&mut self, position: Vector2<f32>) {
         self.mouse_pos = position;
+        if self.root.on_mouse_move(position) {
+            self.window.request_redraw();
+        }
     }
     fn on_press(&mut self, btn: MouseButton) {
         if self.root.click(self.mouse_pos, btn) {

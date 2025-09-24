@@ -37,6 +37,14 @@ pub trait Component {
 
 pub trait RootComponent: Component {
     fn new() -> Self;
+
+    #[inline]
+    ///Emitted when the mouse moves. The `position` is the new position the mouse is located at. Returns weather a redraw should be made or not
+    fn on_mouse_move(&mut self, _: Vector2<f32>) -> bool {
+        false
+    }
+
+    #[inline]
     ///Emitted when some click arrives. The `position` is the position of the click relative to the top left corner of the window
     ///Returns weather a redraw should be made
     fn click(&mut self, _: Vector2<f32>, _: MouseButton) -> bool {
