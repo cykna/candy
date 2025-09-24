@@ -49,9 +49,9 @@ impl Scrollable {
     pub fn new(config: ScrollableConfig) -> Self {
         let mut layout = Layout::new(match config.direction {
             Direction::Vertical => Direction::Horizontal,
-            Direction::Horizontal => Direction::Vertical
+            Direction::Horizontal => Direction::Vertical,
         }); //if its vertical, the scrollbar and the content are set side by side, else scrollbar
-            //on top
+        //on top
         match config.direction {
             Direction::Vertical => layout
                 .with_definition(DefinitionRect {
@@ -139,15 +139,26 @@ impl DerefMut for Scrollable {
 impl Component for Scrollable {
     fn resize(&mut self, rect: Rect) {
         let rects = self.layout.calculate(rect, true);
-        println!("{:#?}", rects);
         self.scrollbar.resize(rects[0].clone());
         self.container.resize(rects[1].clone());
+        for child in self.container.children_mut() {
+            child.position_mut().y += self.offset;
+        }
     }
     fn render(&self, renderer: &mut crate::ui::component::ComponentRenderer) {
         self.container.render(renderer);
         self.scrollbar.render(renderer);
     }
+
     fn apply_style(&mut self, style: &dyn Style) {
         self.container.apply_style(style);
+    }
+
+    fn position(&self) -> Vector2<f32> {
+        self.container.position()
+    }
+
+    fn position_mut(&mut self) -> &mut Vector2<f32> {
+        self.container.position_mut()
     }
 }

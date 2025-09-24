@@ -25,7 +25,14 @@ pub trait Component {
     ///Method called when this component is requested to redraw with the given `renderer`
     fn render(&self, renderer: &mut ComponentRenderer);
 
+    ///Applies the given `style` on this component
     fn apply_style(&mut self, style: &dyn Style);
+
+    ///Retrieves the position of this component
+    fn position(&self) -> Vector2<f32>;
+
+    ///Retrieves the position of this component
+    fn position_mut(&mut self) -> &mut Vector2<f32>;
 }
 
 pub trait RootComponent: Component {

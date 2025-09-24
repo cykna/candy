@@ -16,7 +16,7 @@ pub struct Container {
     square: CandySquare,
     layout: Layout,
     children: Vec<Box<dyn Component>>,
-    ignore_overflow: bool
+    ignore_overflow: bool,
 }
 
 impl Component for Container {
@@ -27,7 +27,7 @@ impl Component for Container {
         for child in &self.children {
             child.render(renderer);
         }
-    } 
+    }
     fn resize(&mut self, rect: crate::helpers::rect::Rect) {
         self.square.position_mut().x = rect.x;
         self.square.position_mut().y = rect.y;
@@ -42,6 +42,12 @@ impl Component for Container {
     }
     fn apply_style(&mut self, style: &dyn Style) {
         self.square.apply_style(style);
+    }
+    fn position(&self) -> nalgebra::Vector2<f32> {
+        *self.square.position()
+    }
+    fn position_mut(&mut self) -> &mut nalgebra::Vector2<f32> {
+        self.square.position_mut()
     }
 }
 
@@ -124,6 +130,11 @@ impl Container {
     ///Retrieves all the children of this Container
     pub fn children(&self) -> &Vec<Box<dyn Component>> {
         &self.children
+    }
+
+    ///Retrieves all the children of this Container
+    pub fn children_mut(&mut self) -> &mut Vec<Box<dyn Component>> {
+        &mut self.children
     }
 }
 

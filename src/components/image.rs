@@ -18,6 +18,12 @@ impl Component for Image {
     fn apply_style(&mut self, style: &dyn crate::ui::styling::style::Style) {
         self.image.apply_style(style);
     }
+    fn position(&self) -> nalgebra::Vector2<f32> {
+        *self.image.position()
+    }
+    fn position_mut(&mut self) -> &mut nalgebra::Vector2<f32> {
+        self.image.position_mut()
+    }
 }
 
 impl Image {

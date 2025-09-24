@@ -42,6 +42,13 @@ impl Component for Text {
     fn apply_style(&mut self, style: &dyn Style) {
         self.inner.apply_style(style);
     }
+
+    fn position(&self) -> Vector2<f32> {
+        *self.inner.position()
+    }
+    fn position_mut(&mut self) -> &mut Vector2<f32> {
+        self.inner.position_mut()
+    }
 }
 
 impl Text {

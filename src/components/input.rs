@@ -262,4 +262,10 @@ impl Component for Input {
         self.content.apply_style(style);
         //self.cursor_square.apply_style(style);
     }
+    fn position(&self) -> Vector2<f32> {
+        self.content.position()
+    }
+    fn position_mut(&mut self) -> &mut Vector2<f32> {
+        self.content.position_mut()
+    }
 }

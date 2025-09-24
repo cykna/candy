@@ -108,9 +108,16 @@ impl Component for Square {
     }
 
     fn apply_style(&mut self, _: &dyn Style) {}
+    fn position(&self) -> Vector2<f32> {
+        *self.info.position()
+    }
+    fn position_mut(&mut self) -> &mut Vector2<f32> {
+        self.info.position_mut()
+    }
 }
 
 struct State {
+    pos: Vector2<f32>,
     w: f32,
     h: f32,
     data: Scrollable,
@@ -151,6 +158,12 @@ impl Component for State {
         self.input.render(renderer);
     }
     fn apply_style(&mut self, _: &dyn Style) {}
+    fn position(&self) -> Vector2<f32> {
+        self.pos
+    }
+    fn position_mut(&mut self) -> &mut Vector2<f32> {
+        &mut self.pos
+    }
 }
 
 pub struct RedShadow;
@@ -196,6 +209,7 @@ impl RootComponent for State {
         Self {
             w: 0.0,
             h: 0.0,
+            pos: Vector2::zeros(),
             input: {
                 let mut inp = Input::new(Text::new_content("Pascal", content.clone()));
                 inp.apply_style(&InputStyle);

@@ -4,8 +4,6 @@ use nalgebra::Vector2;
 
 use crate::{
     components::container::Container,
-    elements::CandySquare,
-    renderer::twod::BiDimensionalPainter,
     ui::{
         component::Component,
         styling::{layout::Layout, style::Style},
@@ -75,5 +73,12 @@ impl Component for Toggle {
     #[inline]
     fn apply_style(&mut self, style: &dyn crate::ui::styling::style::Style) {
         self.square.apply_style(style);
+    }
+
+    fn position(&self) -> Vector2<f32> {
+        self.square.position()
+    }
+    fn position_mut(&mut self) -> &mut Vector2<f32> {
+        self.square.position_mut()
     }
 }

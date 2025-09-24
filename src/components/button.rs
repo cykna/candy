@@ -32,6 +32,12 @@ impl<'a, Msg> Component for Button<'a, Msg> {
         self.text.apply_style(style);
         self.rect.apply_style(style);
     }
+    fn position(&self) -> Vector2<f32> {
+        *self.rect.position()
+    }
+    fn position_mut(&mut self) -> &mut Vector2<f32> {
+        self.rect.position_mut()
+    }
 }
 
 impl<'a, Msg> Button<'a, Msg> {
