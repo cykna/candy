@@ -13,9 +13,9 @@ pub use square::*;
 use crate::{renderer::twod::BiDimensionalPainter, ui::component::ComponentRenderer};
 
 ///A trait used to create custom elements.
-pub trait CustomCandyElement<P: BiDimensionalPainter>: std::fmt::Debug {
+pub trait CustomCandyElement: std::fmt::Debug {
     ///Function executed when this element is requested to be drawn
-    fn render(&self, renderer: &mut P);
+    fn render(&self, renderer: &mut ComponentRenderer);
     ///Retrieves the position of this element
     fn position(&self) -> &Vector2<f32>;
 
@@ -23,20 +23,20 @@ pub trait CustomCandyElement<P: BiDimensionalPainter>: std::fmt::Debug {
 }
 
 ///An element on the UI tree which is rendered by the `P` Painter
-pub enum CandyElement<P: BiDimensionalPainter = ComponentRenderer> {
+pub enum CandyElement {
     Square(CandySquare),
-    Image(CandyImage<P>),
+    Image(CandyImage),
     Text(CandyText),
     Clickable {
-        inner: Box<CandyElement<P>>,
+        inner: Box<CandyElement>,
         event: Box<dyn Fn(Vector2<f32>)>,
     },
-    Custom(Box<dyn CustomCandyElement<P>>),
+    Custom(Box<dyn CustomCandyElement>),
 }
 
-impl<P: BiDimensionalPainter> CandyElement<P> {
+impl CandyElement {
     #[inline]
-    pub fn clickable<F: Fn(Vector2<f32>) + 'static>(element: CandyElement<P>, f: F) -> Self {
+    pub fn clickable<F: Fn(Vector2<f32>) + 'static>(element: CandyElement, f: F) -> Self {
         Self::Clickable {
             inner: Box::new(element),
             event: Box::new(f),
@@ -51,7 +51,7 @@ impl<P: BiDimensionalPainter> CandyElement<P> {
 
     #[inline]
     ///Creates a new image element with the given `img` options
-    pub fn new_image(img: CandyImage<P>) -> Self {
+    pub fn new_image(img: CandyImage) -> Self {
         Self::Image(img)
     }
 
@@ -63,7 +63,7 @@ impl<P: BiDimensionalPainter> CandyElement<P> {
 
     #[inline]
     ///Creates a new custom element with the given `custom` struct that implements so
-    pub fn new_custom(custom: impl CustomCandyElement<P> + 'static) -> Self {
+    pub fn new_custom(custom: impl CustomCandyElement + 'static) -> Self {
         Self::Custom(Box::new(custom))
     }
 
@@ -98,10 +98,7 @@ impl<P: BiDimensionalPainter> CandyElement<P> {
     }
 }
 
-impl<P: BiDimensionalPainter + std::fmt::Debug> std::fmt::Debug for CandyElement<P>
-where
-    P::Image: std::fmt::Debug,
-{
+impl std::fmt::Debug for CandyElement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             CandyElement::Square(s) => f.debug_tuple("Square").field(s).finish(),

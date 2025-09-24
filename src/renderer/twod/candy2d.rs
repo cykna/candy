@@ -8,8 +8,8 @@ use glutin::{
 use nalgebra::Vector4;
 use raw_window_handle::HasWindowHandle;
 use skia_safe::{
-    Canvas, Paint, Point, RRect, Rect, SamplingOptions, canvas::SrcRectConstraint,
-    gpu::gl::FramebufferInfo,
+    canvas::SrcRectConstraint, gpu::gl::FramebufferInfo, Canvas, Paint, Point, RRect, Rect,
+    SamplingOptions,
 };
 use std::{ffi::CString, num::NonZero, ops::Range};
 use winit::{dpi::PhysicalSize, window::Window};
@@ -20,8 +20,8 @@ use crate::{
 };
 
 use super::{
-    BiDimensionalPainter, BiDimensionalRenderer, Renderer2DEnvironment,
     helpers::{create_context, create_surface},
+    BiDimensionalPainter, BiDimensionalRenderer, Renderer2DEnvironment,
 };
 
 #[derive(Debug)]
@@ -227,7 +227,7 @@ impl BiDimensionalPainter for Candy2DRenderer {
         );
         canvas.restore();
     }
-    fn render_image(&mut self, image: &CandyImage<Self>) {
+    fn render_image(&mut self, image: &CandyImage) {
         let rule = &image.rule;
         let w = image.real_width();
         let h = image.real_height();

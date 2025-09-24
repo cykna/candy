@@ -16,21 +16,26 @@ pub struct Container {
     square: CandySquare,
     layout: Layout,
     children: Vec<Box<dyn Component>>,
+    ignore_overflow: bool
 }
 
 impl Component for Container {
     fn render(&self, renderer: &mut crate::ui::component::ComponentRenderer) {
-        if self.square.rule.get_color().w == 0.0 && self.square.rule.border_color.w == 0.0 {
-            return;
+        if self.square.rule.get_color().w != 0.0 && self.square.rule.border_color.w != 0.0 {
+            renderer.square(&self.square);
         }
-        renderer.square(&self.square);
-    }
+        for child in &self.children {
+            child.render(renderer);
+        }
+    } 
     fn resize(&mut self, rect: crate::helpers::rect::Rect) {
         self.square.position_mut().x = rect.x;
         self.square.position_mut().y = rect.y;
         self.square.size_mut().x = rect.width;
         self.square.size_mut().y = rect.height;
-        let calc = self.layout.calculate(rect);
+
+        let calc = self.layout.calculate(rect, self.ignore_overflow);
+
         for (idx, rec) in calc.into_iter().enumerate() {
             self.children[idx].resize(rec);
         }
@@ -41,8 +46,9 @@ impl Component for Container {
 }
 
 impl Container {
-    pub fn new(layout: Layout) -> Self {
+    pub fn new(layout: Layout, ignore_overflow: bool) -> Self {
         Self {
+            ignore_overflow,
             layout,
             square: CandySquare::default(),
             children: Vec::new(),
@@ -78,6 +84,16 @@ impl Container {
     }
 
     #[inline]
+    ///Appends the given `child` on this container without a definition. Note that if the amount of deffinition don't match, this will lead to bugs
+    pub unsafe fn add_child_unsafe<C>(&mut self, child: C) -> &mut Self
+    where
+        C: Component + 'static,
+    {
+        self.children.push(Box::new(child));
+        self
+    }
+
+    #[inline]
     ///Adds the given `child` as the new last one with the given `def` rect for resizing.
     pub fn add_child<C>(&mut self, child: C, def: DefinitionRect) -> &mut Self
     where
@@ -106,7 +122,7 @@ impl Container {
     }
 
     ///Retrieves all the children of this Container
-    pub fn children(&self) -> &[Box<dyn Component>] {
+    pub fn children(&self) -> &Vec<Box<dyn Component>> {
         &self.children
     }
 }

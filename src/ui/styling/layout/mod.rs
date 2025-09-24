@@ -64,7 +64,7 @@ impl CalculationMetrics {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Layout {
     pub(crate) boxes: Vec<DefinitionRect>,
     gap: Vector2<Size>,
@@ -92,26 +92,34 @@ impl Layout {
         }
     }
 
+    ///Sets the direction of this layout to be the given `direction`.
+    ///If `Vertical` the rects calculated will appear from TOP to BOTTOM, in order on the deffinition insert
+    ///If `Horizontal` the same logic, but from LEFT to RIGHT
     pub fn with_direction(&mut self, direction: Direction) -> &mut Self {
         self.direction = direction;
         self
     }
 
+    ///Defines the corner of this layout to be the provided `corner`. Unused yet.
     pub fn with_corner(&mut self, corner: Corner) -> &mut Self {
         self.corner = corner;
         self
     }
 
+    ///Appends the given `def` on the deffinitions. When calculating, it will calculate all others and the provided one in order of insertion.
     pub fn with_definition(&mut self, def: DefinitionRect) -> &mut Self {
         self.boxes.push(def);
         self
     }
 
+    ///Sets the gap of this layout to be the provided `gap`. This is used to generate space between elements
     pub fn with_gap(&mut self, gap: Vector2<Size>) -> &mut Self {
         self.gap = gap;
         self
     }
 
+    ///Sets the padding of this layout to be the provided `padding`. This will provide space between the border to the position of the elements.
+    ///This function understands the provided `padding` vector as Vec4(LEFT,TOP,RIGHT,BOTTOM)
     pub fn with_padding(&mut self, padding: Vector4<Size>) -> &mut Self {
         self.padding = padding;
         self
@@ -124,6 +132,7 @@ impl Layout {
         out: &mut Rect,
         def: &DefinitionRect,
         gap: Vector2<f32>,
+        ignore_overflow: bool
     ) {
         out.x = match def.x {
             Size::Length(defx) => defx + metrics.offset_x,
@@ -143,10 +152,11 @@ impl Layout {
             Size::Percent(defh) => defh * rect.height,
         };
 
+        
         metrics.largest_x = metrics.largest_x.max(out.width);
-
         metrics.offset_y += out.height + gap.y;
-        if metrics.offset_y > rect.bottom() {
+        
+        if metrics.offset_y > rect.bottom() && !ignore_overflow {
             out.y = rect.y;
             out.x += metrics.largest_x + gap.x;
             metrics.offset_y = rect.y + out.height + gap.y;
@@ -162,6 +172,7 @@ impl Layout {
         out: &mut Rect,
         def: &DefinitionRect,
         gap: Vector2<f32>,
+        ignore_overflow: bool
     ) {
         out.x = match def.x {
             Size::Length(defx) => defx + metrics.offset_x,
@@ -182,16 +193,16 @@ impl Layout {
         };
 
         metrics.largest_y = metrics.largest_y.max(out.height);
-
         metrics.offset_x += out.width + gap.x;
-
-        if metrics.offset_x > rect.right() {
+        
+        if metrics.offset_x > rect.right() && !ignore_overflow {
             out.x = rect.x;
             out.y += metrics.largest_y + gap.y;
             metrics.offset_x = rect.x + out.width + gap.x;
             metrics.offset_y += metrics.largest_y + gap.y;
             metrics.largest_y = 0.0;
         }
+        
     }
 
     ///Based on the direction of the layout and the `def` calculates a rect that corresponds, to the order it's being created
@@ -203,16 +214,17 @@ impl Layout {
         def: &DefinitionRect,
         rect: &Rect,
         gap: Vector2<f32>,
+        ignore_overflow: bool
     ) -> Rect {
         let mut out = Rect::default();
         match direction {
-            Direction::Vertical => Self::calc_vertical(metrics, rect, &mut out, def, gap),
-            Direction::Horizontal => Self::calc_horizontal(metrics, rect, &mut out, def, gap),
+            Direction::Vertical => Self::calc_vertical(metrics, rect, &mut out, def, gap, ignore_overflow),
+            Direction::Horizontal => Self::calc_horizontal(metrics, rect, &mut out, def, gap, ignore_overflow),
         }
         out
     }
 
-    ///Calculates the padding in pixels of this Layout
+    ///Calculates the padding in pixels of this Layout based on the provided `rect` if some is Percent
     pub fn calculate_padding(&self, rect: &Rect) -> Vector4<f32> {
         let x = match self.padding.x {
             Size::Length(x) => x,
@@ -234,7 +246,7 @@ impl Layout {
         Vector4::new(x, y, r, b)
     }
 
-    ///Calculates the gap in Pixels of this Layout
+    ///Calculates the gap in Pixels of this Layout based on the provided `rect` if some is Percent
     pub fn calculate_gap(&self, rect: &Rect) -> Vector2<f32> {
         let x = match self.gap.x {
             Size::Length(gx) => gx,
@@ -248,8 +260,10 @@ impl Layout {
     }
 
     ///Calculates this layout based on its values and the boxes defined. Note that it will generate N Rects, where N is the amount of boxes added before calculating it.
-    ///The boxes are in order of pushing, so the Nth Rect on the out vector is correspondent to the Nth push
-    pub fn calculate(&self, mut rect: Rect) -> Vec<Rect> {
+    ///The boxes are in order of pushing, so the Nth Rect on the out vector is correspondent to the Nth push.
+    ///On `ignore_overflow` true, the content will be overflowed and won't appear on the correct
+    ///bounds of the given `rect`
+    pub fn calculate(&self, mut rect: Rect, ignore_overflow: bool) -> Vec<Rect> {
         let mut out = Vec::with_capacity(self.boxes.len());
 
         {
@@ -271,6 +285,7 @@ impl Layout {
                 def,
                 &rect,
                 gap,
+                ignore_overflow,
             ));
         }
         out

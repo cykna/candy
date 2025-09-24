@@ -8,7 +8,11 @@ pub mod ui;
 pub mod window;
 
 use crate::components::Input;
+use crate::components::{Scrollable, ScrollableConfig};
+use crate::ui::styling::layout::Layout;
+use crate::ui::styling::layout::{DefinitionRect, Direction};
 use crate::{components::Button, ui::styling::fx::Effect};
+
 use elements::CandySquare;
 use helpers::rect::Rect;
 use nalgebra::{Vector2, Vector4};
@@ -109,14 +113,14 @@ impl Component for Square {
 struct State {
     w: f32,
     h: f32,
-    data: f32,
-    squares: Vec<Button<Msg>>,
+    data: Scrollable,
     input: Input,
     manager: FontManager,
 }
 impl State {
     fn resize_children(&mut self) {
-        let mut style = styling::layout::Layout::default()
+        let mut style = Layout::vertical();
+        style
             .with_corner(styling::layout::Corner::TopLeft)
             .with_direction(styling::layout::Direction::Vertical)
             .with_gap(Vector2::new(Size::Length(5.0), Size::Length(10.0)))
@@ -125,37 +129,13 @@ impl State {
                 Size::Length(50.0),
                 Size::Length(5.0),
                 Size::Length(10.0),
-            ));
-        style = style.with_definition(styling::layout::DefinitionRect {
-            x: Size::Length(0.0),
-            y: Size::Length(0.0),
-            width: Size::Percent(0.25),
-            height: Size::Length(50.0),
-        });
-        for _ in &self.squares {
-            style = style.with_definition(styling::layout::DefinitionRect {
+            ))
+            .with_definition(styling::layout::DefinitionRect {
                 x: Size::Length(0.0),
                 y: Size::Length(0.0),
                 width: Size::Percent(0.25),
-                height: Size::Percent(0.25),
+                height: Size::Length(50.0),
             });
-        }
-        for (idx, r) in style
-            .calculate(Rect {
-                x: 0.0,
-                y: 0.0,
-                width: self.w,
-                height: self.h,
-            })
-            .into_iter()
-            .enumerate()
-        {
-            if idx == 0 {
-                self.input.resize(r);
-            } else {
-                self.squares[idx - 1].resize(r);
-            }
-        }
     }
 }
 
@@ -163,13 +143,11 @@ impl Component for State {
     fn resize(&mut self, rect: Rect) {
         self.w = rect.width;
         self.h = rect.height;
-        self.resize_children();
+        self.data.resize(rect);
     }
     fn render(&self, renderer: &mut ComponentRenderer) {
         renderer.background(&Vector4::new(0.0, 0.1, 0.2, 1.0));
-        for s in &self.squares {
-            s.render(renderer);
-        }
+        self.data.render(renderer);
         self.input.render(renderer);
     }
     fn apply_style(&mut self, _: &dyn Style) {}
@@ -218,20 +196,20 @@ impl RootComponent for State {
         Self {
             w: 0.0,
             h: 0.0,
-            data: 0.0,
             input: {
                 let mut inp = Input::new(Text::new_content("Pascal", content.clone()));
                 inp.apply_style(&InputStyle);
                 inp
             },
-            squares: vec![{
-                let mut btn = Button::new(Text::new_content("Hello World", content), |pos, btn| {
-                    println!("Ola amigo {pos} {btn:?}");
-                    Msg::None
+            data: {
+                let mut scroll = Scrollable::new(ScrollableConfig {
+                    layout: Layout::vertical(),
+                    scroll_bar_width: 10.0,
+                    direction: Direction::Vertical,
                 });
-                btn.apply_style(&RedShadow);
-                btn
-            }],
+                scroll.apply_style_scrollbar(&RedShadow);
+                scroll
+            },
             manager: font,
         }
     }
@@ -266,28 +244,36 @@ impl RootComponent for State {
         false
     }
     fn click(&mut self, pos: Vector2<f32>, btn: MouseButton) -> bool {
-        self.data += 0.1;
+        self.data.on_mouse(pos);
 
-        for button in &self.squares {
-            if let Some(_) = button.try_exec(pos, btn) {
-                return false;
-            };
-        }
-        let val = std::sync::Arc::new(self.data);
-        let clone = val.clone();
         let font = self.manager.create_font("Nimbus Roman", 24.0);
-        let s = Button::new(
-            Text::new_content(&format!("{}", &self.data), font),
-            move |pos, btn| {
-                println!("O dobro é: {}", *clone * pos);
-                Msg::None
-            },
-        )
+        let s = Button::new(Text::new_content("Hello World", font), move |pos, btn| {
+            Msg::None
+        })
         .with_style(&RedShadow);
 
-        self.squares.push(s);
+        self.data.add_child(
+            s,
+            DefinitionRect {
+                x: Size::Length(0.0),
+                y: Size::Length(10.0),
+                width: Size::Percent(0.25),
+                height: Size::Percent(0.25),
+            },
+        );
 
-        self.resize_children();
+        println!(
+            "{:?} {}",
+            self.data.children().len(),
+            self.data.is_dragging()
+        );
+
+        self.resize(Rect {
+            x: 0.0,
+            y: 0.0,
+            width: self.w,
+            height: self.h,
+        });
         true
     }
 }

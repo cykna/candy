@@ -27,7 +27,7 @@ impl Toggle {
     {
         Self {
             checked: false,
-            square: Container::new(Layout::vertical()),
+            square: Container::new(Layout::vertical(), false),
             unchecked_style: Box::new(unchecked),
             checked_style: Box::new(checked_style),
         }

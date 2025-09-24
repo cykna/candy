@@ -66,7 +66,7 @@ pub trait BiDimensionalPainter: Sized + std::fmt::Debug {
     fn text(&mut self, info: &CandyText);
 
     ///Method uses to draw the given `img` at the given `position`
-    fn render_image(&mut self, info: &CandyImage<Self>);
+    fn render_image(&mut self, info: &CandyImage);
 
     fn background(&mut self, rule: &Vector4<f32>);
 }

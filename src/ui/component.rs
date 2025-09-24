@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use nalgebra::Vector2;
 use winit::{
     event::MouseButton,
