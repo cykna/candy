@@ -1,5 +1,3 @@
-use std::fmt::Debug;
-
 use nalgebra::Vector2;
 use winit::{
     event::MouseButton,
@@ -33,6 +31,10 @@ pub trait Component {
 
     ///Retrieves the position of this component
     fn position_mut(&mut self) -> &mut Vector2<f32>;
+
+    fn apply_offset(&mut self, offset: Vector2<f32>) {
+        *self.position_mut() += offset;
+    }
 }
 
 pub trait RootComponent: Component {

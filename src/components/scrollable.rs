@@ -110,7 +110,6 @@ impl Scrollable {
     pub fn on_mouse(&mut self, pos: Vector2<f32>) {
         if self.scrollbar.bounds().contains(pos) {
             self.is_dragging = !self.is_dragging;
-            self.old_cursor = pos;
         }
     }
 
@@ -126,7 +125,7 @@ impl Scrollable {
     ///Updates the positions of all the elements inside this scrollable based on the scroll offset
     pub fn update_positions(&mut self) {
         for child in self.container.children_mut() {
-            child.position_mut().y += self.offset;
+            child.apply_offset(Vector2::new(0.0, self.offset));
         }
     }
 }
@@ -164,5 +163,10 @@ impl Component for Scrollable {
 
     fn position_mut(&mut self) -> &mut Vector2<f32> {
         self.container.position_mut()
+    }
+
+    fn apply_offset(&mut self, offset: Vector2<f32>) {
+        *self.container.position_mut() += offset;
+        *self.scrollbar.position_mut() += offset;
     }
 }

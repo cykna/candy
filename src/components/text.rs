@@ -49,6 +49,9 @@ impl Component for Text {
     fn position_mut(&mut self) -> &mut Vector2<f32> {
         self.inner.position_mut()
     }
+    fn apply_offset(&mut self, offset: Vector2<f32>) {
+        *self.inner.position_mut() += offset;
+    }
 }
 
 impl Text {

@@ -49,6 +49,13 @@ impl Component for Container {
     fn position_mut(&mut self) -> &mut nalgebra::Vector2<f32> {
         self.square.position_mut()
     }
+
+    fn apply_offset(&mut self, offset: nalgebra::Vector2<f32>) {
+        *self.position_mut() += offset;
+        for child in &mut self.children {
+            child.apply_offset(offset);
+        }
+    }
 }
 
 impl Container {

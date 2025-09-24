@@ -38,6 +38,10 @@ impl<'a, Msg> Component for Button<'a, Msg> {
     fn position_mut(&mut self) -> &mut Vector2<f32> {
         self.rect.position_mut()
     }
+    fn apply_offset(&mut self, offset: Vector2<f32>) {
+        self.text.apply_offset(offset);
+        *self.rect.position_mut() += offset;
+    }
 }
 
 impl<'a, Msg> Button<'a, Msg> {
