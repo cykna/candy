@@ -257,6 +257,20 @@ impl RootComponent for State {
     ) -> bool {
         false
     }
+    fn on_mouse_wheel(
+        &mut self,
+        offset: winit::event::MouseScrollDelta,
+        _: winit::event::TouchPhase,
+        pos: Vector2<f32>,
+    ) -> bool {
+        match offset {
+            winit::event::MouseScrollDelta::LineDelta(x, y) => {
+                self.data.drag_offset(Vector2::new(x, -y));
+            }
+            _ => {}
+        }
+        true
+    }
     fn on_mouse_move(&mut self, pos: Vector2<f32>) -> bool {
         self.data.drag(pos);
         self.data.is_dragging()

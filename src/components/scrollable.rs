@@ -135,6 +135,17 @@ impl Scrollable {
     }
 
     #[inline]
+    ///Directly applies the given `offset` on the offset of this scrollable and updates the new positions
+    pub fn drag_offset(&mut self, offset: Vector2<f32>) {
+        self.offset = match self.direction {
+            Direction::Vertical => offset.y,
+            Direction::Horizontal => offset.x,
+        };
+        self.accum_offset += self.offset;
+        self.update_positions();
+    }
+
+    #[inline]
     ///Modifies the position of the elements based on the new `pos` provided. If `scrollable.is_dragging() == false`, then this doesn't do anything
     pub fn drag(&mut self, pos: Vector2<f32>) {
         if self.is_dragging {
