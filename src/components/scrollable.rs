@@ -21,6 +21,7 @@ pub struct Scrollable {
     layout: Layout,
     old_cursor: Vector2<f32>,
     offset: f32,
+    accum_offset: f32,
     is_dragging: bool,
 }
 
@@ -89,6 +90,7 @@ impl Scrollable {
             direction: config.direction,
             old_cursor: Vector2::zeros(),
             offset: 0.0,
+            accum_offset: 0.0,
             is_dragging: false,
         }
     }
@@ -110,6 +112,9 @@ impl Scrollable {
     pub fn on_mouse(&mut self, pos: Vector2<f32>) {
         if self.scrollbar.bounds().contains(pos) {
             self.is_dragging = !self.is_dragging;
+            if self.is_dragging {
+                self.old_cursor = pos;
+            }
         }
     }
 
@@ -119,7 +124,13 @@ impl Scrollable {
             Direction::Vertical => pos.y - self.old_cursor.y,
             Direction::Horizontal => pos.x - self.old_cursor.x,
         };
+        self.accum_offset += self.offset;
         self.old_cursor = pos;
+    }
+    pub fn update_positions_accum(&mut self) {
+        for child in self.container.children_mut() {
+            child.apply_offset(Vector2::new(0.0, self.accum_offset));
+        }
     }
 
     ///Updates the positions of all the elements inside this scrollable based on the scroll offset
@@ -147,6 +158,7 @@ impl Component for Scrollable {
         let rects = self.layout.calculate(rect, true);
         self.scrollbar.resize(rects[0].clone());
         self.container.resize(rects[1].clone());
+        self.update_positions_accum();
     }
     fn render(&self, renderer: &mut crate::ui::component::ComponentRenderer) {
         self.container.render(renderer);
