@@ -1,1 +1,6 @@
 /target
+flamegraph.svg
+perf.data
+./*
+!/src
+examples/*/target

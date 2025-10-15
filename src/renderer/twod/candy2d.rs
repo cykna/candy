@@ -5,26 +5,26 @@ use glutin::{
     prelude::GlSurface,
     surface::{SurfaceAttributesBuilder, WindowSurface},
 };
-use nalgebra::{Vector2, Vector4};
+use nalgebra::Vector4;
 use raw_window_handle::HasWindowHandle;
 use skia_safe::{
-    Canvas, Color4f, Paint, Point, RRect, Rect, SamplingOptions, canvas::SrcRectConstraint,
-    gpu::gl::FramebufferInfo,
+    canvas::SrcRectConstraint, gpu::gl::FramebufferInfo, Canvas, Paint, Point, RRect, Rect,
+    SamplingOptions,
 };
-use std::{ffi::CString, num::NonZero};
+use std::{ffi::CString, num::NonZero, ops::Range};
 use winit::{dpi::PhysicalSize, window::Window};
 
 use crate::{
-    elements::{square::CandySquare, text::CandyText},
+    elements::{image::CandyImage, square::CandySquare, text::CandyText},
     helpers::vec4f32_to_color,
 };
 
 use super::{
-    BiDimensionalPainter, BiDimensionalRenderer, ImagePainter, RenderImageOptions,
-    Renderer2DEnvironment,
     helpers::{create_context, create_surface},
+    BiDimensionalPainter, BiDimensionalRenderer, Renderer2DEnvironment,
 };
 
+#[derive(Debug)]
 ///Default 2D renderer of Candy. By default a wrapper over skia-safe
 pub struct Candy2DRenderer {
     environment: Renderer2DEnvironment,
@@ -102,6 +102,7 @@ impl Candy2DRenderer {
 }
 
 impl BiDimensionalRenderer for Candy2DRenderer {
+    #[inline]
     fn new(window: &Window, config: &Config) -> Self {
         Self {
             environment: Self::create_environment(window, config),
@@ -123,9 +124,11 @@ impl BiDimensionalRenderer for Candy2DRenderer {
             NonZero::new(height.max(1)).unwrap(),
         );
     }
+    #[inline]
     fn twod_painter(&mut self) -> &mut impl BiDimensionalPainter {
         self
     }
+    #[inline]
     #[cfg(feature = "opengl")]
     fn flush(&mut self) {
         self.environment.gr_context.flush_and_submit();
@@ -137,88 +140,129 @@ impl BiDimensionalRenderer for Candy2DRenderer {
 }
 
 impl BiDimensionalPainter for Candy2DRenderer {
+    type Image = skia_safe::Image;
     fn square(&mut self, square_info: &CandySquare) {
-        let radius = square_info.border_radius();
-        let color = unsafe { std::mem::transmute::<_, &Color4f>(square_info.background_color()) };
+        let rule = &square_info.rule;
 
-        let mut paint = Paint::new(color, None);
-        paint.set_style(skia_safe::PaintStyle::Fill);
-        let position = square_info.position();
-        let size = square_info.size();
-        let rect = Rect::new(
-            position.x,
-            position.y,
-            position.x + size.x,
-            position.y + size.y,
-        );
-        let border_color = square_info.border_color();
-        self.canvas()
-            .draw_round_rect(&rect, radius.x, radius.y, &paint);
-        if border_color.w == 0.0 {
-            return;
-        };
-        paint
-            .set_color4f(
-                unsafe { std::mem::transmute::<_, &Color4f>(square_info.border_color()) },
-                None,
+        let radius = rule.border_radius;
+        let rect = {
+            let position = square_info.position();
+            let size = square_info.size();
+            Rect::new(
+                position.x,
+                position.y,
+                position.x + size.x,
+                position.y + size.y,
             )
+        };
+
+        self.canvas()
+            .draw_round_rect(rect, radius.x, radius.y, &rule.inner);
+        let border_color = rule.border_color;
+
+        if border_color.w == 0.0 || rule.border_width == 0.0 {
+            return;
+        }
+        let mut paint = Paint::new(vec4f32_to_color(&border_color), None);
+        paint
             .set_style(skia_safe::PaintStyle::Stroke)
-            .set_stroke_width(2.0);
+            .set_stroke_width(rule.border_width);
+
         self.canvas()
             .draw_round_rect(&rect, radius.x, radius.y, &paint);
     }
+
+    #[inline]
     fn circle(&mut self, position: &nalgebra::Vector2<f32>, color: &Vector4<f32>, radius: f32) {
         let paint = Paint::new(vec4f32_to_color(color), None);
         self.canvas()
             .draw_circle(Point::new(position.x, position.y), radius, &paint);
     }
+
+    fn text_sliced(&mut self, info: &CandyText, range: Range<usize>) {
+        let rule = &info.rule;
+
+        let bounds = info.bounds();
+        let canvas = self.canvas();
+        canvas.save();
+        canvas.clip_rect(
+            Rect {
+                left: bounds.x - info.font().size(),
+                top: bounds.y - info.font().size(),
+                right: bounds.x + bounds.width,
+                bottom: bounds.y + bounds.height,
+            },
+            None,
+            Some(true),
+        );
+        canvas.draw_str(
+            &info.content()[range],
+            Point::new(info.position().x, info.position().y),
+            &info.font(),
+            &rule.inner,
+        );
+        canvas.restore();
+    }
+
     fn text(&mut self, info: &CandyText) {
-        let mut paint = Paint::new(vec4f32_to_color(info.color()), None);
-        paint.set_anti_alias(true);
-        self.canvas().draw_str(
+        let rule = &info.rule;
+        let canvas = self.canvas();
+        canvas.save();
+        let bounds = info.bounds();
+        canvas.clip_rect(
+            Rect {
+                left: bounds.x - info.font().size(),
+                top: bounds.y - info.font().size(),
+                right: bounds.x + bounds.width,
+                bottom: bounds.y + bounds.height,
+            },
+            None,
+            Some(true),
+        );
+        canvas.draw_str(
             info.content(),
             Point::new(info.position().x, info.position().y),
             &info.font(),
-            &paint,
+            &rule.inner,
         );
+        canvas.restore();
     }
-}
-
-impl ImagePainter for Candy2DRenderer {
-    type Image = skia_safe::Image;
-    fn render_image(
-        &mut self,
-        position: Vector2<f32>,
-        img: &skia_safe::Image,
-        options: RenderImageOptions,
-    ) {
-        let w = img.width();
-        let h = img.height();
-        let rect = Rect::new(position.x, position.y, position.x + w, position.y + h);
-
-        let paint = Paint::default();
+    fn render_image(&mut self, image: &CandyImage) {
+        let rule = &image.rule;
+        let w = image.real_width();
+        let h = image.real_height();
+        let position = image.position();
+        let rect = Rect::new(
+            position.x,
+            position.y,
+            position.x + w as f32,
+            position.y + h as f32,
+        );
 
         let canvas = self.canvas();
 
         canvas.save();
 
         canvas.clip_rrect(
-            &RRect::new_rect_xy(&rect, options.border_radius.x, options.border_radius.y),
+            &RRect::new_rect_xy(&rect, rule.border_radius.x, rule.border_radius.y),
             None,
             true,
         );
 
         canvas.draw_image_rect_with_sampling_options(
-            img,
+            image.image_handler(),
             Some((
                 &Rect::new(0.0, 0.0, w as f32, h as f32),
                 SrcRectConstraint::Fast,
             )),
             rect,
             SamplingOptions::default(),
-            &paint,
+            &rule.inner,
         );
 
         canvas.restore();
+    }
+    fn background(&mut self, color: &Vector4<f32>) {
+        self.canvas().clear(*vec4f32_to_color(color));
     }
 }

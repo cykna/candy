@@ -34,7 +34,7 @@ where
         self.twod.flush();
     }
 
-    fn twod_renderer(&mut self) -> &mut impl BiDimensionalRenderer {
+    fn twod_renderer(&mut self) -> &mut TwoD {
         &mut self.twod
     }
 }

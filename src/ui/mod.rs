@@ -1,2 +1,2 @@
-mod tree;
-pub use tree::*;
+pub mod component;
+pub mod styling;
