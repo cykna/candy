@@ -1,19 +1,17 @@
-CandyLib
+# candy
 
-The Candy library is more like a library with a 'protocol' or a 'specification' with a default implementation.
-The 'specification' part only defines what the library expects, but now how the implementor will do so.
-By default it uses skia for the 2D and Wgpu for the 3D, but as this is a protocol, the unique thing is that the structs that
-are used, implement the same high level methods it's expected. So an OpenGL renderer focused on 3D can be used if it is implemented
-correctly.
+This is supposed to be the "continuation" of Hyst.
+I made everything wrong on hyst(even tho things were working), whatever, imma write it with skia.
+This is an attempt to build a 2D/3D library with support to multiple renderers.
+The support is made via traits, so anything that implements the renderer traits of this library is able to run.
 
-Todo:
-  2D stuff:
-    Element Tree,
-    Elements themself
-    Add specifications for the renderers
-
-  3D stuff:
-    Initialize
-    Add specification for renderers
-    
-  CrossPlatform
+# Todo
+  * Add support for more types
+  * Implement Tree of elements
+  * Implement reactivity
+  * Implement Renderers for skia using Vulkan, Metal and DirectX
+  * Start Working with 3D
+  * Add effects
+  * Add Animations
+  * Add support for Vello as a builtin renderer instead of Skia
+  * Add support for tiny-skia
