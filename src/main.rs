@@ -258,16 +258,11 @@ impl RootComponent for State {
         false
     }
     fn on_mouse_move(&mut self, pos: Vector2<f32>) -> bool {
-        if self.data.is_dragging() {
-            self.data.on_cursor(pos);
-            self.data.update_positions();
-            true
-        } else {
-            false
-        }
+        self.data.drag(pos);
+        self.data.is_dragging()
     }
     fn click(&mut self, pos: Vector2<f32>, btn: MouseButton) -> bool {
-        self.data.on_mouse(pos);
+        self.data.on_mouse_click(pos);
 
         let font = self.manager.create_font("Nimbus Roman", 24.0);
         let s = Button::new(Text::new_content("Hello World", font), move |pos, btn| {
@@ -283,12 +278,6 @@ impl RootComponent for State {
                 width: Size::Percent(0.25),
                 height: Size::Percent(0.25),
             },
-        );
-
-        println!(
-            "{:?} {}",
-            self.data.children().len(),
-            self.data.is_dragging()
         );
 
         self.resize(Rect {
