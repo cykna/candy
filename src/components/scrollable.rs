@@ -95,21 +95,26 @@ impl Scrollable {
         }
     }
 
+    #[inline]
+    ///Returns weather this scrollable is dragging or not
     pub fn is_dragging(&mut self) -> bool {
         self.is_dragging
     }
 
+    #[inline]
+    ///Returns the element of the scrollbar
     pub fn scrollbar(&self) -> &Container {
         &self.scrollbar
     }
 
-    ///Applies the given `style` to the scrollbar
+    #[inline]
+    ///Applies the given `style` to the scrollbar element
     pub fn apply_style_scrollbar(&mut self, style: &dyn Style) {
         self.scrollbar.apply_style(style);
     }
 
     ///Checks if the given `pos` is inside the scrollbar, if so, treat it as a click and toggles if it's scrolling or not
-    pub fn on_mouse(&mut self, pos: Vector2<f32>) {
+    pub fn on_mouse_click(&mut self, pos: Vector2<f32>) {
         if self.scrollbar.bounds().contains(pos) {
             self.is_dragging = !self.is_dragging;
             if self.is_dragging {
@@ -118,6 +123,7 @@ impl Scrollable {
         }
     }
 
+    #[inline]
     ///Modifies the offset based on the given `pos` and assings the new cursor position to be the `pos` so values can be tracked correctly
     pub fn on_cursor(&mut self, pos: Vector2<f32>) {
         self.offset = match self.direction {
@@ -127,14 +133,25 @@ impl Scrollable {
         self.accum_offset += self.offset;
         self.old_cursor = pos;
     }
-    pub fn update_positions_accum(&mut self) {
+
+    #[inline]
+    ///Modifies the position of the elements based on the new `pos` provided. If `scrollable.is_dragging() == false`, then this doesn't do anything
+    pub fn drag(&mut self, pos: Vector2<f32>) {
+        if self.is_dragging {
+            self.on_cursor(pos);
+            self.update_positions();
+        }
+    }
+
+    ///Updates the positions of the inner elements based on the accumulated offset.
+    fn update_positions_accum(&mut self) {
         for child in self.container.children_mut() {
             child.apply_offset(Vector2::new(0.0, self.accum_offset));
         }
     }
 
     ///Updates the positions of all the elements inside this scrollable based on the scroll offset
-    pub fn update_positions(&mut self) {
+    fn update_positions(&mut self) {
         for child in self.container.children_mut() {
             child.apply_offset(Vector2::new(0.0, self.offset));
         }
