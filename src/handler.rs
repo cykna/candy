@@ -1,6 +1,10 @@
 use nalgebra::Vector2;
 
-use winit::{dpi::PhysicalSize, event::MouseButton, window::Window};
+use winit::{
+    dpi::PhysicalSize,
+    event::{MouseButton, MouseScrollDelta, TouchPhase},
+    window::Window,
+};
 
 use crate::{
     renderer::{CandyRenderer, candy::CandyDefaultRenderer},
@@ -21,6 +25,7 @@ where
     fn draw(&mut self);
     fn resize(&mut self, size: PhysicalSize<u32>);
     fn on_mouse_move(&mut self, position: Vector2<f32>);
+    fn on_mouse_wheel(&mut self, delta: MouseScrollDelta, phase: TouchPhase);
     fn on_press(&mut self, button: MouseButton);
 
     fn request_redraw(&self);
@@ -64,6 +69,11 @@ where
     fn on_mouse_move(&mut self, position: Vector2<f32>) {
         self.mouse_pos = position;
         if self.root.on_mouse_move(position) {
+            self.window.request_redraw();
+        }
+    }
+    fn on_mouse_wheel(&mut self, delta: MouseScrollDelta, phase: TouchPhase) {
+        if self.root.on_mouse_wheel(delta, phase, self.mouse_pos) {
             self.window.request_redraw();
         }
     }

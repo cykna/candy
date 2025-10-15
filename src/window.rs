@@ -99,6 +99,9 @@ where
                 winit::event::WindowEvent::CursorMoved { position, .. } => {
                     handler.on_mouse_move(Vector2::new(position.x as f32, position.y as f32));
                 }
+                winit::event::WindowEvent::MouseWheel { delta, phase, .. } => {
+                    handler.on_mouse_wheel(delta, phase)
+                }
                 winit::event::WindowEvent::KeyboardInput {
                     device_id,
                     event,
