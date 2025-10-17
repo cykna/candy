@@ -12,14 +12,14 @@ use crate::{
     },
 };
 
-pub struct Container {
+pub struct Container<C: Component> {
     square: CandySquare,
     pub(crate) layout: Layout,
-    children: Vec<Box<dyn Component>>,
+    children: Vec<C>,
     ignore_overflow: bool,
 }
 
-impl Component for Container {
+impl<C: Component> Component for Container<C> {
     fn render(&self, renderer: &mut crate::ui::component::ComponentRenderer) {
         if self.square.rule.get_color().w != 0.0 && self.square.rule.border_color.w != 0.0 {
             renderer.square(&self.square);
@@ -58,7 +58,7 @@ impl Component for Container {
     }
 }
 
-impl Container {
+impl<C: Component> Container<C> {
     pub fn new(layout: Layout, ignore_overflow: bool) -> Self {
         Self {
             ignore_overflow,
@@ -70,23 +70,18 @@ impl Container {
 
     ///Adds the given `child` and `def` at the provided `index`. If `index` > `len(children)`, then the provided `child` is inserted as
     ///the last one
-    pub fn add_child_at<C: Component + 'static>(
-        &mut self,
-        child: C,
-        def: DefinitionRect,
-        index: usize,
-    ) -> &mut Self {
+    pub fn add_child_at(&mut self, child: C, def: DefinitionRect, index: usize) -> &mut Self {
         if index >= self.children.len() {
             self.add_child(child, def)
         } else {
-            self.children.insert(index, Box::new(child));
+            self.children.insert(index, child);
             self.layout.boxes.insert(index, def);
             self
         }
     }
 
     ///Clears all the children this Container has and returns them with their respective layout
-    pub fn clear_children(&mut self) -> Vec<(Box<dyn Component>, DefinitionRect)> {
+    pub fn clear_children(&mut self) -> Vec<(C, DefinitionRect)> {
         let children = std::mem::take(&mut self.children);
         let layouts = std::mem::take(&mut self.layout.boxes);
         debug_assert!(children.len() == layouts.len());
@@ -98,35 +93,29 @@ impl Container {
 
     #[inline]
     ///Appends the given `child` on this container without a definition. Note that if the amount of deffinition don't match, this will lead to bugs
-    pub unsafe fn add_child_unsafe<C>(&mut self, child: C) -> &mut Self
-    where
-        C: Component + 'static,
-    {
-        self.children.push(Box::new(child));
+    pub unsafe fn add_child_unsafe(&mut self, child: C) -> &mut Self {
+        self.children.push(child);
         self
     }
 
     #[inline]
     ///Adds the given `child` as the new last one with the given `def` rect for resizing.
-    pub fn add_child<C>(&mut self, child: C, def: DefinitionRect) -> &mut Self
-    where
-        C: Component + 'static,
-    {
-        self.children.push(Box::new(child));
+    pub fn add_child(&mut self, child: C, def: DefinitionRect) -> &mut Self {
+        self.children.push(child);
         self.layout.with_definition(def);
         self
     }
 
     #[inline]
     ///Removes the child at the provided `index`
-    pub fn remove_children_at_index(&mut self, index: usize) -> Box<dyn Component> {
+    pub fn remove_children_at_index(&mut self, index: usize) -> C {
         self.children.remove(index)
     }
 
     ///Iterates over the children using `f`, on the first true return, that entity is then removed and returned
-    pub fn remove_children_where<F>(&mut self, f: F) -> Option<Box<dyn Component>>
+    pub fn remove_children_where<F>(&mut self, f: F) -> Option<C>
     where
-        F: Fn(&Box<dyn Component>) -> bool,
+        F: Fn(&C) -> bool,
     {
         self.children
             .iter()
@@ -135,24 +124,24 @@ impl Container {
     }
 
     ///Retrieves all the children of this Container
-    pub fn children(&self) -> &Vec<Box<dyn Component>> {
+    pub fn children(&self) -> &Vec<C> {
         &self.children
     }
 
     ///Retrieves all the children of this Container
-    pub fn children_mut(&mut self) -> &mut Vec<Box<dyn Component>> {
+    pub fn children_mut(&mut self) -> &mut Vec<C> {
         &mut self.children
     }
 }
 
-impl Deref for Container {
+impl<C: Component> Deref for Container<C> {
     type Target = CandySquare;
     fn deref(&self) -> &Self::Target {
         &self.square
     }
 }
 
-impl DerefMut for Container {
+impl<C: Component> DerefMut for Container<C> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.square
     }

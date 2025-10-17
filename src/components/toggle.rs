@@ -3,7 +3,7 @@ use std::rc::Rc;
 use nalgebra::Vector2;
 
 use crate::{
-    components::container::Container,
+    components::{SolidBox, container::Container},
     ui::{
         component::Component,
         styling::{layout::Layout, style::Style},
@@ -12,7 +12,7 @@ use crate::{
 
 pub struct Toggle {
     checked: bool,
-    square: Container,
+    square: Container<SolidBox>,
     unchecked_style: Box<dyn Style>,
     checked_style: Box<dyn Style>,
 }
