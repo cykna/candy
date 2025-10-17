@@ -1,9 +1,9 @@
 use std::ops::{Deref, DerefMut, Div, Mul};
 
-use nalgebra::Vector2;
+use nalgebra::{Vector2, Vector4};
 
 use crate::{
-    components::container::Container,
+    components::{SolidBox, container::Container},
     helpers::rect::Rect,
     ui::{
         component::Component,
@@ -14,10 +14,10 @@ use crate::{
     },
 };
 
-pub struct Scrollable {
+pub struct Scrollable<C: Component> {
     direction: Direction,
-    container: Container,
-    scrollbar: Container,
+    container: Container<C>,
+    scrollbar: Container<SolidBox>,
     layout: Layout,
     old_cursor: Vector2<f32>,
     offset: f32,
@@ -32,12 +32,12 @@ pub struct ScrollableConfig {
     pub layout: Layout,
 }
 
-impl Scrollable {
+impl<C: Component> Scrollable<C> {
     ///Generates a ScrollBar for a Scrollable
-    pub fn scroll_bar() -> Container {
+    pub fn scroll_bar() -> Container<SolidBox> {
         let mut out = Container::new(Layout::vertical(), false);
         out.add_child(
-            Container::new(Layout::vertical(), false),
+            SolidBox::new(&Vector4::new(0.0, 0.0, 0.0, 1.0)),
             DefinitionRect {
                 x: Size::Length(0.0),
                 y: Size::Length(0.0),
@@ -105,7 +105,7 @@ impl Scrollable {
 
     #[inline]
     ///Returns the element of the scrollbar
-    pub fn scrollbar(&self) -> &Container {
+    pub fn scrollbar(&self) -> &Container<SolidBox> {
         &self.scrollbar
     }
 
@@ -175,19 +175,19 @@ impl Scrollable {
     }
 }
 
-impl Deref for Scrollable {
-    type Target = Container;
+impl<C: Component> Deref for Scrollable<C> {
+    type Target = Container<C>;
     fn deref(&self) -> &Self::Target {
         &self.container
     }
 }
-impl DerefMut for Scrollable {
+impl<C: Component> DerefMut for Scrollable<C> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.container
     }
 }
 
-impl Component for Scrollable {
+impl<C: Component> Component for Scrollable<C> {
     fn resize(&mut self, rect: Rect) {
         let height = rect.height;
         let rects = self.layout.calculate(rect, true);
