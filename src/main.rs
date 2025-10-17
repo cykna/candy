@@ -24,6 +24,7 @@ use ui::{
     styling::{self, layout::Size},
 };
 use window::CandyWindow;
+use winit::event::{MouseScrollDelta, TouchPhase};
 use winit::keyboard::Key;
 use winit::{event::MouseButton, window::Window};
 
@@ -48,36 +49,11 @@ pub struct Square {
     info: CandySquare,
 }
 
-pub struct Red;
-
-impl Style for Red {
-    fn color(&self) -> Vector4<f32> {
-        Vector4::new(1.0, 0.0, 0.0, 1.0)
-    }
-    fn border_color(&self) -> Vector4<f32> {
-        Vector4::new(0.0, 1.0, 0.0, 1.0)
-    }
-    fn border_width(&self) -> f32 {
-        1.0
-    }
-
-    fn border_radius(&self) -> Vector2<f32> {
-        Vector2::new(5.0, 5.0)
-    }
-
-    fn effect(&self) -> Box<dyn Effect> {
-        Box::new(
-            Shadow::colored((self.border_color() + Vector4::new(1.0, 1.0, 1.0, 1.0)) * 0.5)
-                .with_blur(Vector2::new(10.0, 10.0)),
-        )
-    }
-}
-
 impl Square {
     pub fn new(font: CandyFont) -> Self {
         Self {
-            text: CandyText::new("pedro", Vector2::zeros(), font).with_style(&Red),
-            info: CandySquare::new(Vector2::zeros(), Vector2::zeros()).with_style(&Red),
+            text: CandyText::new("pedro", Vector2::zeros(), font),
+            info: CandySquare::new(Vector2::zeros(), Vector2::zeros()),
         }
     }
 }
@@ -153,17 +129,26 @@ impl Style for RedShadow {
         Box::new(RedShadow)
     }
     fn background_color(&self) -> Vector4<f32> {
-        Vector4::new(1.0, 1.0, 1.0, 0.5)
+        Vector4::new(1.0, 0.0, 1.0, 1.0)
     }
     fn color(&self) -> Vector4<f32> {
         Vector4::new(1.0, 1.0, 0.0, 1.0)
+    }
+    fn border_color(&self) -> Vector4<f32> {
+        Vector4::new(1.0, 0.0, 0.0, 0.5)
+    }
+    fn border_radius(&self) -> Vector2<f32> {
+        Vector2::new(12.0, 12.0)
+    }
+    fn border_width(&self) -> f32 {
+        5.0
     }
 }
 
 impl Effect for RedShadow {
     fn shadow(&self) -> Option<crate::ui::styling::fx::ShadowEffect> {
         Some(crate::ui::styling::fx::ShadowEffect {
-            color: Vector4::new(1.0, 0.0, 0.0, 1.0),
+            color: Vector4::new(1.0, 1.0, 0.0, 0.5),
             offset: Vector2::new(20.0, 20.0),
             blur: Vector2::new(10.0, 10.0),
         })
@@ -184,7 +169,11 @@ impl RootComponent for State {
             },
             data: {
                 let mut scroll = Scrollable::new(ScrollableConfig {
-                    layout: Layout::vertical(),
+                    layout: {
+                        let mut out = Layout::vertical();
+                        out.with_gap(Vector2::new(Size::Length(0.0), Size::Length(10.0)));
+                        out
+                    },
                     scroll_bar_width: 10.0,
                     direction: Direction::Vertical,
                 });
@@ -215,9 +204,6 @@ impl RootComponent for State {
             }
             _ => false,
         }
-    }
-    fn on_mouse_wqheel(&mut self) {
-        println!("Mouse wheel");
     }
 
     fn keyup(
