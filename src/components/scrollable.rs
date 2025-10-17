@@ -1,4 +1,4 @@
-use std::ops::{Deref, DerefMut};
+use std::ops::{Deref, DerefMut, Div, Mul};
 
 use nalgebra::Vector2;
 
@@ -23,6 +23,7 @@ pub struct Scrollable {
     offset: f32,
     accum_offset: f32,
     is_dragging: bool,
+    limit: f32,
 }
 
 pub struct ScrollableConfig {
@@ -92,6 +93,7 @@ impl Scrollable {
             offset: 0.0,
             accum_offset: 0.0,
             is_dragging: false,
+            limit: 0.0,
         }
     }
 
@@ -124,21 +126,36 @@ impl Scrollable {
     }
 
     #[inline]
-    ///Modifies the offset based on the given `pos` and assings the new cursor position to be the `pos` so values can be tracked correctly
-    pub fn on_cursor(&mut self, pos: Vector2<f32>) {
+    ///Directly applies the given `offset` on the offset of this scrollable and updates the new positions
+    pub fn drag_offset(&mut self, offset: Vector2<f32>) {
         self.offset = match self.direction {
-            Direction::Vertical => pos.y - self.old_cursor.y,
-            Direction::Horizontal => pos.x - self.old_cursor.x,
+            Direction::Vertical => offset.y,
+            Direction::Horizontal => offset.x,
         };
-        self.accum_offset += self.offset;
-        self.old_cursor = pos;
+        let sum = self.accum_offset + self.offset;
+        if sum < self.limit || sum > 0.0 {
+            return;
+        }
+        self.accum_offset = sum;
+
+        self.update_positions();
     }
 
     #[inline]
     ///Modifies the position of the elements based on the new `pos` provided. If `scrollable.is_dragging() == false`, then this doesn't do anything
     pub fn drag(&mut self, pos: Vector2<f32>) {
         if self.is_dragging {
-            self.on_cursor(pos);
+            self.offset = match self.direction {
+                Direction::Vertical => pos.y - self.old_cursor.y,
+                Direction::Horizontal => pos.x - self.old_cursor.x,
+            };
+            self.old_cursor = pos;
+            let sum = self.accum_offset + self.offset;
+            if sum < self.limit || sum > 0.0 {
+                return;
+            }
+            self.accum_offset = sum;
+
             self.update_positions();
         }
     }
@@ -172,9 +189,17 @@ impl DerefMut for Scrollable {
 
 impl Component for Scrollable {
     fn resize(&mut self, rect: Rect) {
+        let height = rect.height;
         let rects = self.layout.calculate(rect, true);
         self.scrollbar.resize(rects[0].clone());
         self.container.resize(rects[1].clone());
+        let calc_height = self
+            .container
+            .layout
+            .calculate_height(rects[1].clone(), true);
+        if calc_height > height {
+            self.limit = height - calc_height;
+        }
         self.update_positions_accum();
     }
     fn render(&self, renderer: &mut crate::ui::component::ComponentRenderer) {

@@ -1,6 +1,6 @@
 use nalgebra::Vector2;
 use winit::{
-    event::MouseButton,
+    event::{MouseButton, MouseScrollDelta, TouchPhase},
     keyboard::{Key, KeyLocation, SmolStr},
 };
 
@@ -39,6 +39,12 @@ pub trait Component {
 
 pub trait RootComponent: Component {
     fn new() -> Self;
+
+    #[inline]
+    ///Emitted when the mouse whell is moved `delta` is the delta of the movement and `position` the current position of the cursor when the event happended
+    fn on_mouse_wheel(&mut self, _: MouseScrollDelta, _: TouchPhase, _: Vector2<f32>) -> bool {
+        false
+    }
 
     #[inline]
     ///Emitted when the mouse moves. The `position` is the new position the mouse is located at. Returns weather a redraw should be made or not

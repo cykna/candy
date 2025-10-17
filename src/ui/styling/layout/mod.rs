@@ -132,7 +132,7 @@ impl Layout {
         out: &mut Rect,
         def: &DefinitionRect,
         gap: Vector2<f32>,
-        ignore_overflow: bool
+        ignore_overflow: bool,
     ) {
         out.x = match def.x {
             Size::Length(defx) => defx + metrics.offset_x,
@@ -152,10 +152,9 @@ impl Layout {
             Size::Percent(defh) => defh * rect.height,
         };
 
-        
         metrics.largest_x = metrics.largest_x.max(out.width);
         metrics.offset_y += out.height + gap.y;
-        
+
         if metrics.offset_y > rect.bottom() && !ignore_overflow {
             out.y = rect.y;
             out.x += metrics.largest_x + gap.x;
@@ -172,7 +171,7 @@ impl Layout {
         out: &mut Rect,
         def: &DefinitionRect,
         gap: Vector2<f32>,
-        ignore_overflow: bool
+        ignore_overflow: bool,
     ) {
         out.x = match def.x {
             Size::Length(defx) => defx + metrics.offset_x,
@@ -194,7 +193,7 @@ impl Layout {
 
         metrics.largest_y = metrics.largest_y.max(out.height);
         metrics.offset_x += out.width + gap.x;
-        
+
         if metrics.offset_x > rect.right() && !ignore_overflow {
             out.x = rect.x;
             out.y += metrics.largest_y + gap.y;
@@ -202,7 +201,6 @@ impl Layout {
             metrics.offset_y += metrics.largest_y + gap.y;
             metrics.largest_y = 0.0;
         }
-        
     }
 
     ///Based on the direction of the layout and the `def` calculates a rect that corresponds, to the order it's being created
@@ -214,12 +212,16 @@ impl Layout {
         def: &DefinitionRect,
         rect: &Rect,
         gap: Vector2<f32>,
-        ignore_overflow: bool
+        ignore_overflow: bool,
     ) -> Rect {
         let mut out = Rect::default();
         match direction {
-            Direction::Vertical => Self::calc_vertical(metrics, rect, &mut out, def, gap, ignore_overflow),
-            Direction::Horizontal => Self::calc_horizontal(metrics, rect, &mut out, def, gap, ignore_overflow),
+            Direction::Vertical => {
+                Self::calc_vertical(metrics, rect, &mut out, def, gap, ignore_overflow)
+            }
+            Direction::Horizontal => {
+                Self::calc_horizontal(metrics, rect, &mut out, def, gap, ignore_overflow)
+            }
         }
         out
     }
@@ -261,8 +263,7 @@ impl Layout {
 
     ///Calculates this layout based on its values and the boxes defined. Note that it will generate N Rects, where N is the amount of boxes added before calculating it.
     ///The boxes are in order of pushing, so the Nth Rect on the out vector is correspondent to the Nth push.
-    ///On `ignore_overflow` true, the content will be overflowed and won't appear on the correct
-    ///bounds of the given `rect`
+    ///On `ignore_overflow` true, the content will be overflowed and will follow `rect` yet, but may contain out of bounds boxes
     pub fn calculate(&self, mut rect: Rect, ignore_overflow: bool) -> Vec<Rect> {
         let mut out = Vec::with_capacity(self.boxes.len());
 
@@ -289,5 +290,37 @@ impl Layout {
             ));
         }
         out
+    }
+
+    ///Calculates the height of the layout based on the provided `rect`. Note that it will return the sum of the height of all the N boxes including anything that would generate
+    ///gaps between them.
+    pub fn calculate_height(&mut self, mut rect: Rect, ignore_overflow: bool) -> f32 {
+        if !ignore_overflow {
+            rect.height
+        } else {
+            let mut out = 0.0;
+            {
+                let padding = self.calculate_padding(&rect);
+                rect.x += padding.x;
+                rect.y += padding.y;
+                rect.width -= padding.z + padding.x;
+                rect.height -= padding.w + padding.y;
+            }
+            let gap = self.calculate_gap(&rect);
+            let mut metrics = CalculationMetrics::new(rect.x, rect.y);
+            for def in &self.boxes {
+                out += Self::calc_definition(
+                    &mut metrics,
+                    &self.corner,
+                    &self.direction,
+                    def,
+                    &rect,
+                    gap,
+                    true,
+                )
+                .height;
+            }
+            out
+        }
     }
 }

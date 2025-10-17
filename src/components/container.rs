@@ -14,7 +14,7 @@ use crate::{
 
 pub struct Container {
     square: CandySquare,
-    layout: Layout,
+    pub(crate) layout: Layout,
     children: Vec<Box<dyn Component>>,
     ignore_overflow: bool,
 }
