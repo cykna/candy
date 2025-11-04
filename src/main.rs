@@ -9,9 +9,9 @@ pub mod window;
 
 use crate::components::Input;
 use crate::components::{Scrollable, ScrollableConfig};
+use crate::ui::styling::fx::Effect;
 use crate::ui::styling::layout::Layout;
 use crate::ui::styling::layout::{DefinitionRect, Direction};
-use crate::{components::Button, ui::styling::fx::Effect};
 
 use elements::CandySquare;
 use helpers::rect::Rect;
@@ -20,11 +20,9 @@ use renderer::twod::BiDimensionalPainter;
 
 use ui::{
     component::{Component, ComponentRenderer, RootComponent},
-    styling::fx::Shadow,
-    styling::{self, layout::Size},
+    styling::layout::Size,
 };
 use window::CandyWindow;
-use winit::event::{MouseScrollDelta, TouchPhase};
 use winit::keyboard::Key;
 use winit::{event::MouseButton, window::Window};
 
@@ -158,13 +156,14 @@ impl Effect for RedShadow {
 impl RootComponent for State {
     fn new() -> Self {
         let font = FontManager::new();
-        let content = font.create_font("Fira Sans", 24.0);
+        println!("{:#?}", font.avaible_fonts());
+        let content = font.create_font("Nimbus Roman", 24.0);
         Self {
             w: 0.0,
             h: 0.0,
             pos: Vector2::zeros(),
             input: {
-                let inp = Input::new(Text::new_content("Pascal", content.clone()));
+                let inp = Input::new(Text::new_content("Nimbus Roman", content.clone().unwrap()));
                 inp
             },
             data: {
@@ -234,7 +233,7 @@ impl RootComponent for State {
     fn click(&mut self, pos: Vector2<f32>, btn: MouseButton) -> bool {
         self.data.on_mouse_click(pos);
 
-        let font = self.manager.create_font("Nimbus Roman", 24.0);
+        let font = self.manager.create_font("Nimbus Roman", 24.0).unwrap();
         let mut s = Square::new(font);
         *s.text.content_mut() = format!("Hello {}", self.data.children().len());
         s.apply_style(&RedShadow);
