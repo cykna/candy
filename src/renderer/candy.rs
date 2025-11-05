@@ -13,11 +13,13 @@ pub struct CandyDefaultRenderer<TwoD = Candy2DRenderer, ThreeD = Candy3DRenderer
     threed: ThreeD,
 }
 
-impl<TwoD, ThreeD> CandyRenderer<TwoD, ThreeD> for CandyDefaultRenderer<TwoD, ThreeD>
+impl<TwoD, ThreeD> CandyRenderer for CandyDefaultRenderer<TwoD, ThreeD>
 where
     TwoD: BiDimensionalRenderer,
     ThreeD: ThreeDimensionalRenderer,
 {
+    type TwoD = TwoD;
+    type ThreeD = ThreeD;
     #[cfg(feature = "opengl")]
     fn new(window: &Window, config: &Config) -> Self {
         Self {

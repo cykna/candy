@@ -5,23 +5,27 @@ use winit::{event_loop::EventLoop, window::WindowAttributes};
 
 use crate::{
     handler::{CandyDefaultHandler, CandyHandler},
+    renderer::{CandyRenderer, candy::CandyDefaultRenderer},
     ui::component::RootComponent,
 };
 
 #[derive(Default, Debug)]
-pub struct CandyWindow<Root, T = CandyDefaultHandler<Root>>
-where
-    Root: RootComponent,
-    T: CandyHandler<Root>,
+pub struct CandyWindow<
+    Root,
+    Renderer = CandyDefaultRenderer,
+    T = CandyDefaultHandler<Root, Renderer>,
+> where
+    Root: RootComponent<Renderer>,
+    Renderer: CandyRenderer,
+    T: CandyHandler<Root, Renderer>,
 {
-    root: PhantomData<Root>,
+    root: PhantomData<(Root, Renderer)>,
     handler: Option<T>,
     attribs: WindowAttributes,
 }
-impl<Root, T> CandyWindow<Root, T>
+impl<Renderer: CandyRenderer, Root: RootComponent<Renderer>, T> CandyWindow<Root, Renderer, T>
 where
-    Root: RootComponent,
-    T: CandyHandler<Root>,
+    T: CandyHandler<Root, Renderer>,
 {
     pub fn new(attribs: WindowAttributes) -> Self {
         Self {
@@ -61,17 +65,18 @@ where
             self.handler = Some(T::new(
                 window.expect("Window not created??"),
                 config,
-                <Root as RootComponent>::Args::default(),
+                <Root as RootComponent<Renderer>>::Args::default(),
             ));
         };
         lp.run_app(self).unwrap();
     }
 }
 
-impl<Root, T> winit::application::ApplicationHandler for CandyWindow<Root, T>
+impl<Root, Renderer, T> winit::application::ApplicationHandler for CandyWindow<Root, Renderer, T>
 where
-    Root: RootComponent,
-    T: CandyHandler<Root>,
+    Root: RootComponent<Renderer>,
+    Renderer: CandyRenderer,
+    T: CandyHandler<Root, Renderer>,
 {
     fn resumed(&mut self, _: &winit::event_loop::ActiveEventLoop) {
         #[cfg(not(feature = "opengl"))]

@@ -10,7 +10,9 @@ pub mod threed;
 pub mod twod;
 
 ///Trait used to define renderers for Candy. It uses 2 renderers inside to draw 2D and 3D and this is used mainly for requesting commands from them
-pub trait CandyRenderer<TwoD: BiDimensionalRenderer, ThreeD: ThreeDimensionalRenderer> {
+pub trait CandyRenderer {
+    type TwoD: BiDimensionalRenderer;
+    type ThreeD: ThreeDimensionalRenderer;
     #[cfg(feature = "opengl")]
     fn new(window: &Window, config: &Config) -> Self;
     #[cfg(not(feature = "opengl"))]
@@ -26,5 +28,5 @@ pub trait CandyRenderer<TwoD: BiDimensionalRenderer, ThreeD: ThreeDimensionalRen
     fn flush(&mut self);
 
     ///Retrieves the internal renderer that controls the 2D
-    fn twod_renderer(&mut self) -> &mut TwoD;
+    fn twod_renderer(&mut self) -> &mut Self::TwoD;
 }

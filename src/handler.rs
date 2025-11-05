@@ -7,19 +7,23 @@ use winit::{
 };
 
 use crate::{
-    renderer::{CandyRenderer, candy::CandyDefaultRenderer},
+    renderer::{
+        CandyRenderer, candy::CandyDefaultRenderer, threed::ThreeDimensionalRenderer,
+        twod::BiDimensionalRenderer,
+    },
     ui::component::RootComponent,
 };
 
 #[cfg(feature = "opengl")]
 use glutin::config::Config;
 
-pub trait CandyHandler<Root>
+pub trait CandyHandler<Root, Renderer>
 where
-    Root: RootComponent,
+    Renderer: CandyRenderer,
+    Root: RootComponent<Renderer>,
 {
     #[cfg(feature = "opengl")]
-    fn new(window: Window, config: Config, arg: <Root as RootComponent>::Args) -> Self;
+    fn new(window: Window, config: Config, arg: <Root as RootComponent<Renderer>>::Args) -> Self;
     fn root(&self) -> &Root;
     fn root_mut(&mut self) -> &mut Root;
     fn draw(&mut self);
@@ -32,19 +36,22 @@ where
 
     fn exit(&self);
 }
-pub struct CandyDefaultHandler<Root>
+pub struct CandyDefaultHandler<Root, Renderer: CandyRenderer = CandyDefaultRenderer>
 where
-    Root: RootComponent,
+    Root: RootComponent<Renderer>,
 {
     mouse_pos: Vector2<f32>,
     window: Window,
-    renderer: CandyDefaultRenderer,
+    renderer: Renderer,
     root: Root,
 }
 
-impl<Root> CandyHandler<Root> for CandyDefaultHandler<Root>
+impl<Root, Renderer> CandyHandler<Root, Renderer> for CandyDefaultHandler<Root, Renderer>
 where
-    Root: RootComponent,
+    Renderer: CandyRenderer,
+    Root: RootComponent<Renderer>,
+    <Renderer as CandyRenderer>::TwoD: BiDimensionalRenderer,
+    <Renderer as CandyRenderer>::ThreeD: ThreeDimensionalRenderer,
 {
     fn root(&self) -> &Root {
         &self.root
@@ -52,10 +59,10 @@ where
     fn root_mut(&mut self) -> &mut Root {
         &mut self.root
     }
-    fn new(window: Window, config: Config, arg: <Root as RootComponent>::Args) -> Self {
+    fn new(window: Window, config: Config, arg: <Root as RootComponent<Renderer>>::Args) -> Self {
         Self {
             mouse_pos: Vector2::new(0.0, 0.0),
-            renderer: CandyDefaultRenderer::new(&window, &config),
+            renderer: Renderer::new(&window, &config),
             window,
             root: Root::new(arg),
         }

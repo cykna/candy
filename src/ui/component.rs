@@ -4,7 +4,11 @@ use winit::{
     keyboard::{Key, KeyLocation, SmolStr},
 };
 
-use crate::{helpers::rect::Rect, renderer::twod::Candy2DRenderer, ui::styling::style::Style};
+use crate::{
+    helpers::rect::Rect,
+    renderer::{CandyRenderer, candy::CandyDefaultRenderer, twod::Candy2DRenderer},
+    ui::styling::style::Style,
+};
 
 #[cfg(any(
     feature = "default",
@@ -17,11 +21,14 @@ pub type ComponentRenderer = Candy2DRenderer;
 #[cfg(feature = "external_renderer")]
 pub type ComponentRenderer = external_renderer::UiRenderer;
 
-pub trait Component: std::fmt::Debug {
+pub trait Component<R = CandyDefaultRenderer>: std::fmt::Debug
+where
+    R: CandyRenderer,
+{
     ///Method called when some parent tries to resize this component. The `rect` parameter is the bounds calculated
     fn resize(&mut self, rect: Rect);
     ///Method called when this component is requested to redraw with the given `renderer`
-    fn render(&self, renderer: &mut ComponentRenderer);
+    fn render(&self, renderer: &mut <R as CandyRenderer>::TwoD);
 
     ///Applies the given `style` on this component
     fn apply_style(&mut self, style: &dyn Style);
@@ -38,7 +45,10 @@ pub trait Component: std::fmt::Debug {
     }
 }
 
-pub trait RootComponent: Component {
+pub trait RootComponent<R = CandyDefaultRenderer>: Component<R>
+where
+    R: CandyRenderer,
+{
     type Args: Default;
     fn new(args: Self::Args) -> Self;
 
