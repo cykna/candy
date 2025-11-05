@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use nalgebra::Vector2;
-use winit::{event::KeyEvent, event_loop::EventLoop, keyboard::Key, window::WindowAttributes};
+use winit::{event_loop::EventLoop, window::WindowAttributes};
 
 use crate::{
     handler::{CandyDefaultHandler, CandyHandler},
@@ -58,7 +58,11 @@ where
                         .unwrap()
                 })
                 .unwrap();
-            self.handler = Some(T::new(window.expect("Window not created??"), config));
+            self.handler = Some(T::new(
+                window.expect("Window not created??"),
+                config,
+                <Root as RootComponent>::Args::default(),
+            ));
         };
         lp.run_app(self).unwrap();
     }
@@ -102,11 +106,7 @@ where
                 winit::event::WindowEvent::MouseWheel { delta, phase, .. } => {
                     handler.on_mouse_wheel(delta, phase)
                 }
-                winit::event::WindowEvent::KeyboardInput {
-                    device_id,
-                    event,
-                    is_synthetic,
-                } => {
+                winit::event::WindowEvent::KeyboardInput { event, .. } => {
                     if if event.state.is_pressed() {
                         handler
                             .root_mut()

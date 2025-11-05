@@ -20,7 +20,7 @@ where
     }
 }
 
-pub trait Style {
+pub trait Style: std::fmt::Debug {
     ///Retrieves the color of this Style
     fn color(&self) -> Vector4<f32> {
         Vector4::new(0.0, 0.0, 0.0, 1.0)
@@ -50,5 +50,12 @@ pub trait Style {
 
 pub struct DefaultProvider;
 impl StyleProvider<Text> for DefaultProvider {}
+#[derive(Debug)]
+///Default style for anything. It's defined as:
+///Border Radius: 8px 8px
+///Effect: None
+///Color: Black
+///BorderWidth: 0
+///BorderColor: White
 pub struct DefaultStyle;
 impl Style for DefaultStyle {}

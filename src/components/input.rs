@@ -11,17 +11,23 @@ use crate::{
 };
 
 #[derive(Debug)]
+///A Input that can be eitger Text, Numeric or Password. Text input accepts any kind of input. Numeric will only accept numbers and
+///Password will accept everything, such as Text, but will hide the content written
 pub enum Input {
     Text(RawInput),
     Numeric(RawInput),
-    Password(RawInput, String),
+    Password(RawInput, String), //the second field is the actually value
 }
 
 #[derive(Debug)]
 pub struct RawInput {
+    ///The content to be shown on the screen
     content: Text,
+    ///The square this input has got
     rect: CandySquare,
+    ///The square of the cursor of this input
     cursor_square: CandySquare,
+    ///The index of the cursor on `content`
     cursor: usize,
 }
 

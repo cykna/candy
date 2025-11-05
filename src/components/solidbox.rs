@@ -8,6 +8,7 @@ use crate::{
     ui::component::Component,
 };
 
+#[derive(Debug)]
 pub struct SolidBox {
     square: CandySquare,
 }

@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use nalgebra::Vector2;
 
 use crate::{
@@ -10,6 +8,8 @@ use crate::{
     },
 };
 
+#[derive(Debug)]
+///A component that represents a toggle button
 pub struct Toggle {
     checked: bool,
     square: Container<SolidBox>,
@@ -18,6 +18,7 @@ pub struct Toggle {
 }
 
 impl Toggle {
+    ///Creates a new toggle. The provided `unchecked` style will be applied when this toggle value is false, `checked_style` will be applied when it's true
     pub fn new<U, C>(unchecked: U, checked_style: C) -> Self
     where
         U: Style + 'static,
@@ -32,7 +33,7 @@ impl Toggle {
     }
 
     #[inline]
-    ///Returns weather clicking on the provided `position` would toggle
+    ///Returns whether clicking on the provided `position` would toggle
     ///Being executed means this button was clicked.
     pub fn would_toggle(&self, pos: Vector2<f32>) -> bool {
         self.square.bounds().contains(pos)

@@ -4,6 +4,8 @@ use crate::{
     elements::image::CandyImage, renderer::twod::BiDimensionalPainter, ui::component::Component,
 };
 
+#[derive(Debug)]
+///A component that simply represents an image
 pub struct Image {
     image: CandyImage,
 }
@@ -27,6 +29,7 @@ impl Component for Image {
 }
 
 impl Image {
+    ///Creates a new Image component from the provided `image` from candy
     pub fn new(image: CandyImage) -> Self {
         Self { image }
     }

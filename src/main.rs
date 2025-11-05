@@ -42,6 +42,7 @@ pub enum Msg {
     Write(String),
 }
 
+#[derive(Debug)]
 pub struct Square {
     text: CandyText,
     info: CandySquare,
@@ -92,6 +93,7 @@ impl Component for Square {
     }
 }
 
+#[derive(Debug)]
 struct State {
     pos: Vector2<f32>,
     w: f32,
@@ -109,6 +111,7 @@ impl Component for State {
     }
     fn render(&self, renderer: &mut ComponentRenderer) {
         renderer.background(&Vector4::new(0.0, 0.1, 0.2, 1.0));
+
         self.data.render(renderer);
         self.input.render(renderer);
     }
@@ -121,6 +124,7 @@ impl Component for State {
     }
 }
 
+#[derive(Debug)]
 pub struct RedShadow;
 impl Style for RedShadow {
     fn effect(&self) -> Box<dyn crate::ui::styling::fx::Effect> {
@@ -143,6 +147,14 @@ impl Style for RedShadow {
     }
 }
 
+#[derive(Debug)]
+pub struct StyleQualquer;
+impl Style for StyleQualquer {
+    fn color(&self) -> Vector4<f32> {
+        Vector4::new(0.0, 1.0, 1.0, 1.0)
+    }
+}
+
 impl Effect for RedShadow {
     fn shadow(&self) -> Option<crate::ui::styling::fx::ShadowEffect> {
         Some(crate::ui::styling::fx::ShadowEffect {
@@ -154,9 +166,10 @@ impl Effect for RedShadow {
 }
 
 impl RootComponent for State {
-    fn new() -> Self {
+    type Args = ();
+    fn new(_: ()) -> Self {
         let font = FontManager::new();
-        println!("{:#?}", font.avaible_fonts());
+
         let content = font.create_font("Nimbus Roman", 24.0);
         Self {
             w: 0.0,
@@ -186,7 +199,7 @@ impl RootComponent for State {
     fn keydown(
         &mut self,
         key: winit::keyboard::Key<winit::keyboard::SmolStr>,
-        loc: winit::keyboard::KeyLocation,
+        _: winit::keyboard::KeyLocation,
     ) -> bool {
         match key {
             Key::Character(c) => {
@@ -216,27 +229,27 @@ impl RootComponent for State {
         &mut self,
         offset: winit::event::MouseScrollDelta,
         _: winit::event::TouchPhase,
-        pos: Vector2<f32>,
+        _: Vector2<f32>,
     ) -> bool {
         match offset {
             winit::event::MouseScrollDelta::LineDelta(x, y) => {
-                self.data.drag_offset(Vector2::new(x, -y));
+                self.data.drag_offset(Vector2::new(x, -y))
             }
-            _ => {}
+            _ => false,
         }
-        true
     }
     fn on_mouse_move(&mut self, pos: Vector2<f32>) -> bool {
         self.data.drag(pos);
+
         self.data.is_dragging()
     }
-    fn click(&mut self, pos: Vector2<f32>, btn: MouseButton) -> bool {
+    fn click(&mut self, pos: Vector2<f32>, _: MouseButton) -> bool {
         self.data.on_mouse_click(pos);
 
         let font = self.manager.create_font("Nimbus Roman", 24.0).unwrap();
         let mut s = Square::new(font);
         *s.text.content_mut() = format!("Hello {}", self.data.children().len());
-        s.apply_style(&RedShadow);
+        s.apply_style(&StyleQualquer);
 
         self.data.add_child(
             s,

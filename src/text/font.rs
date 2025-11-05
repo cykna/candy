@@ -24,7 +24,7 @@ impl CandyFont {
         let mut s = Self {
             font: Font::new(face, Some(size)),
         };
-        s.with_size(size);
+        s.set_size(size);
         s
     }
 

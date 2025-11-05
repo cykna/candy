@@ -12,6 +12,10 @@ use crate::{
     },
 };
 
+#[derive(Debug)]
+///A Container component is somewhat like a Div in HTML. It represents simply a square and can have children.
+///The children will always be inside the square this container represents, only not if they for some reason overflow, which would then
+///be a better idea to use scrollables instead.
 pub struct Container<C: Component> {
     square: CandySquare,
     pub(crate) layout: Layout,
@@ -59,6 +63,8 @@ impl<C: Component> Component for Container<C> {
 }
 
 impl<C: Component> Container<C> {
+    ///Creates a new container with the provided `layout`. If `ignore_overflow` is true, the children will overflow the bounds of this component,
+    ///which can cause some bugs, since elements will be calculated out of bounds and may appear above or below other elements.
     pub fn new(layout: Layout, ignore_overflow: bool) -> Self {
         Self {
             ignore_overflow,

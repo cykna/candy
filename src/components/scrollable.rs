@@ -1,4 +1,4 @@
-use std::ops::{Deref, DerefMut, Div, Mul};
+use std::ops::{Deref, DerefMut};
 
 use nalgebra::{Vector2, Vector4};
 
@@ -14,6 +14,8 @@ use crate::{
     },
 };
 
+#[derive(Debug)]
+///A Component that can scroll it's inner elements down, up, left or right. A single axis is accepted per scrollable
 pub struct Scrollable<C: Component> {
     direction: Direction,
     container: Container<C>,
@@ -22,13 +24,18 @@ pub struct Scrollable<C: Component> {
     old_cursor: Vector2<f32>,
     offset: f32,
     accum_offset: f32,
-    is_dragging: bool,
     limit: f32,
+    is_dragging: bool,
 }
 
+#[derive(Debug, Default)]
+///The Configurations for when creating a new scrollable component
 pub struct ScrollableConfig {
+    ///The width of the scrollbar used to scroll the element
     pub scroll_bar_width: f32,
+    ///The direction the scrollable will scroll the elements
     pub direction: Direction,
+    ///The layout of the elements inside the scrollable
     pub layout: Layout,
 }
 
@@ -48,6 +55,7 @@ impl<C: Component> Scrollable<C> {
         out
     }
 
+    ///Creates a new Scrollable instance from the provided `config`
     pub fn new(config: ScrollableConfig) -> Self {
         let mut layout = Layout::new(match config.direction {
             Direction::Vertical => Direction::Horizontal,
@@ -98,7 +106,7 @@ impl<C: Component> Scrollable<C> {
     }
 
     #[inline]
-    ///Returns weather this scrollable is dragging or not
+    ///Returns whether this scrollable is dragging or not
     pub fn is_dragging(&mut self) -> bool {
         self.is_dragging
     }
@@ -126,19 +134,21 @@ impl<C: Component> Scrollable<C> {
     }
 
     #[inline]
-    ///Directly applies the given `offset` on the offset of this scrollable and updates the new positions
-    pub fn drag_offset(&mut self, offset: Vector2<f32>) {
+    ///Directly applies the given `offset` on the offset of this scrollable and updates the new positions.
+    ///Returns whether it updated the inner positions or not
+    pub fn drag_offset(&mut self, offset: Vector2<f32>) -> bool {
         self.offset = match self.direction {
             Direction::Vertical => offset.y,
             Direction::Horizontal => offset.x,
         };
         let sum = self.accum_offset + self.offset;
         if sum < self.limit || sum > 0.0 {
-            return;
+            return false;
         }
         self.accum_offset = sum;
 
         self.update_positions();
+        true
     }
 
     #[inline]

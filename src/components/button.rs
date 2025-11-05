@@ -85,6 +85,7 @@ impl<'a, Msg> Button<'a, Msg> {
     }
 
     #[inline]
+    ///Applies the provided `style` and returns itself. Mainly used for chaining.
     pub fn with_style(mut self, style: &dyn Style) -> Self {
         self.apply_style(style);
         self
@@ -101,5 +102,15 @@ impl<'a, Msg> Deref for Button<'a, Msg> {
 impl<'a, Msg> DerefMut for Button<'a, Msg> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.rect
+    }
+}
+
+impl<'a, Msg> std::fmt::Debug for Button<'a, Msg> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Button")
+            .field("text", &self.text)
+            .field("rect", &self.rect)
+            .field("func", &"fn internal();")
+            .finish()
     }
 }

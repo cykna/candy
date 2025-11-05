@@ -19,7 +19,7 @@ where
     Root: RootComponent,
 {
     #[cfg(feature = "opengl")]
-    fn new(window: Window, config: Config) -> Self;
+    fn new(window: Window, config: Config, arg: <Root as RootComponent>::Args) -> Self;
     fn root(&self) -> &Root;
     fn root_mut(&mut self) -> &mut Root;
     fn draw(&mut self);
@@ -52,12 +52,12 @@ where
     fn root_mut(&mut self) -> &mut Root {
         &mut self.root
     }
-    fn new(window: Window, config: Config) -> Self {
+    fn new(window: Window, config: Config, arg: <Root as RootComponent>::Args) -> Self {
         Self {
             mouse_pos: Vector2::new(0.0, 0.0),
             renderer: CandyDefaultRenderer::new(&window, &config),
             window,
-            root: Root::new(),
+            root: Root::new(arg),
         }
     }
 

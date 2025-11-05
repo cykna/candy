@@ -17,7 +17,7 @@ pub type ComponentRenderer = Candy2DRenderer;
 #[cfg(feature = "external_renderer")]
 pub type ComponentRenderer = external_renderer::UiRenderer;
 
-pub trait Component {
+pub trait Component: std::fmt::Debug {
     ///Method called when some parent tries to resize this component. The `rect` parameter is the bounds calculated
     fn resize(&mut self, rect: Rect);
     ///Method called when this component is requested to redraw with the given `renderer`
@@ -32,13 +32,15 @@ pub trait Component {
     ///Retrieves the position of this component
     fn position_mut(&mut self) -> &mut Vector2<f32>;
 
+    ///Applies the given offset to the position of this component
     fn apply_offset(&mut self, offset: Vector2<f32>) {
         *self.position_mut() += offset;
     }
 }
 
 pub trait RootComponent: Component {
-    fn new() -> Self;
+    type Args: Default;
+    fn new(args: Self::Args) -> Self;
 
     #[inline]
     ///Emitted when the mouse whell is moved `delta` is the delta of the movement and `position` the current position of the cursor when the event happended
@@ -47,23 +49,25 @@ pub trait RootComponent: Component {
     }
 
     #[inline]
-    ///Emitted when the mouse moves. The `position` is the new position the mouse is located at. Returns weather a redraw should be made or not
+    ///Emitted when the mouse moves. The `position` is the new position the mouse is located at. Returns whether a redraw should be made or not
     fn on_mouse_move(&mut self, _: Vector2<f32>) -> bool {
         false
     }
 
     #[inline]
     ///Emitted when some click arrives. The `position` is the position of the click relative to the top left corner of the window
-    ///Returns weather a redraw should be made
+    ///Returns whether a redraw should be made
     fn click(&mut self, _: Vector2<f32>, _: MouseButton) -> bool {
         false
     }
 
     ///Emitted when some key on the keyboard is pressed
-    ///Returns wather a redraw should be made
+    ///Returns whether a redraw should be made
     fn keydown(&mut self, _: Key<SmolStr>, _: KeyLocation) -> bool {
         false
     }
+    ///Emitted when some key on the keyboard is released
+    ///Returns whether
     fn keyup(&mut self, _: Key<SmolStr>, _: KeyLocation) -> bool {
         false
     }
