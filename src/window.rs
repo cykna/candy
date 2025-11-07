@@ -1,27 +1,31 @@
 use std::marker::PhantomData;
 
 use nalgebra::Vector2;
-use winit::{event::KeyEvent, event_loop::EventLoop, keyboard::Key, window::WindowAttributes};
+use winit::{event_loop::EventLoop, window::WindowAttributes};
 
 use crate::{
     handler::{CandyDefaultHandler, CandyHandler},
+    renderer::{CandyRenderer, candy::CandyDefaultRenderer},
     ui::component::RootComponent,
 };
 
 #[derive(Default, Debug)]
-pub struct CandyWindow<Root, T = CandyDefaultHandler<Root>>
-where
-    Root: RootComponent,
-    T: CandyHandler<Root>,
+pub struct CandyWindow<
+    Root,
+    Renderer = CandyDefaultRenderer,
+    T = CandyDefaultHandler<Root, Renderer>,
+> where
+    Root: RootComponent<Renderer>,
+    Renderer: CandyRenderer,
+    T: CandyHandler<Root, Renderer>,
 {
-    root: PhantomData<Root>,
+    root: PhantomData<(Root, Renderer)>,
     handler: Option<T>,
     attribs: WindowAttributes,
 }
-impl<Root, T> CandyWindow<Root, T>
+impl<Renderer: CandyRenderer, Root: RootComponent<Renderer>, T> CandyWindow<Root, Renderer, T>
 where
-    Root: RootComponent,
-    T: CandyHandler<Root>,
+    T: CandyHandler<Root, Renderer>,
 {
     pub fn new(attribs: WindowAttributes) -> Self {
         Self {
@@ -58,16 +62,21 @@ where
                         .unwrap()
                 })
                 .unwrap();
-            self.handler = Some(T::new(window.expect("Window not created??"), config));
+            self.handler = Some(T::new(
+                window.expect("Window not created??"),
+                config,
+                <Root as RootComponent<Renderer>>::Args::default(),
+            ));
         };
         lp.run_app(self).unwrap();
     }
 }
 
-impl<Root, T> winit::application::ApplicationHandler for CandyWindow<Root, T>
+impl<Root, Renderer, T> winit::application::ApplicationHandler for CandyWindow<Root, Renderer, T>
 where
-    Root: RootComponent,
-    T: CandyHandler<Root>,
+    Root: RootComponent<Renderer>,
+    Renderer: CandyRenderer,
+    T: CandyHandler<Root, Renderer>,
 {
     fn resumed(&mut self, _: &winit::event_loop::ActiveEventLoop) {
         #[cfg(not(feature = "opengl"))]
@@ -102,11 +111,7 @@ where
                 winit::event::WindowEvent::MouseWheel { delta, phase, .. } => {
                     handler.on_mouse_wheel(delta, phase)
                 }
-                winit::event::WindowEvent::KeyboardInput {
-                    device_id,
-                    event,
-                    is_synthetic,
-                } => {
+                winit::event::WindowEvent::KeyboardInput { event, .. } => {
                     if if event.state.is_pressed() {
                         handler
                             .root_mut()

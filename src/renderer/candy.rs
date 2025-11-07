@@ -7,17 +7,20 @@ use super::{
     twod::{BiDimensionalRenderer, Candy2DRenderer},
 };
 
+#[derive(Debug)]
 ///The default renderer of a candy, used to render both 2D and 3D
 pub struct CandyDefaultRenderer<TwoD = Candy2DRenderer, ThreeD = Candy3DRenderer> {
     twod: TwoD,
     threed: ThreeD,
 }
 
-impl<TwoD, ThreeD> CandyRenderer<TwoD, ThreeD> for CandyDefaultRenderer<TwoD, ThreeD>
+impl<TwoD, ThreeD> CandyRenderer for CandyDefaultRenderer<TwoD, ThreeD>
 where
     TwoD: BiDimensionalRenderer,
     ThreeD: ThreeDimensionalRenderer,
 {
+    type TwoD = TwoD;
+    type ThreeD = ThreeD;
     #[cfg(feature = "opengl")]
     fn new(window: &Window, config: &Config) -> Self {
         Self {

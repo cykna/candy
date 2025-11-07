@@ -12,11 +12,11 @@ impl FontManager {
         Self::default()
     }
     ///Creates a font with the given `name` and `size`. Panics if the font name is not avaible
-    pub fn create_font(&self, name: &str, size: f32) -> CandyFont {
+    pub fn create_font(&self, name: &str, size: f32) -> Option<CandyFont> {
         let Some(typeface) = self.inner.match_family_style(name, FontStyle::default()) else {
-            panic!("Could not load font with name '{name}'");
+            return None;
         };
-        CandyFont::new(typeface, size)
+        Some(CandyFont::new(typeface, size))
     }
     ///Retrieves a vector containing the name of all avaible fonts
     pub fn avaible_fonts(&self) -> Vec<String> {

@@ -6,7 +6,7 @@ use std::{
 use nalgebra::Vector2;
 use skia_safe::{Data, Image};
 
-use crate::{renderer::twod::BiDimensionalPainter, ui::component::ComponentRenderer};
+use crate::renderer::twod::BiDimensionalPainter;
 
 use super::CandySquare;
 
@@ -19,18 +19,18 @@ pub trait TwodCandyImg: Any + Sized + std::fmt::Debug {
 
 #[derive(Debug)]
 ///An Image used to be drawn on by the painter P
-pub struct CandyImage {
-    inner: <ComponentRenderer as BiDimensionalPainter>::Image,
+pub struct CandyImage<R: BiDimensionalPainter> {
+    inner: R::Image,
     square: CandySquare,
 }
-impl CandyImage {
+impl<R: BiDimensionalPainter> CandyImage<R> {
     ///Tries to create a new image from `source`. If no `square` is given, the it will use the normal
     ///resolution of the image positioned at (0,0)
     pub fn from_source<Ph: AsRef<std::path::Path>>(
         source: Ph,
         square: Option<CandySquare>,
     ) -> std::io::Result<Self> {
-        let inner = <ComponentRenderer as BiDimensionalPainter>::Image::from_source(source)?;
+        let inner = R::Image::from_source(source)?;
         Ok(Self {
             square: square.unwrap_or(CandySquare::new(
                 Vector2::zeros(),
@@ -40,14 +40,11 @@ impl CandyImage {
         })
     }
 }
-impl CandyImage {
+impl<R: BiDimensionalPainter> CandyImage<R> {
     #[inline]
     ///Creates a new CandyImage with the given `img` and defining it's square info to be the given `square`
     ///Note: The color of the `square` will be used to multiply the colors of the texture when drawn
-    pub fn new(
-        img: <ComponentRenderer as BiDimensionalPainter>::Image,
-        square: CandySquare,
-    ) -> Self {
+    pub fn new(img: R::Image, square: CandySquare) -> Self {
         Self { inner: img, square }
     }
 
@@ -60,30 +57,30 @@ impl CandyImage {
     #[inline]
     ///Returns the actual width of the image and not the size it will be drawn
     pub fn real_width(&self) -> i32 {
-        self.inner.width()
+        self.inner.width() as i32
     }
 
     #[inline]
     ///Returns the actual height of the image and not the size it will be drawn
     pub fn real_height(&self) -> i32 {
-        self.inner.height()
+        self.inner.height() as i32
     }
 
     #[inline]
     ///Returns the inner image handle
-    pub fn image_handler(&self) -> &<ComponentRenderer as BiDimensionalPainter>::Image {
+    pub fn image_handler(&self) -> &R::Image {
         &self.inner
     }
 }
 
-impl Deref for CandyImage {
+impl<R: BiDimensionalPainter> Deref for CandyImage<R> {
     type Target = CandySquare;
     #[inline]
     fn deref(&self) -> &Self::Target {
         &self.square
     }
 }
-impl DerefMut for CandyImage {
+impl<R: BiDimensionalPainter> DerefMut for CandyImage<R> {
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.square

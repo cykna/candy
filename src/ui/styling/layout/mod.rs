@@ -207,7 +207,7 @@ impl Layout {
     ///and the size of the parent `rect`
     fn calc_definition(
         metrics: &mut CalculationMetrics,
-        corner: &Corner,
+        _: &Corner,
         direction: &Direction,
         def: &DefinitionRect,
         rect: &Rect,

@@ -1,8 +1,11 @@
-use std::ops::{Deref, DerefMut};
+use std::{
+    marker::PhantomData,
+    ops::{Deref, DerefMut},
+};
 
 use crate::{
     elements::CandySquare,
-    renderer::twod::BiDimensionalPainter,
+    renderer::{CandyRenderer, candy::CandyDefaultRenderer, twod::BiDimensionalPainter},
     ui::{
         component::Component,
         styling::{
@@ -12,15 +15,20 @@ use crate::{
     },
 };
 
-pub struct Container<C: Component> {
+#[derive(Debug)]
+///A Container component is somewhat like a Div in HTML. It represents simply a square and can have children.
+///The children will always be inside the square this container represents, only not if they for some reason overflow, which would then
+///be a better idea to use scrollables instead.
+pub struct Container<C: Component<R>, R: CandyRenderer = CandyDefaultRenderer> {
+    phantom: PhantomData<R>,
     square: CandySquare,
     pub(crate) layout: Layout,
     children: Vec<C>,
     ignore_overflow: bool,
 }
 
-impl<C: Component> Component for Container<C> {
-    fn render(&self, renderer: &mut crate::ui::component::ComponentRenderer) {
+impl<C: Component<R>, R: CandyRenderer> Component<R> for Container<C, R> {
+    fn render(&self, renderer: &mut <R as CandyRenderer>::TwoD) {
         if self.square.rule.get_color().w != 0.0 && self.square.rule.border_color.w != 0.0 {
             renderer.square(&self.square);
         }
@@ -58,9 +66,12 @@ impl<C: Component> Component for Container<C> {
     }
 }
 
-impl<C: Component> Container<C> {
+impl<R: CandyRenderer, C: Component<R>> Container<C, R> {
+    ///Creates a new container with the provided `layout`. If `ignore_overflow` is true, the children will overflow the bounds of this component,
+    ///which can cause some bugs, since elements will be calculated out of bounds and may appear above or below other elements.
     pub fn new(layout: Layout, ignore_overflow: bool) -> Self {
         Self {
+            phantom: PhantomData,
             ignore_overflow,
             layout,
             square: CandySquare::default(),
@@ -134,14 +145,14 @@ impl<C: Component> Container<C> {
     }
 }
 
-impl<C: Component> Deref for Container<C> {
+impl<C: Component<R>, R: CandyRenderer> Deref for Container<C, R> {
     type Target = CandySquare;
     fn deref(&self) -> &Self::Target {
         &self.square
     }
 }
 
-impl<C: Component> DerefMut for Container<C> {
+impl<C: Component<R>, R: CandyRenderer> DerefMut for Container<C, R> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.square
     }

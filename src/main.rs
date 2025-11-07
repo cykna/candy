@@ -9,22 +9,23 @@ pub mod window;
 
 use crate::components::Input;
 use crate::components::{Scrollable, ScrollableConfig};
+
+use crate::renderer::candy::CandyDefaultRenderer;
+use crate::renderer::twod::Candy2DRenderer;
+use crate::ui::styling::fx::Effect;
 use crate::ui::styling::layout::Layout;
 use crate::ui::styling::layout::{DefinitionRect, Direction};
-use crate::{components::Button, ui::styling::fx::Effect};
 
 use elements::CandySquare;
 use helpers::rect::Rect;
 use nalgebra::{Vector2, Vector4};
 use renderer::twod::BiDimensionalPainter;
 
-use ui::{
-    component::{Component, ComponentRenderer, RootComponent},
-    styling::fx::Shadow,
-    styling::{self, layout::Size},
+use crate::ui::{
+    component::{Component, RootComponent},
+    styling::layout::Size,
 };
 use window::CandyWindow;
-use winit::event::{MouseScrollDelta, TouchPhase};
 use winit::keyboard::Key;
 use winit::{event::MouseButton, window::Window};
 
@@ -44,6 +45,7 @@ pub enum Msg {
     Write(String),
 }
 
+#[derive(Debug)]
 pub struct Square {
     text: CandyText,
     info: CandySquare,
@@ -78,7 +80,7 @@ impl Component for Square {
         }
     }
 
-    fn render(&self, renderer: &mut ComponentRenderer) {
+    fn render(&self, renderer: &mut Candy2DRenderer) {
         renderer.square(&self.info);
         renderer.text(&self.text);
     }
@@ -94,6 +96,7 @@ impl Component for Square {
     }
 }
 
+#[derive(Debug)]
 struct State {
     pos: Vector2<f32>,
     w: f32,
@@ -107,12 +110,16 @@ impl Component for State {
     fn resize(&mut self, rect: Rect) {
         self.w = rect.width;
         self.h = rect.height;
-        self.data.resize(rect);
+        self.data.resize(rect.clone());
+        self.input.resize(rect);
     }
-    fn render(&self, renderer: &mut ComponentRenderer) {
+    fn render(&self, renderer: &mut Candy2DRenderer) {
         renderer.background(&Vector4::new(0.0, 0.1, 0.2, 1.0));
-        self.data.render(renderer);
-        self.input.render(renderer);
+
+        <crate::components::Input as crate::ui::component::Component<CandyDefaultRenderer>>::render(
+            &self.input,
+            renderer,
+        );
     }
     fn apply_style(&mut self, _: &dyn Style) {}
     fn position(&self) -> Vector2<f32> {
@@ -123,6 +130,7 @@ impl Component for State {
     }
 }
 
+#[derive(Debug)]
 pub struct RedShadow;
 impl Style for RedShadow {
     fn effect(&self) -> Box<dyn crate::ui::styling::fx::Effect> {
@@ -145,6 +153,14 @@ impl Style for RedShadow {
     }
 }
 
+#[derive(Debug)]
+pub struct StyleQualquer;
+impl Style for StyleQualquer {
+    fn color(&self) -> Vector4<f32> {
+        Vector4::new(0.0, 1.0, 1.0, 1.0)
+    }
+}
+
 impl Effect for RedShadow {
     fn shadow(&self) -> Option<crate::ui::styling::fx::ShadowEffect> {
         Some(crate::ui::styling::fx::ShadowEffect {
@@ -156,15 +172,19 @@ impl Effect for RedShadow {
 }
 
 impl RootComponent for State {
-    fn new() -> Self {
+    type Args = ();
+    fn new(_: ()) -> Self {
         let font = FontManager::new();
-        let content = font.create_font("Fira Sans", 24.0);
+
+        println!("{:?}", font.avaible_fonts());
+        let content = font.create_font("Nimbus Roman", 24.0);
         Self {
             w: 0.0,
             h: 0.0,
             pos: Vector2::zeros(),
             input: {
-                let inp = Input::new(Text::new_content("Pascal", content.clone()));
+                let mut inp = Input::new(Text::new_content("JF Flat", content.clone().unwrap()));
+                inp.apply_style(&StyleQualquer);
                 inp
             },
             data: {
@@ -187,18 +207,27 @@ impl RootComponent for State {
     fn keydown(
         &mut self,
         key: winit::keyboard::Key<winit::keyboard::SmolStr>,
-        loc: winit::keyboard::KeyLocation,
+        _: winit::keyboard::KeyLocation,
     ) -> bool {
         match key {
             Key::Character(c) => {
+                println!("{c:?}");
                 self.input.write_str(&c);
                 true
             }
+
             Key::Named(key) => {
                 if let winit::keyboard::NamedKey::ArrowLeft = key {
                     self.input.move_left(1);
                     true
+                } else if let winit::keyboard::NamedKey::Space = key {
+                    self.input.write(' ');
+                    true
+                } else if let winit::keyboard::NamedKey::Enter = key {
+                    self.input.write('\n');
+                    true
                 } else {
+                    println!("{key:?}");
                     false
                 }
             }
@@ -217,27 +246,27 @@ impl RootComponent for State {
         &mut self,
         offset: winit::event::MouseScrollDelta,
         _: winit::event::TouchPhase,
-        pos: Vector2<f32>,
+        _: Vector2<f32>,
     ) -> bool {
         match offset {
             winit::event::MouseScrollDelta::LineDelta(x, y) => {
-                self.data.drag_offset(Vector2::new(x, -y));
+                self.data.drag_offset(Vector2::new(x, -y))
             }
-            _ => {}
+            _ => false,
         }
-        true
     }
     fn on_mouse_move(&mut self, pos: Vector2<f32>) -> bool {
         self.data.drag(pos);
+
         self.data.is_dragging()
     }
-    fn click(&mut self, pos: Vector2<f32>, btn: MouseButton) -> bool {
+    fn click(&mut self, pos: Vector2<f32>, _: MouseButton) -> bool {
         self.data.on_mouse_click(pos);
 
-        let font = self.manager.create_font("Nimbus Roman", 24.0);
+        let font = self.manager.create_font("Nimbus Roman", 24.0).unwrap();
         let mut s = Square::new(font);
         *s.text.content_mut() = format!("Hello {}", self.data.children().len());
-        s.apply_style(&RedShadow);
+        s.apply_style(&StyleQualquer);
 
         self.data.add_child(
             s,
@@ -260,7 +289,7 @@ impl RootComponent for State {
 }
 
 fn main() {
-    CandyWindow::<State>::new(
+    CandyWindow::<State, CandyDefaultRenderer>::new(
         Window::default_attributes()
             .with_transparent(true)
             .with_title("Candy"),

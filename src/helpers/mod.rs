@@ -13,11 +13,12 @@ pub fn vec4f32_to_color_value(color: Vector4<f32>) -> Color4f {
     unsafe { std::mem::transmute::<Vector4<f32>, Color4f>(color) }
 }
 
+///Casts the given `color` into a `rect`(???)
 pub fn vec4f32_to_rect(color: &Vector4<f32>) -> &Rect {
     unsafe { std::mem::transmute::<&Vector4<f32>, &Rect>(color) }
 }
 
-///Checks weather `position` is inside of `rect`. This function interprets zw of `rect` as it's width and height
+///Checks whether `position` is inside of `rect`. This function interprets zw of `rect` as it's width and height
 pub fn in_bounds_of(rect: Vector4<f32>, position: Vector2<f32>) -> bool {
     (position.x >= rect.x && position.x <= rect.x + rect.z)
         && (position.y >= rect.y && position.y <= rect.y + rect.w)

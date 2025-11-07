@@ -20,11 +20,11 @@ impl Rect {
     }
 
     #[inline]
-    ///Checks weather the given `pos` is
+    ///Checks whether the given `pos` is
     pub fn contains(&self, pos: Vector2<f32>) -> bool {
         pos.x >= self.x && pos.y >= self.y && pos.x <= self.right() && pos.y <= self.bottom()
     }
-
+    ///Retrieves the center position of this rect
     pub fn center(&self) -> Vector2<f32> {
         Vector2::new(self.x + self.width * 0.5, self.y + self.height * 0.5)
     }

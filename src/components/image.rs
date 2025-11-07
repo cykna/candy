@@ -1,18 +1,22 @@
 use std::ops::{Deref, DerefMut};
 
 use crate::{
-    elements::image::CandyImage, renderer::twod::BiDimensionalPainter, ui::component::Component,
+    elements::image::CandyImage,
+    renderer::{CandyRenderer, twod::BiDimensionalPainter},
+    ui::component::Component,
 };
 
-pub struct Image {
-    image: CandyImage,
+#[derive(Debug)]
+///A component that simply represents an image
+pub struct Image<R: CandyRenderer> {
+    image: CandyImage<R::TwoD>,
 }
 
-impl Component for Image {
+impl<R: CandyRenderer> Component<R> for Image<R> {
     fn resize(&mut self, rect: crate::helpers::rect::Rect) {
         self.image.resize(rect);
     }
-    fn render(&self, renderer: &mut crate::ui::component::ComponentRenderer) {
+    fn render(&self, renderer: &mut R::TwoD) {
         renderer.render_image(&self.image);
     }
     fn apply_style(&mut self, style: &dyn crate::ui::styling::style::Style) {
@@ -26,19 +30,26 @@ impl Component for Image {
     }
 }
 
-impl Image {
-    pub fn new(image: CandyImage) -> Self {
+impl<R: CandyRenderer> Image<R> {
+    ///Creates a new Image component from the provided `image` from candy
+    pub fn new(image: CandyImage<R::TwoD>) -> Self {
         Self { image }
     }
 }
 
-impl Deref for Image {
-    type Target = CandyImage;
+impl<R> Deref for Image<R>
+where
+    R: CandyRenderer,
+{
+    type Target = CandyImage<R::TwoD>;
     fn deref(&self) -> &Self::Target {
         &self.image
     }
 }
-impl DerefMut for Image {
+impl<R> DerefMut for Image<R>
+where
+    R: CandyRenderer,
+{
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.image
     }
