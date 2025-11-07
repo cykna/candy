@@ -9,7 +9,6 @@ use winit::{
 
 use crate::{
     handler::{CandyDefaultHandler, CandyHandler},
-    renderer::{CandyRenderer, candy::CandyDefaultRenderer},
     ui::component::RootComponent,
 };
 
@@ -46,23 +45,19 @@ unsafe impl Sync for ComponentEvents {}
 unsafe impl Send for ComponentEvents {}
 
 #[derive(Default, Debug)]
-pub struct CandyWindow<
-    Root,
-    Renderer = CandyDefaultRenderer,
-    T = CandyDefaultHandler<Root, Renderer>,
-> where
-    Root: RootComponent<Renderer>,
-    Renderer: CandyRenderer,
-    T: CandyHandler<Root, Renderer>,
+pub struct CandyWindow<Root, T = CandyDefaultHandler<Root>>
+where
+    Root: RootComponent,
+    T: CandyHandler<Root>,
 {
-    root: PhantomData<(Root, Renderer)>,
+    root: PhantomData<Root>,
     handler: Option<T>,
     proxy: Option<EventLoopProxy<ComponentEvents>>,
     attribs: WindowAttributes,
 }
-impl<Renderer: CandyRenderer, Root: RootComponent<Renderer>, T> CandyWindow<Root, Renderer, T>
+impl<Root: RootComponent, T> CandyWindow<Root, T>
 where
-    T: CandyHandler<Root, Renderer>,
+    T: CandyHandler<Root>,
 {
     pub fn new(attribs: WindowAttributes) -> Self {
         Self {
@@ -111,12 +106,10 @@ where
     }
 }
 
-impl<Root, Renderer, T> winit::application::ApplicationHandler<ComponentEvents>
-    for CandyWindow<Root, Renderer, T>
+impl<Root, T> winit::application::ApplicationHandler<ComponentEvents> for CandyWindow<Root, T>
 where
     Root: RootComponent,
-    Renderer: CandyRenderer,
-    T: CandyHandler<Root, Renderer>,
+    T: CandyHandler<Root>,
 {
     fn resumed(&mut self, _: &winit::event_loop::ActiveEventLoop) {
         #[cfg(not(feature = "opengl"))]

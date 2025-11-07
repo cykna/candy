@@ -17,13 +17,12 @@ use crate::{
 #[cfg(feature = "opengl")]
 use glutin::config::Config;
 
-pub trait CandyHandler<Root, Renderer>
+pub trait CandyHandler<Root>
 where
-    Renderer: CandyRenderer,
-    Root: RootComponent<Renderer>,
+    Root: RootComponent,
 {
     #[cfg(feature = "opengl")]
-    fn new(window: Window, config: Config, arg: <Root as RootComponent<Renderer>>::Args) -> Self;
+    fn new(window: Window, config: Config, arg: <Root as RootComponent>::Args) -> Self;
     fn root(&self) -> &Root;
     fn root_mut(&mut self) -> &mut Root;
     fn draw(&mut self);
@@ -38,7 +37,7 @@ where
 }
 pub struct CandyDefaultHandler<Root, Renderer: CandyRenderer = CandyDefaultRenderer>
 where
-    Root: RootComponent<Renderer>,
+    Root: RootComponent,
 {
     mouse_pos: Vector2<f32>,
     window: Window,
@@ -46,10 +45,10 @@ where
     root: Root,
 }
 
-impl<Root, Renderer> CandyHandler<Root, Renderer> for CandyDefaultHandler<Root, Renderer>
+impl<Root, Renderer> CandyHandler<Root> for CandyDefaultHandler<Root, Renderer>
 where
     Renderer: CandyRenderer,
-    Root: RootComponent<Renderer>,
+    Root: RootComponent,
     <Renderer as CandyRenderer>::TwoD: BiDimensionalRenderer,
     <Renderer as CandyRenderer>::ThreeD: ThreeDimensionalRenderer,
 {
@@ -59,7 +58,7 @@ where
     fn root_mut(&mut self) -> &mut Root {
         &mut self.root
     }
-    fn new(window: Window, config: Config, arg: <Root as RootComponent<Renderer>>::Args) -> Self {
+    fn new(window: Window, config: Config, arg: <Root as RootComponent>::Args) -> Self {
         Self {
             mouse_pos: Vector2::new(0.0, 0.0),
             renderer: Renderer::new(&window, &config),
