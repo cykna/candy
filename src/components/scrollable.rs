@@ -114,7 +114,7 @@ impl<C: Component> Scrollable<C> {
 
     #[inline]
     ///Returns the element of the scrollbar
-    pub fn scrollbar(&self) -> &Container<SolidBox<R>, R> {
+    pub fn scrollbar(&self) -> &Container<SolidBox> {
         &self.scrollbar
     }
 

@@ -14,10 +14,7 @@ pub mod candy2d;
 pub mod helpers;
 pub use candy2d::Candy2DRenderer;
 
-use crate::{
-    elements::{image::CandyImage, square::CandySquare, text::CandyText},
-    ui::component::RendererImage,
-};
+use crate::elements::{image::CandyImage, square::CandySquare, text::CandyText};
 
 #[derive(Debug)]
 pub struct Renderer2DEnvironment {
@@ -67,7 +64,7 @@ pub trait BiDimensionalPainter: BiDimensionalRenderer + std::fmt::Debug {
     fn text(&mut self, info: &CandyText);
 
     ///Method uses to draw the given `img` at the given `position`
-    fn render_image(&mut self, info: &CandyImage<RendererImage>);
+    fn render_image(&mut self, info: &CandyImage);
 
     fn background(&mut self, rule: &Vector4<f32>);
 }

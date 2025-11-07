@@ -6,10 +6,9 @@ use winit::{
 
 use crate::{helpers::rect::Rect, renderer::twod::BiDimensionalPainter, ui::styling::style::Style};
 
-
-#[cfg(feature="opengl")]
-pub type RendererImage = skia_safe::Image
-#[cfg(feature="vello")]
+#[cfg(feature = "opengl")]
+pub type RendererImage = skia_safe::Image;
+#[cfg(feature = "vello")]
 pub type Image = ();
 
 pub trait Component {

@@ -18,7 +18,7 @@ impl Component for SolidBox {
         self.square.resize(rect);
     }
 
-    fn render(&self, renderer: &mut dyn BiDimensionalPainter<Image = skia_safe::Image>) {
+    fn render(&self, renderer: &mut dyn BiDimensionalPainter) {
         renderer.square(&self.square);
     }
     fn apply_style(&mut self, style: &dyn crate::ui::styling::style::Style) {

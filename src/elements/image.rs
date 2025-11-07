@@ -65,7 +65,7 @@ impl CandyImage {
 
     #[inline]
     ///Returns the inner image handle
-    pub fn image_handler(&self) -> &T {
+    pub fn image_handler(&self) -> &RendererImage {
         &self.inner
     }
 }
