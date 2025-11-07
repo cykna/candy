@@ -5,7 +5,7 @@ use nalgebra::{Vector2, Vector4};
 use crate::{
     components::{SolidBox, container::Container},
     helpers::rect::Rect,
-    renderer::{CandyRenderer, candy::CandyDefaultRenderer},
+    renderer::{CandyRenderer, twod::BiDimensionalPainter},
     ui::{
         component::Component,
         styling::{
@@ -17,10 +17,10 @@ use crate::{
 
 #[derive(Debug)]
 ///A Component that can scroll it's inner elements down, up, left or right. A single axis is accepted per scrollable
-pub struct Scrollable<C: Component<R>, R: CandyRenderer = CandyDefaultRenderer> {
+pub struct Scrollable<C: Component> {
     direction: Direction,
-    container: Container<C, R>,
-    scrollbar: Container<SolidBox<R>, R>,
+    container: Container<C>,
+    scrollbar: Container<SolidBox>,
     layout: Layout,
     old_cursor: Vector2<f32>,
     offset: f32,
@@ -40,9 +40,9 @@ pub struct ScrollableConfig {
     pub layout: Layout,
 }
 
-impl<C: Component<R>, R: CandyRenderer> Scrollable<C, R> {
+impl<C: Component> Scrollable<C> {
     ///Generates a ScrollBar for a Scrollable
-    pub fn scroll_bar() -> Container<SolidBox<R>, R> {
+    pub fn scroll_bar() -> Container<SolidBox> {
         let mut out = Container::new(Layout::vertical(), false);
         out.add_child(
             SolidBox::new(&Vector4::new(0.0, 0.0, 0.0, 1.0)),
@@ -186,19 +186,19 @@ impl<C: Component<R>, R: CandyRenderer> Scrollable<C, R> {
     }
 }
 
-impl<C: Component<R>, R: CandyRenderer> Deref for Scrollable<C, R> {
-    type Target = Container<C, R>;
+impl<C: Component> Deref for Scrollable<C> {
+    type Target = Container<C>;
     fn deref(&self) -> &Self::Target {
         &self.container
     }
 }
-impl<C: Component<R>, R: CandyRenderer> DerefMut for Scrollable<C, R> {
+impl<C: Component> DerefMut for Scrollable<C> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.container
     }
 }
 
-impl<C: Component<R>, R: CandyRenderer> Component<R> for Scrollable<C, R> {
+impl<C: Component> Component for Scrollable<C> {
     fn resize(&mut self, rect: Rect) {
         let height = rect.height;
         let rects = self.layout.calculate(rect, true);
@@ -213,7 +213,7 @@ impl<C: Component<R>, R: CandyRenderer> Component<R> for Scrollable<C, R> {
         }
         self.update_positions_accum();
     }
-    fn render(&self, renderer: &mut R::TwoD) {
+    fn render(&self, renderer: &mut dyn BiDimensionalPainter) {
         self.container.render(renderer);
         self.scrollbar.render(renderer);
     }

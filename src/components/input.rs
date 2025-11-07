@@ -6,23 +6,23 @@ use crate::{
     components::Text,
     elements::CandySquare,
     helpers::{char_size_backwards, char_size_init},
-    renderer::{CandyRenderer, candy::CandyDefaultRenderer, twod::BiDimensionalPainter},
+    renderer::twod::BiDimensionalPainter,
     ui::component::Component,
 };
 
 #[derive(Debug)]
 ///A Input that can be eitger Text, Numeric or Password. Text input accepts any kind of input. Numeric will only accept numbers and
 ///Password will accept everything, such as Text, but will hide the content written
-pub enum Input<R: CandyRenderer = CandyDefaultRenderer> {
-    Text(RawInput<R>),
-    Numeric(RawInput<R>),
-    Password(RawInput<R>, String), //the second field is the actually value
+pub enum Input {
+    Text(RawInput),
+    Numeric(RawInput),
+    Password(RawInput, String), //the second field is the actually value
 }
 
 #[derive(Debug)]
-pub struct RawInput<R: CandyRenderer> {
+pub struct RawInput {
     ///The content to be shown on the screen
-    content: Text<R>,
+    content: Text,
     ///The square this input has got
     rect: CandySquare,
     ///The square of the cursor of this input
@@ -31,19 +31,19 @@ pub struct RawInput<R: CandyRenderer> {
     cursor: usize,
 }
 
-impl<R: CandyRenderer> Input<R> {
+impl Input {
     ///Creates a new Input that accepts Strings in general as long as they're utf8 with the initial text being the provided `content`
-    pub fn new(content: Text<R>) -> Self {
+    pub fn new(content: Text) -> Self {
         Self::Text(RawInput::new(content))
     }
 
     ///Creates a new Input that accepts Strings in general as long as they're utf8 with the initial text being the provided `content`
-    pub fn new_numeric(content: Text<R>) -> Self {
+    pub fn new_numeric(content: Text) -> Self {
         Self::Numeric(RawInput::new(content))
     }
 
     ///Creates a new Input that accepts Strings in general as long as they're utf8 with the initial text being the provided `content`
-    pub fn new_password(mut content: Text<R>) -> Self {
+    pub fn new_password(mut content: Text) -> Self {
         let text = content.content().to_string();
         {
             let len = content.content().chars().count();
@@ -57,7 +57,7 @@ impl<R: CandyRenderer> Input<R> {
 
     #[inline]
     ///Retrieves the raw input which contains the data and logic
-    fn raw(&self) -> &RawInput<R> {
+    fn raw(&self) -> &RawInput {
         match self {
             Self::Text(t) => t,
             Self::Numeric(t) => t,
@@ -66,7 +66,7 @@ impl<R: CandyRenderer> Input<R> {
     }
     #[inline]
     ///Retrieves the raw input which contains the data and logic
-    fn raw_mut(&mut self) -> &mut RawInput<R> {
+    fn raw_mut(&mut self) -> &mut RawInput {
         match self {
             Self::Text(t) => t,
             Self::Numeric(t) => t,
@@ -124,21 +124,21 @@ impl<R: CandyRenderer> Input<R> {
     }
 }
 
-impl<R: CandyRenderer> Deref for Input<R> {
-    type Target = RawInput<R>;
+impl Deref for Input {
+    type Target = RawInput;
     fn deref(&self) -> &Self::Target {
         self.raw()
     }
 }
-impl<R: CandyRenderer> DerefMut for Input<R> {
+impl DerefMut for Input {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.raw_mut()
     }
 }
 
-impl<R: CandyRenderer> RawInput<R> {
+impl RawInput {
     ///Creates a new Input which will accept any kind of char as long as it's utf8 valid
-    pub fn new(content: Text<R>) -> Self {
+    pub fn new(content: Text) -> Self {
         Self {
             cursor_square: CandySquare::default(),
             rect: CandySquare::default(),
@@ -233,7 +233,7 @@ impl<R: CandyRenderer> RawInput<R> {
     }
 }
 
-impl<R: CandyRenderer> Component<R> for Input<R> {
+impl Component for Input {
     fn resize(&mut self, rect: crate::helpers::rect::Rect) {
         self.rect.resize(rect.clone());
 
@@ -247,7 +247,7 @@ impl<R: CandyRenderer> Component<R> for Input<R> {
         self.cursor_square.size_mut().y = content_bounds.height + 2.0;
         self.cursor_square.size_mut().x = 1.0;
     }
-    fn render(&self, renderer: &mut R::TwoD) {
+    fn render(&self, renderer: &mut dyn BiDimensionalPainter) {
         renderer.square(&self.rect);
         {
             let visible = self.visible_chars();

@@ -91,7 +91,7 @@ where
     }
 
     fn draw(&mut self) {
-        self.root.render(self.renderer.twod_renderer());
+        self.root.render(self.renderer.twod_renderer().painter());
         self.renderer.flush();
     }
 

@@ -1,6 +1,8 @@
 use glutin::config::Config;
 use winit::window::Window;
 
+use crate::renderer::twod::BiDimensionalRendererConstructor;
+
 use super::{
     CandyRenderer,
     threed::{Candy3DRenderer, ThreeDimensionalRenderer},
@@ -16,7 +18,7 @@ pub struct CandyDefaultRenderer<TwoD = Candy2DRenderer, ThreeD = Candy3DRenderer
 
 impl<TwoD, ThreeD> CandyRenderer for CandyDefaultRenderer<TwoD, ThreeD>
 where
-    TwoD: BiDimensionalRenderer,
+    TwoD: BiDimensionalRenderer + BiDimensionalRendererConstructor,
     ThreeD: ThreeDimensionalRenderer,
 {
     type TwoD = TwoD;

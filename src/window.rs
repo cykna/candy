@@ -10,10 +10,7 @@ use winit::{
 use crate::{
     handler::{CandyDefaultHandler, CandyHandler},
     renderer::{CandyRenderer, candy::CandyDefaultRenderer},
-    ui::{
-        component::RootComponent,
-        styling::anim::{Animatable, AnimationState},
-    },
+    ui::component::RootComponent,
 };
 
 use std::sync::mpsc::{Receiver, Sender, channel};
@@ -106,7 +103,7 @@ where
             self.handler = Some(T::new(
                 window.expect("Window not created??"),
                 config,
-                <Root as RootComponent<Renderer>>::Args::default(),
+                <Root as RootComponent>::Args::default(),
             ));
         };
         self.proxy = Some(lp.create_proxy());
@@ -117,7 +114,7 @@ where
 impl<Root, Renderer, T> winit::application::ApplicationHandler<ComponentEvents>
     for CandyWindow<Root, Renderer, T>
 where
-    Root: RootComponent<Renderer>,
+    Root: RootComponent,
     Renderer: CandyRenderer,
     T: CandyHandler<Root, Renderer>,
 {

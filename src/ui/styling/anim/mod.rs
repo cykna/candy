@@ -1,6 +1,8 @@
 pub mod curves;
+pub mod manager;
 use crate::renderer::CandyRenderer;
 use std::{
+    marker::PhantomData,
     sync::{
         Arc,
         mpsc::{Receiver, channel},
@@ -11,20 +13,16 @@ use std::{
 
 use crate::ui::component::Component;
 
-pub trait Animable<T: AnimationState> {
-    fn apply_anim_state(&mut self, state: T);
+pub trait Animatable<T: AnimationState<R>, R: CandyRenderer> {
+    fn play_animation(&mut self, animation: Animation<T, R>) -> Receiver<T>;
 }
 
-pub trait Animatable<T: AnimationState, R: CandyRenderer> {
-    fn play_animation(&mut self, animation: Animation<T>) -> Receiver<T>;
-}
-
-impl<T: AnimationState + 'static, R, C> Animatable<T, R> for C
+impl<T: AnimationState<R> + 'static, R, C> Animatable<T, R> for C
 where
     R: CandyRenderer,
     C: Component<R>,
 {
-    fn play_animation(&mut self, animation: Animation<T>) -> Receiver<T> {
+    fn play_animation(&mut self, animation: Animation<T, R>) -> Receiver<T> {
         let (tx, rx) = channel();
         let arc = Arc::new(animation);
         thread::spawn(move || {
@@ -48,19 +46,19 @@ pub trait AnimationCurve: Send + Sync {
 
 pub trait AnimationState: Send + Sync {
     fn lerp(initial: &Self, end: &Self, t: f32) -> Self;
-    fn apply_to<R: CandyRenderer>(self, comp: &mut dyn Component<R>);
+    fn apply_to(self, comp: &mut dyn Component);
 }
 
-pub struct Animation<T: AnimationState> {
+pub struct Animation<T: AnimationState, R: CandyRenderer> {
+    phantom: PhantomData<R>,
     initial: T,
-
     end: T,
     duration: Duration,
     step_time: Duration,
     curve: Box<dyn AnimationCurve + 'static>,
 }
 
-impl<T: AnimationState> Animation<T> {
+impl<T: AnimationState<R>, R: CandyRenderer> Animation<T, R> {
     pub fn new<C: AnimationCurve + std::default::Default + 'static>(
         initial: T,
         end: T,
@@ -68,6 +66,7 @@ impl<T: AnimationState> Animation<T> {
         step_time: Duration,
     ) -> Self {
         Self {
+            phantom: PhantomData,
             end,
             initial,
             duration,

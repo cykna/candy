@@ -4,20 +4,20 @@ use winit::{
     keyboard::{Key, KeyLocation, SmolStr},
 };
 
-use crate::{
-    helpers::rect::Rect,
-    renderer::{CandyRenderer, candy::CandyDefaultRenderer},
-    ui::styling::style::Style,
-};
+use crate::{helpers::rect::Rect, renderer::twod::BiDimensionalPainter, ui::styling::style::Style};
 
-pub trait Component<R = CandyDefaultRenderer>
-where
-    R: CandyRenderer,
-{
+
+#[cfg(feature="opengl")]
+pub type RendererImage = skia_safe::Image
+#[cfg(feature="vello")]
+pub type Image = ();
+
+pub trait Component {
     ///Method called when some parent tries to resize this component. The `rect` parameter is the bounds calculated
     fn resize(&mut self, rect: Rect);
     ///Method called when this component is requested to redraw with the given `renderer`
-    fn render(&self, renderer: &mut <R as CandyRenderer>::TwoD);
+    #[cfg(feature = "opengl")]
+    fn render(&self, renderer: &mut dyn BiDimensionalPainter);
 
     ///Applies the given `style` on this component
     fn apply_style(&mut self, style: &dyn Style);
@@ -34,10 +34,7 @@ where
     }
 }
 
-pub trait RootComponent<R = CandyDefaultRenderer>: Component<R>
-where
-    R: CandyRenderer,
-{
+pub trait RootComponent: Component {
     type Args: Default;
     fn new(args: Self::Args) -> Self;
 
