@@ -12,13 +12,12 @@ use std::time::Duration;
 use crate::components::Input;
 use crate::components::{Scrollable, ScrollableConfig};
 
-use crate::renderer::candy::CandyDefaultRenderer;
-use crate::renderer::twod::Candy2DRenderer;
 use crate::ui::styling::fx::Effect;
 use crate::ui::styling::layout::Layout;
 use crate::ui::styling::layout::{DefinitionRect, Direction};
 
 use crate::ui::styling::anim::curves::LinearCurve;
+use crate::ui::styling::anim::manager::AnimationManager;
 use crate::ui::styling::anim::{Animatable, Animation, AnimationState};
 use elements::CandySquare;
 use helpers::rect::Rect;
@@ -84,7 +83,7 @@ impl Component for Square {
         }
     }
 
-    fn render(&self, renderer: &mut Candy2DRenderer) {
+    fn render(&self, renderer: &mut dyn BiDimensionalPainter) {
         renderer.square(&self.info);
         renderer.text(&self.text);
     }
@@ -103,11 +102,13 @@ impl Component for Square {
 #[derive(Debug)]
 struct State {
     pos: Vector2<f32>,
+    idx: usize,
     w: f32,
     h: f32,
     data: Scrollable<Square>,
     input: Input,
     manager: FontManager,
+    anims: AnimationManager,
 }
 
 impl Component for State {
@@ -115,15 +116,10 @@ impl Component for State {
         self.w = rect.width;
         self.h = rect.height;
         self.data.resize(rect.clone());
-        self.input.resize(rect);
     }
-    fn render(&self, renderer: &mut Candy2DRenderer) {
+    fn render(&self, renderer: &mut dyn BiDimensionalPainter) {
         renderer.background(&Vector4::new(0.0, 0.1, 0.2, 1.0));
-
-        <crate::components::Input as crate::ui::component::Component<CandyDefaultRenderer>>::render(
-            &self.input,
-            renderer,
-        );
+        self.data.render(renderer);
     }
     fn apply_style(&mut self, _: &dyn Style) {}
     fn position(&self) -> Vector2<f32> {
@@ -141,18 +137,21 @@ pub struct AnimState {
 impl AnimState {
     pub fn black() -> Self {
         Self {
-            color: Vector4::new(0.0, 0.0, 0.0, 0.0),
+            color: Vector4::new(0.0, 0.0, 0.0, 1.0),
         }
     }
 
     pub fn white() -> Self {
         Self {
-            color: Vector4::new(0.0, 0.0, 0.0, 0.0),
+            color: Vector4::new(1.0, 1.0, 1.0, 1.0),
         }
     }
 }
 impl Style for AnimState {
     fn color(&self) -> Vector4<f32> {
+        self.color
+    }
+    fn background_color(&self) -> Vector4<f32> {
         self.color
     }
 }
@@ -162,11 +161,9 @@ impl AnimationState for AnimState {
             color: start.color.lerp(&end.color, t),
         }
     }
-    fn apply_to<R: crate::renderer::CandyRenderer>(
-        self,
-        comp: &mut dyn crate::ui::component::Component<R>,
-    ) {
-        comp.apply_style(&self);
+    fn apply_to(&self, comp: &mut dyn crate::ui::component::Component) {
+        println!("{self:?}");
+        comp.apply_style(self);
     }
 }
 
@@ -219,6 +216,8 @@ impl RootComponent for State {
         println!("{:?}", font.avaible_fonts());
         let content = font.create_font("Nimbus Roman", 24.0);
         Self {
+            idx: 0,
+            anims: AnimationManager::new(),
             w: 0.0,
             h: 0.0,
             pos: Vector2::zeros(),
@@ -318,14 +317,16 @@ impl RootComponent for State {
             },
         );
 
-        for child in self.data.children_mut().iter_mut().map(|c| {
-            c.play_animation(Animation::new::<LinearCurve>(
+        for child in self.data.children_mut() {
+            let rx = child.play_animation(Animation::new::<LinearCurve>(
                 AnimState::black(),
                 AnimState::white(),
-                Duration::from_secs(2),
-                Duration::from_millis(2),
-            ))
-        }) {}
+                Duration::from_secs(1),
+                Duration::from_millis(16),
+            ));
+            self.anims.insert_awaiter(child, rx);
+        }
+        println!("{}", "Hello world");
 
         self.resize(Rect {
             x: 0.0,
@@ -335,10 +336,14 @@ impl RootComponent for State {
         });
         true
     }
+    fn check_updates(&mut self) -> bool {
+        self.idx += 1;
+        self.anims.update()
+    }
 }
 
 fn main() {
-    CandyWindow::<State, CandyDefaultRenderer>::new(
+    CandyWindow::<State>::new(
         Window::default_attributes()
             .with_transparent(true)
             .with_title("Candy"),

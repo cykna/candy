@@ -36,6 +36,7 @@ impl ComponentEventsScheduler {
 ///This is more internal of how the lib works and in general is not known
 #[derive(Debug)]
 pub(crate) enum ComponentEvents {
+    CheckUpdates,
     Redraw,
 }
 
@@ -101,7 +102,13 @@ where
                 <Root as RootComponent>::Args::default(),
             ));
         };
-        self.proxy = Some(lp.create_proxy());
+        let proxy = lp.create_proxy();
+
+        std::thread::spawn(move || {
+            while let Ok(c) = SCHEDULER.rx.recv() {
+                proxy.send_event(c).unwrap();
+            }
+        });
         lp.run_app(self).unwrap();
     }
 }
@@ -115,18 +122,19 @@ where
         #[cfg(not(feature = "opengl"))]
         println!("gayzinho");
     }
-    fn about_to_wait(&mut self, _: &winit::event_loop::ActiveEventLoop) {
-        if let Some(ref mut proxy) = self.proxy {
-            while let Ok(c) = SCHEDULER.rx.try_recv() {
-                proxy.send_event(c).unwrap();
-            }
-        }
-    }
+
     fn user_event(&mut self, _: &winit::event_loop::ActiveEventLoop, event: ComponentEvents) {
         match event {
             ComponentEvents::Redraw => {
                 if let Some(ref mut handler) = self.handler {
                     handler.request_redraw();
+                }
+            }
+            ComponentEvents::CheckUpdates => {
+                if let Some(ref mut handler) = self.handler {
+                    if handler.root_mut().check_updates() {
+                        handler.request_redraw();
+                    };
                 }
             }
         }

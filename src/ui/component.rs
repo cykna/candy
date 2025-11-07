@@ -66,4 +66,8 @@ pub trait RootComponent: Component {
     fn keyup(&mut self, _: Key<SmolStr>, _: KeyLocation) -> bool {
         false
     }
+
+    fn check_updates(&mut self) -> bool {
+        false
+    }
 }

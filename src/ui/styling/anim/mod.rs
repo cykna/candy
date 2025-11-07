@@ -10,27 +10,36 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crate::ui::component::Component;
+use crate::{
+    ui::component::Component,
+    window::{ComponentEvents, SCHEDULER},
+};
 
 pub trait Animatable<T: AnimationState> {
-    fn play_animation(&mut self, animation: Animation<T>) -> Receiver<T>;
+    fn play_animation(&mut self, animation: Animation<T>) -> Receiver<Box<dyn AnimationState>>;
 }
 
 impl<T: AnimationState + 'static, C> Animatable<T> for C
 where
     C: Component,
 {
-    fn play_animation(&mut self, animation: Animation<T>) -> Receiver<T> {
+    fn play_animation(
+        &mut self,
+        animation: Animation<T>,
+    ) -> Receiver<Box<dyn AnimationState + 'static>> {
         let (tx, rx) = channel();
         let arc = Arc::new(animation);
+        let scheduler_tx = SCHEDULER.retrieve_sender();
         thread::spawn(move || {
             let anim = arc.clone();
             let now = Instant::now();
             while now.elapsed() < anim.duration {
-                let state = anim.calculate_state(now.elapsed().as_secs_f32());
+                let state = Box::new(anim.calculate_state(now.elapsed().as_secs_f32()))
+                    as Box<dyn AnimationState>;
                 if let Err(_) = tx.send(state) {
                     break;
                 };
+                scheduler_tx.send(ComponentEvents::CheckUpdates).unwrap();
                 std::thread::sleep(anim.step_time);
             }
         });
@@ -43,8 +52,10 @@ pub trait AnimationCurve: Send + Sync {
 }
 
 pub trait AnimationState: Send + Sync {
-    fn lerp(initial: &Self, end: &Self, t: f32) -> Self;
-    fn apply_to(self, comp: &mut dyn Component);
+    fn lerp(initial: &Self, end: &Self, t: f32) -> Self
+    where
+        Self: Sized;
+    fn apply_to(&self, comp: &mut dyn Component);
 }
 
 pub struct Animation<T: AnimationState> {
