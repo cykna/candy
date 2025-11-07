@@ -260,6 +260,7 @@ dependencies = [
  "gl",
  "glutin",
  "glutin-winit",
+ "lazy_static",
  "nalgebra",
  "raw-window-handle",
  "skia-safe",

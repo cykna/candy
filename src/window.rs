@@ -1,13 +1,43 @@
+use lazy_static::lazy_static;
 use std::marker::PhantomData;
 
 use nalgebra::Vector2;
-use winit::{event_loop::EventLoop, window::WindowAttributes};
+use winit::{
+    event_loop::{EventLoop, EventLoopProxy},
+    window::WindowAttributes,
+};
 
 use crate::{
     handler::{CandyDefaultHandler, CandyHandler},
     renderer::{CandyRenderer, candy::CandyDefaultRenderer},
     ui::component::RootComponent,
 };
+
+use std::sync::mpsc::{Receiver, Sender, channel};
+
+lazy_static! {
+    static ref SCHEDULER: ComponentEventsScheduler = {
+        let (tx, rx) = channel::<ComponentEvents>();
+        ComponentEventsScheduler { rx, tx }
+    };
+}
+
+pub(crate) struct ComponentEventsScheduler {
+    pub(crate) rx: Receiver<ComponentEvents>,
+    pub(crate) tx: Sender<ComponentEvents>,
+}
+
+///Events that can be sent from some component directly to the window, such as a request to redraw due to some animation state being changed.
+///This is more internal of how the lib works and in general is not known
+#[derive(Debug)]
+pub(crate) enum ComponentEvents {
+    Redraw,
+}
+
+unsafe impl Send for ComponentEventsScheduler {}
+unsafe impl Sync for ComponentEventsScheduler {}
+unsafe impl Sync for ComponentEvents {}
+unsafe impl Send for ComponentEvents {}
 
 #[derive(Default, Debug)]
 pub struct CandyWindow<
@@ -21,6 +51,7 @@ pub struct CandyWindow<
 {
     root: PhantomData<(Root, Renderer)>,
     handler: Option<T>,
+    proxy: Option<EventLoopProxy<ComponentEvents>>,
     attribs: WindowAttributes,
 }
 impl<Renderer: CandyRenderer, Root: RootComponent<Renderer>, T> CandyWindow<Root, Renderer, T>
@@ -32,11 +63,12 @@ where
             root: PhantomData,
             handler: None,
             attribs,
+            proxy: None,
         }
     }
 
     pub fn run(&mut self) {
-        let lp = EventLoop::new().unwrap();
+        let lp = EventLoop::with_user_event().build().unwrap();
         #[cfg(feature = "opengl")]
         {
             use glutin::config::{ConfigTemplateBuilder, GlConfig};
@@ -68,11 +100,13 @@ where
                 <Root as RootComponent<Renderer>>::Args::default(),
             ));
         };
+        self.proxy = Some(lp.create_proxy());
         lp.run_app(self).unwrap();
     }
 }
 
-impl<Root, Renderer, T> winit::application::ApplicationHandler for CandyWindow<Root, Renderer, T>
+impl<Root, Renderer, T> winit::application::ApplicationHandler<ComponentEvents>
+    for CandyWindow<Root, Renderer, T>
 where
     Root: RootComponent<Renderer>,
     Renderer: CandyRenderer,
@@ -81,6 +115,22 @@ where
     fn resumed(&mut self, _: &winit::event_loop::ActiveEventLoop) {
         #[cfg(not(feature = "opengl"))]
         println!("gayzinho");
+    }
+    fn about_to_wait(&mut self, _: &winit::event_loop::ActiveEventLoop) {
+        if let Some(ref mut proxy) = self.proxy {
+            while let Ok(c) = SCHEDULER.rx.try_recv() {
+                proxy.send_event(c).unwrap();
+            }
+        }
+    }
+    fn user_event(&mut self, _: &winit::event_loop::ActiveEventLoop, event: ComponentEvents) {
+        match event {
+            ComponentEvents::Redraw => {
+                if let Some(ref mut handler) = self.handler {
+                    handler.request_redraw();
+                }
+            }
+        }
     }
     fn window_event(
         &mut self,
@@ -112,13 +162,14 @@ where
                     handler.on_mouse_wheel(delta, phase)
                 }
                 winit::event::WindowEvent::KeyboardInput { event, .. } => {
-                    if if event.state.is_pressed() {
+                    let flag = if event.state.is_pressed() {
                         handler
                             .root_mut()
                             .keydown(event.logical_key, event.location)
                     } else {
                         handler.root_mut().keyup(event.logical_key, event.location)
-                    } {
+                    };
+                    if flag {
                         handler.request_redraw();
                     }
                 }
