@@ -7,7 +7,7 @@ use crate::{
     components::Text,
     elements::CandySquare,
     helpers::center,
-    renderer::{CandyRenderer, twod::BiDimensionalPainter},
+    renderer::twod::BiDimensionalPainter,
     ui::{component::Component, styling::style::Style},
 };
 
@@ -24,7 +24,7 @@ impl<'a, Msg> Component for Button<'a, Msg> {
         *self.rect.position_mut() = Vector2::new(rect.x, rect.y);
         *self.rect.size_mut() = Vector2::new(rect.width, rect.height);
     }
-    fn render(&self, renderer: &mut R::TwoD) {
+    fn render(&self, renderer: &mut dyn BiDimensionalPainter) {
         renderer.square(&self.rect);
         self.text.render(renderer);
     }
