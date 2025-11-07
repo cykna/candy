@@ -136,10 +136,12 @@ impl BiDimensionalRenderer for Candy2DRenderer {
             .swap_buffers(&self.environment.gl_context)
             .unwrap();
     }
+    fn painter(&mut self) -> &mut dyn BiDimensionalPainter {
+        self
+    }
 }
 
 impl BiDimensionalPainter for Candy2DRenderer {
-    type Image = skia_safe::Image;
     fn square(&mut self, square_info: &CandySquare) {
         let rule = &square_info.rule;
 
