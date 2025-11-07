@@ -7,6 +7,7 @@ use super::{
     twod::{BiDimensionalRenderer, Candy2DRenderer},
 };
 
+#[derive(Debug)]
 ///The default renderer of a candy, used to render both 2D and 3D
 pub struct CandyDefaultRenderer<TwoD = Candy2DRenderer, ThreeD = Candy3DRenderer> {
     twod: TwoD,

@@ -7,24 +7,24 @@ use crate::{
     components::Text,
     elements::CandySquare,
     helpers::center,
-    renderer::twod::BiDimensionalPainter,
+    renderer::{CandyRenderer, candy::CandyDefaultRenderer, twod::BiDimensionalPainter},
     ui::{component::Component, styling::style::Style},
 };
 
-pub struct Button<'a, Msg> {
-    text: Text,
+pub struct Button<'a, Msg, R: CandyRenderer = CandyDefaultRenderer> {
+    text: Text<R>,
     rect: CandySquare,
     func: Box<dyn Fn(Vector2<f32>, MouseButton) -> Msg + 'a>,
 }
 
-impl<'a, Msg> Component for Button<'a, Msg> {
+impl<'a, Msg, R: CandyRenderer> Component<R> for Button<'a, Msg, R> {
     fn resize(&mut self, rect: crate::helpers::rect::Rect) {
         *self.text.position_mut() = center(&self.text.text_bounds(), &rect);
         *self.text.size_mut() = Vector2::new(rect.width, rect.y);
         *self.rect.position_mut() = Vector2::new(rect.x, rect.y);
         *self.rect.size_mut() = Vector2::new(rect.width, rect.height);
     }
-    fn render(&self, renderer: &mut crate::ui::component::ComponentRenderer) {
+    fn render(&self, renderer: &mut R::TwoD) {
         renderer.square(&self.rect);
         self.text.render(renderer);
     }
@@ -44,9 +44,9 @@ impl<'a, Msg> Component for Button<'a, Msg> {
     }
 }
 
-impl<'a, Msg> Button<'a, Msg> {
+impl<'a, Msg, R: CandyRenderer> Button<'a, Msg, R> {
     ///Creates a new Button with the given `text` centered and executing `f` when clicked
-    pub fn new<F>(text: Text, f: F) -> Self
+    pub fn new<F>(text: Text<R>, f: F) -> Self
     where
         F: (Fn(Vector2<f32>, MouseButton) -> Msg) + 'a,
     {
@@ -92,23 +92,23 @@ impl<'a, Msg> Button<'a, Msg> {
     }
 }
 
-impl<'a, Msg> Deref for Button<'a, Msg> {
+impl<'a, Msg, R: CandyRenderer> Deref for Button<'a, Msg, R> {
     type Target = CandySquare;
     fn deref(&self) -> &Self::Target {
         &self.rect
     }
 }
 
-impl<'a, Msg> DerefMut for Button<'a, Msg> {
+impl<'a, Msg, R: CandyRenderer> DerefMut for Button<'a, Msg, R> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.rect
     }
 }
 
-impl<'a, Msg> std::fmt::Debug for Button<'a, Msg> {
+impl<'a, Msg, R: CandyRenderer> std::fmt::Debug for Button<'a, Msg, R> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Button")
-            .field("text", &self.text)
+            .field("text", &self.text.inner())
             .field("rect", &self.rect)
             .field("func", &"fn internal();")
             .finish()

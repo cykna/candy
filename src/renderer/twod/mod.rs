@@ -13,10 +13,13 @@ pub mod candy2d;
 pub mod helpers;
 pub use candy2d::Candy2DRenderer;
 
-use crate::elements::{
-    image::{CandyImage, TwodCandyImg},
-    square::CandySquare,
-    text::CandyText,
+use crate::{
+    elements::{
+        image::{CandyImage, TwodCandyImg},
+        square::CandySquare,
+        text::CandyText,
+    },
+    renderer::CandyRenderer,
 };
 
 #[derive(Debug)]
@@ -36,7 +39,7 @@ pub struct Renderer2DEnvironment {
     stencil_size: usize,
 }
 ///Trait used to control a 2D painter
-pub trait BiDimensionalRenderer {
+pub trait BiDimensionalRenderer: BiDimensionalPainter {
     #[cfg(feature = "opengl")]
     fn new(window: &Window, config: &Config) -> Self;
 
@@ -65,7 +68,7 @@ pub trait BiDimensionalPainter: Sized + std::fmt::Debug {
     fn text(&mut self, info: &CandyText);
 
     ///Method uses to draw the given `img` at the given `position`
-    fn render_image(&mut self, info: &CandyImage);
+    fn render_image(&mut self, info: &CandyImage<Self>);
 
     fn background(&mut self, rule: &Vector4<f32>);
 }

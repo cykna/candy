@@ -2,6 +2,7 @@ use super::ThreeDimensionalRenderer;
 use crate::renderer::threed::wgpu::WgpuCore;
 use winit::window::Window;
 
+#[derive(Debug)]
 pub struct Candy3DRenderer {
     wgpu_core: WgpuCore,
 }

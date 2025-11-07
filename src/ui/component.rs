@@ -6,22 +6,11 @@ use winit::{
 
 use crate::{
     helpers::rect::Rect,
-    renderer::{CandyRenderer, candy::CandyDefaultRenderer, twod::Candy2DRenderer},
+    renderer::{CandyRenderer, candy::CandyDefaultRenderer},
     ui::styling::style::Style,
 };
 
-#[cfg(any(
-    feature = "default",
-    feature = "opengl",
-    feature = "vulkan",
-    feature = "metal",
-    feature = "directx"
-))]
-pub type ComponentRenderer = Candy2DRenderer;
-#[cfg(feature = "external_renderer")]
-pub type ComponentRenderer = external_renderer::UiRenderer;
-
-pub trait Component<R = CandyDefaultRenderer>: std::fmt::Debug
+pub trait Component<R = CandyDefaultRenderer>
 where
     R: CandyRenderer,
 {

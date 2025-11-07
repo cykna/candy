@@ -9,6 +9,9 @@ pub mod window;
 
 use crate::components::Input;
 use crate::components::{Scrollable, ScrollableConfig};
+
+use crate::renderer::candy::CandyDefaultRenderer;
+use crate::renderer::twod::Candy2DRenderer;
 use crate::ui::styling::fx::Effect;
 use crate::ui::styling::layout::Layout;
 use crate::ui::styling::layout::{DefinitionRect, Direction};
@@ -18,8 +21,8 @@ use helpers::rect::Rect;
 use nalgebra::{Vector2, Vector4};
 use renderer::twod::BiDimensionalPainter;
 
-use ui::{
-    component::{Component, ComponentRenderer, RootComponent},
+use crate::ui::{
+    component::{Component, RootComponent},
     styling::layout::Size,
 };
 use window::CandyWindow;
@@ -77,7 +80,7 @@ impl Component for Square {
         }
     }
 
-    fn render(&self, renderer: &mut ComponentRenderer) {
+    fn render(&self, renderer: &mut Candy2DRenderer) {
         renderer.square(&self.info);
         renderer.text(&self.text);
     }
@@ -107,13 +110,16 @@ impl Component for State {
     fn resize(&mut self, rect: Rect) {
         self.w = rect.width;
         self.h = rect.height;
-        self.data.resize(rect);
+        self.data.resize(rect.clone());
+        self.input.resize(rect);
     }
-    fn render(&self, renderer: &mut ComponentRenderer) {
+    fn render(&self, renderer: &mut Candy2DRenderer) {
         renderer.background(&Vector4::new(0.0, 0.1, 0.2, 1.0));
 
-        self.data.render(renderer);
-        self.input.render(renderer);
+        <crate::components::Input as crate::ui::component::Component<CandyDefaultRenderer>>::render(
+            &self.input,
+            renderer,
+        );
     }
     fn apply_style(&mut self, _: &dyn Style) {}
     fn position(&self) -> Vector2<f32> {
@@ -170,13 +176,15 @@ impl RootComponent for State {
     fn new(_: ()) -> Self {
         let font = FontManager::new();
 
+        println!("{:?}", font.avaible_fonts());
         let content = font.create_font("Nimbus Roman", 24.0);
         Self {
             w: 0.0,
             h: 0.0,
             pos: Vector2::zeros(),
             input: {
-                let inp = Input::new(Text::new_content("Nimbus Roman", content.clone().unwrap()));
+                let mut inp = Input::new(Text::new_content("JF Flat", content.clone().unwrap()));
+                inp.apply_style(&StyleQualquer);
                 inp
             },
             data: {
@@ -203,14 +211,23 @@ impl RootComponent for State {
     ) -> bool {
         match key {
             Key::Character(c) => {
+                println!("{c:?}");
                 self.input.write_str(&c);
                 true
             }
+
             Key::Named(key) => {
                 if let winit::keyboard::NamedKey::ArrowLeft = key {
                     self.input.move_left(1);
                     true
+                } else if let winit::keyboard::NamedKey::Space = key {
+                    self.input.write(' ');
+                    true
+                } else if let winit::keyboard::NamedKey::Enter = key {
+                    self.input.write('\n');
+                    true
                 } else {
+                    println!("{key:?}");
                     false
                 }
             }
@@ -272,7 +289,7 @@ impl RootComponent for State {
 }
 
 fn main() {
-    CandyWindow::<State>::new(
+    CandyWindow::<State, CandyDefaultRenderer>::new(
         Window::default_attributes()
             .with_transparent(true)
             .with_title("Candy"),

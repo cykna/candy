@@ -6,23 +6,23 @@ use crate::{
     components::Text,
     elements::CandySquare,
     helpers::{char_size_backwards, char_size_init},
-    renderer::twod::BiDimensionalPainter,
+    renderer::{CandyRenderer, candy::CandyDefaultRenderer, twod::BiDimensionalPainter},
     ui::component::Component,
 };
 
 #[derive(Debug)]
 ///A Input that can be eitger Text, Numeric or Password. Text input accepts any kind of input. Numeric will only accept numbers and
 ///Password will accept everything, such as Text, but will hide the content written
-pub enum Input {
-    Text(RawInput),
-    Numeric(RawInput),
-    Password(RawInput, String), //the second field is the actually value
+pub enum Input<R: CandyRenderer = CandyDefaultRenderer> {
+    Text(RawInput<R>),
+    Numeric(RawInput<R>),
+    Password(RawInput<R>, String), //the second field is the actually value
 }
 
 #[derive(Debug)]
-pub struct RawInput {
+pub struct RawInput<R: CandyRenderer> {
     ///The content to be shown on the screen
-    content: Text,
+    content: Text<R>,
     ///The square this input has got
     rect: CandySquare,
     ///The square of the cursor of this input
@@ -31,19 +31,19 @@ pub struct RawInput {
     cursor: usize,
 }
 
-impl Input {
+impl<R: CandyRenderer> Input<R> {
     ///Creates a new Input that accepts Strings in general as long as they're utf8 with the initial text being the provided `content`
-    pub fn new(content: Text) -> Self {
+    pub fn new(content: Text<R>) -> Self {
         Self::Text(RawInput::new(content))
     }
 
     ///Creates a new Input that accepts Strings in general as long as they're utf8 with the initial text being the provided `content`
-    pub fn new_numeric(content: Text) -> Self {
+    pub fn new_numeric(content: Text<R>) -> Self {
         Self::Numeric(RawInput::new(content))
     }
 
     ///Creates a new Input that accepts Strings in general as long as they're utf8 with the initial text being the provided `content`
-    pub fn new_password(mut content: Text) -> Self {
+    pub fn new_password(mut content: Text<R>) -> Self {
         let text = content.content().to_string();
         {
             let len = content.content().chars().count();
@@ -57,7 +57,7 @@ impl Input {
 
     #[inline]
     ///Retrieves the raw input which contains the data and logic
-    fn raw(&self) -> &RawInput {
+    fn raw(&self) -> &RawInput<R> {
         match self {
             Self::Text(t) => t,
             Self::Numeric(t) => t,
@@ -66,7 +66,7 @@ impl Input {
     }
     #[inline]
     ///Retrieves the raw input which contains the data and logic
-    fn raw_mut(&mut self) -> &mut RawInput {
+    fn raw_mut(&mut self) -> &mut RawInput<R> {
         match self {
             Self::Text(t) => t,
             Self::Numeric(t) => t,
@@ -124,21 +124,21 @@ impl Input {
     }
 }
 
-impl Deref for Input {
-    type Target = RawInput;
+impl<R: CandyRenderer> Deref for Input<R> {
+    type Target = RawInput<R>;
     fn deref(&self) -> &Self::Target {
         self.raw()
     }
 }
-impl DerefMut for Input {
+impl<R: CandyRenderer> DerefMut for Input<R> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.raw_mut()
     }
 }
 
-impl RawInput {
+impl<R: CandyRenderer> RawInput<R> {
     ///Creates a new Input which will accept any kind of char as long as it's utf8 valid
-    pub fn new(content: Text) -> Self {
+    pub fn new(content: Text<R>) -> Self {
         Self {
             cursor_square: CandySquare::default(),
             rect: CandySquare::default(),
@@ -180,7 +180,6 @@ impl RawInput {
             self.content
                 .font()
                 .width_for(&self.content()[start_byte..indice - (len - 1)])
-                + self.content.font().size() * 0.25
         };
         //totally arbitary numbers. seriosuly, i just tested until i found that it was 0.75
         self.cursor_square.position_mut().y =
@@ -221,7 +220,7 @@ impl RawInput {
         let bounds = self.content.bounds();
         let content_len = self.content().chars().count();
         let half = (bounds.width * size.recip()) as usize;
-        let approx = (half << 1).min(content_len);
+        let approx = (half * 2).min(content_len);
         if content_len <= approx {
             0..content_len
         } else if self.cursor <= half {
@@ -234,7 +233,7 @@ impl RawInput {
     }
 }
 
-impl Component for Input {
+impl<R: CandyRenderer> Component<R> for Input<R> {
     fn resize(&mut self, rect: crate::helpers::rect::Rect) {
         self.rect.resize(rect.clone());
 
@@ -248,7 +247,7 @@ impl Component for Input {
         self.cursor_square.size_mut().y = content_bounds.height + 2.0;
         self.cursor_square.size_mut().x = 1.0;
     }
-    fn render(&self, renderer: &mut crate::ui::component::ComponentRenderer) {
+    fn render(&self, renderer: &mut R::TwoD) {
         renderer.square(&self.rect);
         {
             let visible = self.visible_chars();
@@ -266,7 +265,6 @@ impl Component for Input {
     fn apply_style(&mut self, style: &dyn crate::ui::styling::style::Style) {
         self.rect.apply_style(style);
         self.content.apply_style(style);
-        //self.cursor_square.apply_style(style);
     }
     fn position(&self) -> Vector2<f32> {
         self.content.position()
