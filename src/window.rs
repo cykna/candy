@@ -10,13 +10,16 @@ use winit::{
 use crate::{
     handler::{CandyDefaultHandler, CandyHandler},
     renderer::{CandyRenderer, candy::CandyDefaultRenderer},
-    ui::component::RootComponent,
+    ui::{
+        component::RootComponent,
+        styling::anim::{Animatable, AnimationState},
+    },
 };
 
 use std::sync::mpsc::{Receiver, Sender, channel};
 
 lazy_static! {
-    static ref SCHEDULER: ComponentEventsScheduler = {
+    pub(crate) static ref SCHEDULER: ComponentEventsScheduler = {
         let (tx, rx) = channel::<ComponentEvents>();
         ComponentEventsScheduler { rx, tx }
     };
@@ -25,6 +28,12 @@ lazy_static! {
 pub(crate) struct ComponentEventsScheduler {
     pub(crate) rx: Receiver<ComponentEvents>,
     pub(crate) tx: Sender<ComponentEvents>,
+}
+impl ComponentEventsScheduler {
+    ///Retrieves a new sender for this scheduler
+    pub fn retrieve_sender(&self) -> Sender<ComponentEvents> {
+        self.tx.clone()
+    }
 }
 
 ///Events that can be sent from some component directly to the window, such as a request to redraw due to some animation state being changed.

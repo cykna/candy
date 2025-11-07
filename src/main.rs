@@ -7,6 +7,8 @@ pub mod text;
 pub mod ui;
 pub mod window;
 
+use std::time::Duration;
+
 use crate::components::Input;
 use crate::components::{Scrollable, ScrollableConfig};
 
@@ -16,6 +18,8 @@ use crate::ui::styling::fx::Effect;
 use crate::ui::styling::layout::Layout;
 use crate::ui::styling::layout::{DefinitionRect, Direction};
 
+use crate::ui::styling::anim::curves::LinearCurve;
+use crate::ui::styling::anim::{Animatable, Animation, AnimationState};
 use elements::CandySquare;
 use helpers::rect::Rect;
 use nalgebra::{Vector2, Vector4};
@@ -127,6 +131,42 @@ impl Component for State {
     }
     fn position_mut(&mut self) -> &mut Vector2<f32> {
         &mut self.pos
+    }
+}
+
+#[derive(Debug)]
+pub struct AnimState {
+    color: Vector4<f32>,
+}
+impl AnimState {
+    pub fn black() -> Self {
+        Self {
+            color: Vector4::new(0.0, 0.0, 0.0, 0.0),
+        }
+    }
+
+    pub fn white() -> Self {
+        Self {
+            color: Vector4::new(0.0, 0.0, 0.0, 0.0),
+        }
+    }
+}
+impl Style for AnimState {
+    fn color(&self) -> Vector4<f32> {
+        self.color
+    }
+}
+impl AnimationState for AnimState {
+    fn lerp(start: &Self, end: &Self, t: f32) -> Self {
+        Self {
+            color: start.color.lerp(&end.color, t),
+        }
+    }
+    fn apply_to<R: crate::renderer::CandyRenderer>(
+        self,
+        comp: &mut dyn crate::ui::component::Component<R>,
+    ) {
+        comp.apply_style(&self);
     }
 }
 
@@ -277,6 +317,15 @@ impl RootComponent for State {
                 height: Size::Percent(0.25),
             },
         );
+
+        for child in self.data.children_mut().iter_mut().map(|c| {
+            c.play_animation(Animation::new::<LinearCurve>(
+                AnimState::black(),
+                AnimState::white(),
+                Duration::from_secs(2),
+                Duration::from_millis(2),
+            ))
+        }) {}
 
         self.resize(Rect {
             x: 0.0,
