@@ -226,7 +226,7 @@ impl BiDimensionalPainter for Candy2DRenderer {
         );
         canvas.restore();
     }
-    fn render_image(&mut self, image: &CandyImage<Self::Image>) {
+    fn render_image(&mut self, image: &CandyImage) {
         let rule = &image.rule;
         let w = image.real_width();
         let h = image.real_height();

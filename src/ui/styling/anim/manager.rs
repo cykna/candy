@@ -1,8 +1,5 @@
-use crate::{
-    renderer::CandyRenderer,
-    ui::{component::Component, styling::anim::AnimationState},
-};
+use crate::ui::{component::Component, styling::anim::AnimationState};
 
-pub struct AnimationManager<'a, R: CandyRenderer> {
+pub struct AnimationManager<'a> {
     awaiting: Vec<(&'a dyn Component, Box<dyn AnimationState>)>,
 }

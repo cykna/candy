@@ -15,11 +15,7 @@ pub mod helpers;
 pub use candy2d::Candy2DRenderer;
 
 use crate::{
-    elements::{
-        image::{CandyImage, TwodCandyImg},
-        square::CandySquare,
-        text::CandyText,
-    },
+    elements::{image::CandyImage, square::CandySquare, text::CandyText},
     ui::component::RendererImage,
 };
 

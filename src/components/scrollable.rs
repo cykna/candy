@@ -5,7 +5,7 @@ use nalgebra::{Vector2, Vector4};
 use crate::{
     components::{SolidBox, container::Container},
     helpers::rect::Rect,
-    renderer::{CandyRenderer, twod::BiDimensionalPainter},
+    renderer::twod::BiDimensionalPainter,
     ui::{
         component::Component,
         styling::{

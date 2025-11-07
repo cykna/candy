@@ -1,11 +1,8 @@
-use std::{
-    marker::PhantomData,
-    ops::{Deref, DerefMut},
-};
+use std::ops::{Deref, DerefMut};
 
 use crate::{
     elements::CandySquare,
-    renderer::{CandyRenderer, twod::BiDimensionalPainter},
+    renderer::twod::BiDimensionalPainter,
     ui::{
         component::Component,
         styling::{
