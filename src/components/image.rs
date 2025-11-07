@@ -7,7 +7,7 @@ use crate::{
 #[derive(Debug)]
 ///A component that simply represents an image
 pub struct Image {
-    image: CandyImage<skia_safe::Image>,
+    image: CandyImage,
 }
 
 impl Component for Image {
@@ -30,13 +30,13 @@ impl Component for Image {
 
 impl Image {
     ///Creates a new Image component from the provided `image` from candy
-    pub fn new(image: CandyImage<skia_safe::Image>) -> Self {
+    pub fn new(image: CandyImage) -> Self {
         Self { image }
     }
 }
 
 impl Deref for Image {
-    type Target = CandyImage<skia_safe::Image>;
+    type Target = CandyImage;
     fn deref(&self) -> &Self::Target {
         &self.image
     }
