@@ -2,7 +2,7 @@ use std::{
     ops::Deref,
     sync::{
         Arc,
-        mpsc::{Receiver, Sender, channel},
+        mpsc::{Receiver, RecvTimeoutError, Sender, channel},
     },
     thread,
     time::{Duration, Instant},
@@ -11,7 +11,7 @@ use std::{
 use crate::{
     ui::{
         animation::{
-            AnimationStep, AnyAnimation,
+            AnimationConfig, AnimationStep, AnyAnimation,
             scheduler::{AnimationScheduler, SchedulerAnimation, SchedulerSender},
         },
         component::Component,
@@ -60,24 +60,27 @@ impl AnimationScheduler for AnimationManager {
         let mut indices = Vec::new();
         let (tx, rx) = channel::<SchedulerAnimation>();
         let sender = SCHEDULER.retrieve_sender();
-
+        let mut remaining = Duration::from_secs(1);
         thread::spawn(move || {
-            loop {
-                while let Ok((anim, config, cref)) = rx.try_recv() {
-                    let now = Instant::now() + config.delay;
-
-                    self.animations.push(AwaitingAnimation {
-                        animation: anim,
-                        start_time: now,
-                        target: cref,
-                        last_step: Instant::now(),
-                    });
+            'outer: loop {
+                if self.animations.is_empty() {
+                    while let Ok((animation, config, target)) = rx.recv() {
+                        self.insert_animation(animation, *target, config);
+                        break;
+                    }
                 }
-
                 for (idx, anim) in self.animations.iter_mut().enumerate() {
-                    if anim.start_time.elapsed() == Duration::ZERO
-                        || anim.animation.step_time() > anim.last_step.elapsed()
+                    if anim.start_time.elapsed() == Duration::ZERO {
+                        continue;
+                    }
+                    let elapsed = anim.last_step.elapsed();
+                    if anim.animation.step_time() > elapsed
+                    //the step_time == Duration::from_ms(7), last_step == Duration::from_ms(3), so theres no need to update yet
                     {
+                        let dt = anim.animation.step_time() - elapsed;
+                        if remaining > dt {
+                            remaining = dt;
+                        }
                         continue;
                     }
                     if anim.start_time.elapsed() <= anim.animation.duration() {
@@ -90,19 +93,36 @@ impl AnimationScheduler for AnimationManager {
                         indices.push(idx);
                     }
                 }
-                sender.send(ComponentEvents::CheckUpdates).unwrap();
-                indices.reverse();
-                for index in indices.drain(..) {
-                    self.animations.swap_remove(index);
+                {
+                    sender.send(ComponentEvents::CheckUpdates).unwrap();
+
+                    for index in indices.drain(..).rev() {
+                        self.animations.swap_remove(index);
+                    }
+                }
+                loop {
+                    match rx.recv_timeout(remaining) {
+                        Ok((anim, config, target)) => {
+                            self.insert_animation(anim, *target, config);
+                            break;
+                        }
+                        Err(RecvTimeoutError::Timeout) => break,
+                        Err(RecvTimeoutError::Disconnected) => break 'outer,
+                    }
                 }
             }
         });
         tx
     }
-    fn insert_animation(&mut self, animation: Arc<dyn AnyAnimation>, target: *mut dyn Component) {
+    fn insert_animation(
+        &mut self,
+        animation: Arc<dyn AnyAnimation>,
+        target: *mut dyn Component,
+        config: AnimationConfig,
+    ) {
         self.animations.push(AwaitingAnimation {
             animation,
-            start_time: Instant::now(),
+            start_time: Instant::now() + config.delay,
             target: ComponentRef(target),
             last_step: Instant::now(),
         });

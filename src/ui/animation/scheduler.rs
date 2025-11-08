@@ -13,5 +13,10 @@ pub trait AnimationScheduler: 'static {
     ///The starting execution of the scheduler. This is executed on the current thread and does not creates a new one, instead the programmer must define it when this should be executed
     ///and if on the main or, a separeted one
     fn start_execution(self) -> SchedulerSender;
-    fn insert_animation(&mut self, animation: Arc<dyn AnyAnimation>, target: *mut dyn Component);
+    fn insert_animation(
+        &mut self,
+        animation: Arc<dyn AnyAnimation>,
+        target: *mut dyn Component,
+        config: AnimationConfig,
+    );
 }
