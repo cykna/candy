@@ -1,4 +1,6 @@
 use std::{
+    cmp::Eq,
+    collections::BTreeMap,
     ops::Deref,
     sync::{
         Arc,
@@ -11,7 +13,7 @@ use std::{
 use crate::{
     ui::{
         animation::{
-            AnimationConfig, AnimationStep, AnyAnimation,
+            AnimationConfig, AnyAnimation,
             scheduler::{AnimationScheduler, SchedulerAnimation, SchedulerSender},
         },
         component::Component,
@@ -36,12 +38,30 @@ impl Deref for ComponentRef {
     }
 }
 
+///An awaiting animation, which is ordered by its steptime
 pub struct AwaitingAnimation {
     animation: Arc<dyn AnyAnimation>,
     start_time: Instant,
     target: ComponentRef,
     last_step: Instant,
 }
+
+impl Ord for AwaitingAnimation {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.animation.step_time().cmp(&other.animation.step_time())
+    }
+}
+impl PartialOrd for AwaitingAnimation {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.animation.step_time().cmp(&other.animation.step_time()))
+    }
+}
+impl PartialEq for AwaitingAnimation {
+    fn eq(&self, other: &Self) -> bool {
+        self.animation.step_time() == other.animation.step_time()
+    }
+}
+impl Eq for AwaitingAnimation {}
 
 impl AwaitingAnimation {
     #[inline]
@@ -52,67 +72,69 @@ impl AwaitingAnimation {
 }
 
 pub struct AnimationManager {
-    animations: Vec<AwaitingAnimation>,
+    anim_rx: Receiver<SchedulerAnimation>,
+    tx: Sender<SchedulerAnimation>,
+    animations: BTreeMap<Duration, Vec<AwaitingAnimation>>, //duration is the steptime of the animation
 }
 
 impl AnimationScheduler for AnimationManager {
     fn start_execution(mut self) -> SchedulerSender {
         let mut indices = Vec::new();
-        let (tx, rx) = channel::<SchedulerAnimation>();
+
         let sender = SCHEDULER.retrieve_sender();
-        let mut remaining = Duration::from_secs(1);
+        let outx = self.tx.clone();
+        let mut idx = 0;
         thread::spawn(move || {
-            'outer: loop {
+            loop {
                 if self.animations.is_empty() {
-                    while let Ok((animation, config, target)) = rx.recv() {
+                    while let Ok((animation, config, target)) = self.anim_rx.recv() {
                         self.insert_animation(animation, *target, config);
                         break;
                     }
                 }
-                for (idx, anim) in self.animations.iter_mut().enumerate() {
-                    if anim.start_time.elapsed() == Duration::ZERO {
-                        continue;
-                    }
-                    let elapsed = anim.last_step.elapsed();
-                    if anim.animation.step_time() > elapsed
-                    //the step_time == Duration::from_ms(7), last_step == Duration::from_ms(3), so theres no need to update yet
-                    {
-                        let dt = anim.animation.step_time() - elapsed;
-                        if remaining > dt {
-                            remaining = dt;
-                        }
-                        continue;
-                    }
-                    if anim.start_time.elapsed() <= anim.animation.duration() {
-                        let state = anim.animation.calculate_state(anim.dt());
-                        unsafe {
-                            state.apply_to(&mut **anim.target);
-                        }
-                        anim.last_step = Instant::now();
-                    } else {
-                        indices.push(idx);
-                    }
-                }
-                {
-                    sender.send(ComponentEvents::CheckUpdates).unwrap();
 
-                    for index in indices.drain(..).rev() {
-                        self.animations.swap_remove(index);
-                    }
+                while let Ok((animation, config, target)) = self.anim_rx.try_recv() {
+                    self.insert_animation(animation, *target, config);
+                    break;
                 }
-                loop {
-                    match rx.recv_timeout(remaining) {
-                        Ok((anim, config, target)) => {
-                            self.insert_animation(anim, *target, config);
-                            break;
+                let mut towait = Duration::ZERO;
+                for (duration, anims) in self.animations.iter() {
+                    println!("Oh quantas animações com {duration:?}: {}", anims.len());
+                    for (idx, animation) in anims.iter().enumerate() {
+                        if animation.start_time.elapsed() == Duration::ZERO {
+                            continue;
                         }
-                        Err(RecvTimeoutError::Timeout) => break,
-                        Err(RecvTimeoutError::Disconnected) => break 'outer,
+                        //1 Anim && 2 Anim, 16ms -> Exec, wait, 16ms
+                        //2 Anim, 4ms, -> Exec, wait  4ms
+                        //1 Anim
+
+                        let elapsed = animation.start_time.elapsed();
+                        if elapsed <= animation.animation.duration() {
+                            let state = animation.animation.calculate_state(elapsed.as_secs_f32());
+                            state.apply_to(unsafe { &mut **animation.target });
+                            let _ = sender.send(ComponentEvents::CheckUpdates);
+                        } else {
+                            indices.push((*duration, idx));
+                        }
+                    }
+
+                    towait += *duration - towait;
+                    println!("waiting {towait:?} {idx}");
+                    idx += 1;
+                    std::thread::sleep(towait);
+                }
+
+                for (ref dur, idx) in indices.drain(..).rev() {
+                    if let Some(vec) = self.animations.get_mut(dur) {
+                        vec.swap_remove(idx);
+                        if vec.is_empty() {
+                            self.animations.remove(dur);
+                        }
                     }
                 }
             }
         });
-        tx
+        outx
     }
     fn insert_animation(
         &mut self,
@@ -120,19 +142,27 @@ impl AnimationScheduler for AnimationManager {
         target: *mut dyn Component,
         config: AnimationConfig,
     ) {
-        self.animations.push(AwaitingAnimation {
-            animation,
+        let anim = AwaitingAnimation {
+            animation: animation.clone(),
             start_time: Instant::now() + config.delay,
             target: ComponentRef(target),
             last_step: Instant::now(),
-        });
+        };
+        if let Some(vec) = self.animations.get_mut(&animation.step_time()) {
+            vec.push(anim);
+        } else {
+            self.animations.insert(animation.step_time(), vec![anim]);
+        };
     }
 }
 
 impl AnimationManager {
     pub fn new() -> Self {
+        let (tx, anim_rx) = channel::<SchedulerAnimation>();
         Self {
-            animations: Vec::new(),
+            tx,
+            anim_rx,
+            animations: BTreeMap::new(),
         }
     }
 }
