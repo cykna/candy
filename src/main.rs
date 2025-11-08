@@ -7,18 +7,20 @@ pub mod text;
 pub mod ui;
 pub mod window;
 
+use std::thread;
 use std::time::Duration;
 
 use crate::components::Input;
 use crate::components::{Scrollable, ScrollableConfig};
 
+use crate::ui::animation::manager::AnimationManager;
+use crate::ui::animation::scheduler::{AnimationScheduler, SchedulerSender};
+use crate::ui::animation::{Animatable, Animation, AnimationConfig, AnimationState};
 use crate::ui::styling::fx::Effect;
 use crate::ui::styling::layout::Layout;
 use crate::ui::styling::layout::{DefinitionRect, Direction};
 
-use crate::ui::styling::anim::curves::LinearCurve;
-use crate::ui::styling::anim::manager::AnimationManager;
-use crate::ui::styling::anim::{Animatable, Animation, AnimationState};
+use crate::ui::animation::curves::LinearCurve;
 use elements::CandySquare;
 use helpers::rect::Rect;
 use nalgebra::{Vector2, Vector4};
@@ -99,7 +101,6 @@ impl Component for Square {
     }
 }
 
-#[derive(Debug)]
 struct State {
     pos: Vector2<f32>,
     idx: usize,
@@ -108,7 +109,7 @@ struct State {
     data: Scrollable<Square>,
     input: Input,
     manager: FontManager,
-    anims: AnimationManager,
+    anims: SchedulerSender,
 }
 
 impl Component for State {
@@ -162,7 +163,6 @@ impl AnimationState for AnimState {
         }
     }
     fn apply_to(&self, comp: &mut dyn crate::ui::component::Component) {
-        println!("{self:?}");
         comp.apply_style(self);
     }
 }
@@ -217,7 +217,10 @@ impl RootComponent for State {
         let content = font.create_font("Nimbus Roman", 24.0);
         Self {
             idx: 0,
-            anims: AnimationManager::new(),
+            anims: {
+                let manager = AnimationManager::new();
+                manager.start_execution()
+            },
             w: 0.0,
             h: 0.0,
             pos: Vector2::zeros(),
@@ -250,7 +253,6 @@ impl RootComponent for State {
     ) -> bool {
         match key {
             Key::Character(c) => {
-                println!("{c:?}");
                 self.input.write_str(&c);
                 true
             }
@@ -266,7 +268,6 @@ impl RootComponent for State {
                     self.input.write('\n');
                     true
                 } else {
-                    println!("{key:?}");
                     false
                 }
             }
@@ -316,17 +317,22 @@ impl RootComponent for State {
                 height: Size::Percent(0.25),
             },
         );
-
+        let mut delay = 0;
         for child in self.data.children_mut() {
-            let rx = child.play_animation(Animation::new::<LinearCurve>(
-                AnimState::black(),
-                AnimState::white(),
-                Duration::from_secs(1),
-                Duration::from_millis(16),
-            ));
-            self.anims.insert_awaiter(child, rx);
+            child.play_animation(
+                Animation::new::<LinearCurve>(
+                    AnimState::black(),
+                    AnimState::white(),
+                    Duration::from_secs(1),
+                    Duration::from_millis(16),
+                ),
+                AnimationConfig {
+                    delay: Duration::from_millis(delay),
+                },
+                self.anims.clone(),
+            );
+            delay += 250;
         }
-        println!("{}", "Hello world");
 
         self.resize(Rect {
             x: 0.0,
@@ -338,7 +344,7 @@ impl RootComponent for State {
     }
     fn check_updates(&mut self) -> bool {
         self.idx += 1;
-        self.anims.update()
+        true
     }
 }
 

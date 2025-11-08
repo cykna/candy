@@ -53,7 +53,6 @@ where
 {
     root: PhantomData<Root>,
     handler: Option<T>,
-    proxy: Option<EventLoopProxy<ComponentEvents>>,
     attribs: WindowAttributes,
 }
 impl<Root: RootComponent, T> CandyWindow<Root, T>
@@ -65,7 +64,6 @@ where
             root: PhantomData,
             handler: None,
             attribs,
-            proxy: None,
         }
     }
 
@@ -106,7 +104,10 @@ where
 
         std::thread::spawn(move || {
             while let Ok(c) = SCHEDULER.rx.recv() {
-                proxy.send_event(c).unwrap();
+                let Ok(_) = proxy.send_event(c) else {
+                    println!("Thread findou. Nenhum evento de um componente será lidado mais");
+                    return;
+                };
             }
         });
         lp.run_app(self).unwrap();
