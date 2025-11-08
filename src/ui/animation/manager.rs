@@ -1,11 +1,7 @@
 use std::{
-    cmp::Eq,
     collections::BTreeMap,
     ops::Deref,
-    sync::{
-        Arc,
-        mpsc::{Receiver, RecvTimeoutError, Sender, channel},
-    },
+    sync::{Arc, mpsc::channel},
     thread,
     time::{Duration, Instant},
 };
@@ -43,25 +39,7 @@ pub struct AwaitingAnimation {
     animation: Arc<dyn AnyAnimation>,
     start_time: Instant,
     target: ComponentRef,
-    last_step: Instant,
 }
-
-impl Ord for AwaitingAnimation {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.animation.step_time().cmp(&other.animation.step_time())
-    }
-}
-impl PartialOrd for AwaitingAnimation {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.animation.step_time().cmp(&other.animation.step_time()))
-    }
-}
-impl PartialEq for AwaitingAnimation {
-    fn eq(&self, other: &Self) -> bool {
-        self.animation.step_time() == other.animation.step_time()
-    }
-}
-impl Eq for AwaitingAnimation {}
 
 impl AwaitingAnimation {
     #[inline]
@@ -72,41 +50,34 @@ impl AwaitingAnimation {
 }
 
 pub struct AnimationManager {
-    anim_rx: Receiver<SchedulerAnimation>,
-    tx: Sender<SchedulerAnimation>,
     animations: BTreeMap<Duration, Vec<AwaitingAnimation>>, //duration is the steptime of the animation
 }
 
 impl AnimationScheduler for AnimationManager {
     fn start_execution(mut self) -> SchedulerSender {
-        let mut indices = Vec::new();
+        let (tx, rx) = channel::<SchedulerAnimation>();
 
-        let sender = SCHEDULER.retrieve_sender();
-        let outx = self.tx.clone();
-        let mut idx = 0;
         thread::spawn(move || {
+            let mut indices = Vec::new();
+            let sender = SCHEDULER.retrieve_sender();
             loop {
                 if self.animations.is_empty() {
-                    while let Ok((animation, config, target)) = self.anim_rx.recv() {
+                    while let Ok((animation, config, target)) = rx.recv() {
+                        self.insert_animation(animation, *target, config);
+                        break;
+                    }
+                } else {
+                    while let Ok((animation, config, target)) = rx.try_recv() {
                         self.insert_animation(animation, *target, config);
                         break;
                     }
                 }
-
-                while let Ok((animation, config, target)) = self.anim_rx.try_recv() {
-                    self.insert_animation(animation, *target, config);
-                    break;
-                }
                 let mut towait = Duration::ZERO;
                 for (duration, anims) in self.animations.iter() {
-                    println!("Oh quantas animações com {duration:?}: {}", anims.len());
                     for (idx, animation) in anims.iter().enumerate() {
                         if animation.start_time.elapsed() == Duration::ZERO {
                             continue;
                         }
-                        //1 Anim && 2 Anim, 16ms -> Exec, wait, 16ms
-                        //2 Anim, 4ms, -> Exec, wait  4ms
-                        //1 Anim
 
                         let elapsed = animation.start_time.elapsed();
                         if elapsed <= animation.animation.duration() {
@@ -117,10 +88,7 @@ impl AnimationScheduler for AnimationManager {
                             indices.push((*duration, idx));
                         }
                     }
-
                     towait += *duration - towait;
-                    println!("waiting {towait:?} {idx}");
-                    idx += 1;
                     std::thread::sleep(towait);
                 }
 
@@ -134,7 +102,7 @@ impl AnimationScheduler for AnimationManager {
                 }
             }
         });
-        outx
+        tx
     }
     fn insert_animation(
         &mut self,
@@ -146,7 +114,6 @@ impl AnimationScheduler for AnimationManager {
             animation: animation.clone(),
             start_time: Instant::now() + config.delay,
             target: ComponentRef(target),
-            last_step: Instant::now(),
         };
         if let Some(vec) = self.animations.get_mut(&animation.step_time()) {
             vec.push(anim);
@@ -158,10 +125,7 @@ impl AnimationScheduler for AnimationManager {
 
 impl AnimationManager {
     pub fn new() -> Self {
-        let (tx, anim_rx) = channel::<SchedulerAnimation>();
         Self {
-            tx,
-            anim_rx,
             animations: BTreeMap::new(),
         }
     }
