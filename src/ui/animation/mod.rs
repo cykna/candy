@@ -45,7 +45,10 @@ where
 }
 
 pub trait AnimationState: Send + Sync {
-    fn lerp(initial: &Self, end: &Self, t: f32) -> Self
+    ///Executed to get an intermediate state to when executing an animation.
+    ///`initial` is the initial value that the animation started this, initialized from. `end` is the value that the animation if going towards. `cdt`, which is 'curve delta time' is the
+    ///delta time that passed after applying the curve of the animation initialized it, and `dt` is the delta time since the start
+    fn lerp(initial: &Self, end: &Self, cdt: f32, dt: f32) -> Self
     where
         Self: Sized;
     fn apply_to(&self, comp: &mut dyn Component);
@@ -60,7 +63,7 @@ pub struct Animation<T: AnimationState> {
 }
 
 pub trait AnyAnimation: Send + Sync {
-    ///Calculates the new state based on the `elapsed` time and the curve this animation uses
+    ///Calculates the new state based on the `elapsed` time, which is the delta time since the start of the animation
     fn calculate_state(&self, elapsed: f32) -> Box<dyn AnimationState>;
     ///Returns the duration of the animation
     fn duration(&self) -> Duration;
@@ -95,6 +98,7 @@ impl<T: AnimationState + 'static> AnyAnimation for Animation<T> {
             &self.initial,
             &self.end,
             self.curve.calculate(elapsed),
+            elapsed,
         ))
     }
     fn duration(&self) -> Duration {

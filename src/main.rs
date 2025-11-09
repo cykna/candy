@@ -7,8 +7,8 @@ pub mod text;
 pub mod ui;
 pub mod window;
 
-use std::thread;
 use std::time::Duration;
+use std::{f32, thread};
 
 use crate::components::Input;
 use crate::components::{Scrollable, ScrollableConfig};
@@ -20,7 +20,7 @@ use crate::ui::styling::fx::Effect;
 use crate::ui::styling::layout::Layout;
 use crate::ui::styling::layout::{DefinitionRect, Direction};
 
-use crate::ui::animation::curves::LinearCurve;
+use crate::ui::animation::curves::{EaseInOutQuad, LinearCurve};
 use elements::CandySquare;
 use helpers::rect::Rect;
 use nalgebra::{Vector2, Vector4};
@@ -134,17 +134,20 @@ impl Component for State {
 #[derive(Debug)]
 pub struct AnimState {
     color: Vector4<f32>,
+    pos: Vector2<f32>,
 }
 impl AnimState {
-    pub fn black() -> Self {
+    pub fn black(pos: Vector2<f32>) -> Self {
         Self {
             color: Vector4::new(0.0, 0.0, 0.0, 1.0),
+            pos,
         }
     }
 
-    pub fn white() -> Self {
+    pub fn white(pos: Vector2<f32>) -> Self {
         Self {
             color: Vector4::new(1.0, 1.0, 1.0, 1.0),
+            pos,
         }
     }
 }
@@ -157,13 +160,17 @@ impl Style for AnimState {
     }
 }
 impl AnimationState for AnimState {
-    fn lerp(start: &Self, end: &Self, t: f32) -> Self {
+    fn lerp(start: &Self, end: &Self, cdt: f32, dt: f32) -> Self {
+        let tx = dt * f32::consts::PI * 2.0;
+        let final_pos = { Vector2::new(tx.cos() * 100.0, tx.sin() * 100.0) };
         Self {
-            color: start.color.lerp(&end.color, t),
+            color: start.color.lerp(&end.color, cdt),
+            pos: final_pos,
         }
     }
     fn apply_to(&self, comp: &mut dyn crate::ui::component::Component) {
         comp.apply_style(self);
+        comp.apply_offset(self.pos / 10.0);
     }
 }
 
@@ -312,7 +319,7 @@ impl RootComponent for State {
             s,
             DefinitionRect {
                 x: Size::Length(0.0),
-                y: Size::Length(10.0),
+                y: Size::Length(0.0),
                 width: Size::Percent(0.25),
                 height: Size::Percent(0.25),
             },
@@ -320,9 +327,9 @@ impl RootComponent for State {
         let mut delay = 0;
         for child in self.data.children_mut() {
             child.play_animation(
-                Animation::new::<LinearCurve>(
-                    AnimState::black(),
-                    AnimState::white(),
+                Animation::new::<EaseInOutQuad>(
+                    AnimState::black(Vector2::new(0.0, 0.0)),
+                    AnimState::white(Vector2::new(100.0, 100.0)),
                     Duration::from_secs(1),
                     Duration::from_millis(16),
                 ),
