@@ -20,7 +20,7 @@ use crate::ui::styling::fx::Effect;
 use crate::ui::styling::layout::Layout;
 use crate::ui::styling::layout::{DefinitionRect, Direction};
 
-use crate::ui::animation::curves::{AnimationCurve, BezierCurve, EaseInOutQuad};
+use crate::ui::animation::curves::LinearCurve;
 use elements::CandySquare;
 use helpers::rect::Rect;
 use nalgebra::{Vector2, Vector4};
@@ -161,8 +161,8 @@ impl Style for AnimState {
 }
 impl AnimationState for AnimState {
     fn lerp(start: &Self, end: &Self, cdt: f32, dt: f32) -> Self {
-        let tx = cdt;
-        let final_pos = { Vector2::new(tx * 100.0, tx * 100.0) };
+        println!("{cdt} {dt}");
+        let final_pos = { start.pos.lerp(&end.pos, cdt) };
         Self {
             color: start.color.lerp(&end.color, cdt),
             pos: final_pos,
@@ -170,7 +170,7 @@ impl AnimationState for AnimState {
     }
     fn apply_to(&self, comp: &mut dyn crate::ui::component::Component) {
         comp.apply_style(self);
-        comp.apply_offset(self.pos / 10.0);
+        comp.apply_offset(self.pos / 100.0);
     }
 }
 
@@ -327,10 +327,10 @@ impl RootComponent for State {
         let mut delay = 0;
         for child in self.data.children_mut() {
             child.play_animation(
-                Animation::new::<BezierCurve>(
+                Animation::new::<LinearCurve>(
                     AnimState::black(Vector2::new(0.0, 0.0)),
                     AnimState::white(Vector2::new(100.0, 100.0)),
-                    Duration::from_secs(1),
+                    Duration::from_secs(3),
                     Duration::from_millis(16),
                 ),
                 AnimationConfig {

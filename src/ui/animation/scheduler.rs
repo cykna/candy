@@ -1,4 +1,6 @@
-use std::sync::{Arc, mpsc::Sender};
+use std::sync::Arc;
+
+use flume::Sender;
 
 use crate::ui::{
     animation::{AnimationConfig, AnyAnimation, manager::ComponentRef},

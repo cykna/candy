@@ -1,7 +1,7 @@
 use std::{
     collections::BTreeMap,
     ops::Deref,
-    sync::{Arc, mpsc::channel},
+    sync::Arc,
     thread,
     time::{Duration, Instant},
 };
@@ -55,7 +55,7 @@ pub struct AnimationManager {
 
 impl AnimationScheduler for AnimationManager {
     fn start_execution(mut self) -> SchedulerSender {
-        let (tx, rx) = channel::<SchedulerAnimation>();
+        let (tx, rx) = flume::unbounded::<SchedulerAnimation>();
 
         thread::spawn(move || {
             let mut indices = Vec::new();
@@ -75,21 +75,22 @@ impl AnimationScheduler for AnimationManager {
                 let mut towait = Duration::ZERO;
                 for (duration, anims) in self.animations.iter() {
                     for (idx, animation) in anims.iter().enumerate() {
-                        if animation.start_time.elapsed() == Duration::ZERO {
+                        let elapsed = animation.start_time.elapsed();
+                        if elapsed == Duration::ZERO {
                             continue;
                         }
 
-                        let elapsed = animation.start_time.elapsed();
                         if elapsed <= animation.animation.duration() {
-                            let state = animation.animation.calculate_state(elapsed.as_secs_f32());
+                            let dt = animation.animation.delta_time(elapsed);
+                            let state = animation.animation.calculate_state(dt);
                             state.apply_to(unsafe { &mut **animation.target });
                             let _ = sender.send(ComponentEvents::CheckUpdates);
                         } else {
                             indices.push((*duration, idx));
                         }
                     }
-                    towait += *duration - towait;
-                    std::thread::sleep(towait);
+                    std::thread::sleep(*duration - towait);
+                    towait = *duration;
                 }
 
                 for (ref dur, idx) in indices.drain(..).rev() {

@@ -32,3 +32,13 @@ impl AnimationCurve for BezierCurve {
         t * t * (3.0 - 2.0 * t)
     }
 }
+
+#[derive(Default)]
+pub struct ParametricCurve;
+
+impl AnimationCurve for ParametricCurve {
+    fn calculate(&self, t:f32) -> f32 {
+        let sqr = t * t;
+        return sqr / (2.0 * (sqr - t) + 1.0);
+    }
+}

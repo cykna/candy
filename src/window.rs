@@ -1,22 +1,20 @@
+use flume::unbounded;
 use lazy_static::lazy_static;
 use std::marker::PhantomData;
 
 use nalgebra::Vector2;
-use winit::{
-    event_loop::{EventLoop, EventLoopProxy},
-    window::WindowAttributes,
-};
+use winit::{event_loop::EventLoop, window::WindowAttributes};
 
 use crate::{
     handler::{CandyDefaultHandler, CandyHandler},
     ui::component::RootComponent,
 };
 
-use std::sync::mpsc::{Receiver, Sender, channel};
+use flume::{Receiver, Sender};
 
 lazy_static! {
     pub(crate) static ref SCHEDULER: ComponentEventsScheduler = {
-        let (tx, rx) = channel::<ComponentEvents>();
+        let (tx, rx) = unbounded::<ComponentEvents>();
         ComponentEventsScheduler { rx, tx }
     };
 }
