@@ -12,14 +12,23 @@ impl AnimationCurve for LinearCurve {
     }
 }
 #[derive(Default)]
-pub struct EaseInOutQuad;
+pub struct EaseInOutQuadCurve;
 
-impl AnimationCurve for EaseInOutQuad {
+impl AnimationCurve for EaseInOutQuadCurve {
     fn calculate(&self, elapsed: f32) -> f32 {
         if elapsed < 0.5 {
             2.0 * elapsed * elapsed
         } else {
             1.0 - (-2.0 * elapsed + 2.0).powi(2) / 2.0
         }
+    }
+}
+
+#[derive(Default)]
+pub struct BezierCurve;
+
+impl AnimationCurve for BezierCurve {
+    fn calculate(&self, t: f32) -> f32 {
+        t * t * (3.0 - 2.0 * t)
     }
 }

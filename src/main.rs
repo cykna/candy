@@ -7,8 +7,8 @@ pub mod text;
 pub mod ui;
 pub mod window;
 
+use std::f32;
 use std::time::Duration;
-use std::{f32, thread};
 
 use crate::components::Input;
 use crate::components::{Scrollable, ScrollableConfig};
@@ -20,7 +20,7 @@ use crate::ui::styling::fx::Effect;
 use crate::ui::styling::layout::Layout;
 use crate::ui::styling::layout::{DefinitionRect, Direction};
 
-use crate::ui::animation::curves::{EaseInOutQuad, LinearCurve};
+use crate::ui::animation::curves::{AnimationCurve, BezierCurve, EaseInOutQuad};
 use elements::CandySquare;
 use helpers::rect::Rect;
 use nalgebra::{Vector2, Vector4};
@@ -161,8 +161,8 @@ impl Style for AnimState {
 }
 impl AnimationState for AnimState {
     fn lerp(start: &Self, end: &Self, cdt: f32, dt: f32) -> Self {
-        let tx = dt * f32::consts::PI * 2.0;
-        let final_pos = { Vector2::new(tx.cos() * 100.0, tx.sin() * 100.0) };
+        let tx = cdt;
+        let final_pos = { Vector2::new(tx * 100.0, tx * 100.0) };
         Self {
             color: start.color.lerp(&end.color, cdt),
             pos: final_pos,
@@ -327,7 +327,7 @@ impl RootComponent for State {
         let mut delay = 0;
         for child in self.data.children_mut() {
             child.play_animation(
-                Animation::new::<EaseInOutQuad>(
+                Animation::new::<BezierCurve>(
                     AnimState::black(Vector2::new(0.0, 0.0)),
                     AnimState::white(Vector2::new(100.0, 100.0)),
                     Duration::from_secs(1),
