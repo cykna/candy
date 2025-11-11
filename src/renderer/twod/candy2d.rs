@@ -17,6 +17,7 @@ use winit::{dpi::PhysicalSize, window::Window};
 use crate::{
     elements::{image::CandyImage, square::CandySquare, text::CandyText},
     helpers::vec4f32_to_color,
+    renderer::twod::BiDimensionalRendererConstructor,
 };
 
 use super::{
@@ -101,14 +102,15 @@ impl Candy2DRenderer {
     }
 }
 
-impl BiDimensionalRenderer for Candy2DRenderer {
-    #[inline]
+impl BiDimensionalRendererConstructor for Candy2DRenderer {
     fn new(window: &Window, config: &Config) -> Self {
         Self {
             environment: Self::create_environment(window, config),
         }
     }
+}
 
+impl BiDimensionalRenderer for Candy2DRenderer {
     #[cfg(feature = "opengl")]
     fn resize(&mut self, window: &Window, width: u32, height: u32) {
         self.environment.surface = create_surface(
@@ -124,10 +126,7 @@ impl BiDimensionalRenderer for Candy2DRenderer {
             NonZero::new(height.max(1)).unwrap(),
         );
     }
-    #[inline]
-    fn twod_painter(&mut self) -> &mut impl BiDimensionalPainter {
-        self
-    }
+
     #[inline]
     #[cfg(feature = "opengl")]
     fn flush(&mut self) {
@@ -137,10 +136,12 @@ impl BiDimensionalRenderer for Candy2DRenderer {
             .swap_buffers(&self.environment.gl_context)
             .unwrap();
     }
+    fn painter(&mut self) -> &mut dyn BiDimensionalPainter {
+        self
+    }
 }
 
 impl BiDimensionalPainter for Candy2DRenderer {
-    type Image = skia_safe::Image;
     fn square(&mut self, square_info: &CandySquare) {
         let rule = &square_info.rule;
 
@@ -227,7 +228,7 @@ impl BiDimensionalPainter for Candy2DRenderer {
         );
         canvas.restore();
     }
-    fn render_image(&mut self, image: &CandyImage<Self>) {
+    fn render_image(&mut self, image: &CandyImage) {
         let rule = &image.rule;
         let w = image.real_width();
         let h = image.real_height();

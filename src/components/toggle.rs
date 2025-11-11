@@ -2,7 +2,7 @@ use nalgebra::Vector2;
 
 use crate::{
     components::{SolidBox, container::Container},
-    renderer::{CandyRenderer, candy::CandyDefaultRenderer},
+    renderer::twod::BiDimensionalPainter,
     ui::{
         component::Component,
         styling::{layout::Layout, style::Style},
@@ -11,20 +11,14 @@ use crate::{
 
 #[derive(Debug)]
 ///A component that represents a toggle button
-pub struct Toggle<R = CandyDefaultRenderer>
-where
-    R: CandyRenderer,
-{
+pub struct Toggle {
     checked: bool,
-    square: Container<SolidBox<R>, R>,
+    square: Container<SolidBox>,
     unchecked_style: Box<dyn Style>,
     checked_style: Box<dyn Style>,
 }
 
-impl<R> Toggle<R>
-where
-    R: CandyRenderer,
-{
+impl Toggle {
     ///Creates a new toggle. The provided `unchecked` style will be applied when this toggle value is false, `checked_style` will be applied when it's true
     pub fn new<U, C>(unchecked: U, checked_style: C) -> Self
     where
@@ -71,14 +65,11 @@ where
     }
 }
 
-impl<C> Component<C> for Toggle<C>
-where
-    C: CandyRenderer,
-{
+impl Component for Toggle {
     fn resize(&mut self, rect: crate::helpers::rect::Rect) {
         self.square.resize(rect);
     }
-    fn render(&self, renderer: &mut C::TwoD) {
+    fn render(&self, renderer: &mut dyn BiDimensionalPainter) {
         self.square.render(renderer);
     }
     #[inline]

@@ -1,27 +1,24 @@
-use std::{
-    marker::PhantomData,
-    ops::{Deref, DerefMut},
-};
+use std::ops::{Deref, DerefMut};
 
 use nalgebra::Vector4;
 
 use crate::{
     elements::{CandySquare, DrawRule},
-    renderer::{CandyRenderer, twod::BiDimensionalPainter},
+    renderer::twod::BiDimensionalPainter,
     ui::component::Component,
 };
 
 #[derive(Debug)]
-pub struct SolidBox<R: CandyRenderer> {
+pub struct SolidBox {
     square: CandySquare,
-    phantom: PhantomData<R>,
 }
 
-impl<R: CandyRenderer> Component<R> for SolidBox<R> {
+impl Component for SolidBox {
     fn resize(&mut self, rect: crate::helpers::rect::Rect) {
         self.square.resize(rect);
     }
-    fn render(&self, renderer: &mut <R as CandyRenderer>::TwoD) {
+
+    fn render(&self, renderer: &mut dyn BiDimensionalPainter) {
         renderer.square(&self.square);
     }
     fn apply_style(&mut self, style: &dyn crate::ui::styling::style::Style) {
@@ -38,25 +35,24 @@ impl<R: CandyRenderer> Component<R> for SolidBox<R> {
     }
 }
 
-impl<R: CandyRenderer> SolidBox<R> {
+impl SolidBox {
     pub fn new(color: &Vector4<f32>) -> Self {
         let mut this = Self {
             square: CandySquare::default(),
-            phantom: PhantomData,
         };
         this.set_color(color);
         this
     }
 }
 
-impl<R: CandyRenderer> Deref for SolidBox<R> {
+impl Deref for SolidBox {
     type Target = DrawRule;
     fn deref(&self) -> &Self::Target {
         &self.square.rule
     }
 }
 
-impl<R: CandyRenderer> DerefMut for SolidBox<R> {
+impl DerefMut for SolidBox {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.square.rule
     }

@@ -1,3 +1,5 @@
+use flume::unbounded;
+use lazy_static::lazy_static;
 use std::marker::PhantomData;
 
 use nalgebra::Vector2;
@@ -5,27 +7,55 @@ use winit::{event_loop::EventLoop, window::WindowAttributes};
 
 use crate::{
     handler::{CandyDefaultHandler, CandyHandler},
-    renderer::{CandyRenderer, candy::CandyDefaultRenderer},
     ui::component::RootComponent,
 };
 
+use flume::{Receiver, Sender};
+
+lazy_static! {
+    pub(crate) static ref SCHEDULER: ComponentEventsScheduler = {
+        let (tx, rx) = unbounded::<ComponentEvents>();
+        ComponentEventsScheduler { rx, tx }
+    };
+}
+
+pub(crate) struct ComponentEventsScheduler {
+    pub(crate) rx: Receiver<ComponentEvents>,
+    pub(crate) tx: Sender<ComponentEvents>,
+}
+impl ComponentEventsScheduler {
+    ///Retrieves a new sender for this scheduler
+    pub fn retrieve_sender(&self) -> Sender<ComponentEvents> {
+        self.tx.clone()
+    }
+}
+
+///Events that can be sent from some component directly to the window, such as a request to redraw due to some animation state being changed.
+///This is more internal of how the lib works and in general is not known
+#[derive(Debug)]
+pub(crate) enum ComponentEvents {
+    CheckUpdates,
+    Redraw,
+}
+
+unsafe impl Send for ComponentEventsScheduler {}
+unsafe impl Sync for ComponentEventsScheduler {}
+unsafe impl Sync for ComponentEvents {}
+unsafe impl Send for ComponentEvents {}
+
 #[derive(Default, Debug)]
-pub struct CandyWindow<
-    Root,
-    Renderer = CandyDefaultRenderer,
-    T = CandyDefaultHandler<Root, Renderer>,
-> where
-    Root: RootComponent<Renderer>,
-    Renderer: CandyRenderer,
-    T: CandyHandler<Root, Renderer>,
+pub struct CandyWindow<Root, T = CandyDefaultHandler<Root>>
+where
+    Root: RootComponent,
+    T: CandyHandler<Root>,
 {
-    root: PhantomData<(Root, Renderer)>,
+    root: PhantomData<Root>,
     handler: Option<T>,
     attribs: WindowAttributes,
 }
-impl<Renderer: CandyRenderer, Root: RootComponent<Renderer>, T> CandyWindow<Root, Renderer, T>
+impl<Root: RootComponent, T> CandyWindow<Root, T>
 where
-    T: CandyHandler<Root, Renderer>,
+    T: CandyHandler<Root>,
 {
     pub fn new(attribs: WindowAttributes) -> Self {
         Self {
@@ -36,7 +66,7 @@ where
     }
 
     pub fn run(&mut self) {
-        let lp = EventLoop::new().unwrap();
+        let lp = EventLoop::with_user_event().build().unwrap();
         #[cfg(feature = "opengl")]
         {
             use glutin::config::{ConfigTemplateBuilder, GlConfig};
@@ -65,22 +95,48 @@ where
             self.handler = Some(T::new(
                 window.expect("Window not created??"),
                 config,
-                <Root as RootComponent<Renderer>>::Args::default(),
+                <Root as RootComponent>::Args::default(),
             ));
         };
+        let proxy = lp.create_proxy();
+
+        std::thread::spawn(move || {
+            while let Ok(c) = SCHEDULER.rx.recv() {
+                let Ok(_) = proxy.send_event(c) else {
+                    println!("Thread findou. Nenhum evento de um componente será lidado mais");
+                    return;
+                };
+            }
+        });
         lp.run_app(self).unwrap();
     }
 }
 
-impl<Root, Renderer, T> winit::application::ApplicationHandler for CandyWindow<Root, Renderer, T>
+impl<Root, T> winit::application::ApplicationHandler<ComponentEvents> for CandyWindow<Root, T>
 where
-    Root: RootComponent<Renderer>,
-    Renderer: CandyRenderer,
-    T: CandyHandler<Root, Renderer>,
+    Root: RootComponent,
+    T: CandyHandler<Root>,
 {
     fn resumed(&mut self, _: &winit::event_loop::ActiveEventLoop) {
         #[cfg(not(feature = "opengl"))]
         println!("gayzinho");
+    }
+
+    fn user_event(&mut self, _: &winit::event_loop::ActiveEventLoop, event: ComponentEvents) {
+        match event {
+            ComponentEvents::Redraw => {
+                if let Some(ref mut handler) = self.handler {
+                    handler.request_redraw();
+                }
+            }
+            ComponentEvents::CheckUpdates => {
+                if let Some(ref mut handler) = self.handler {
+                    if handler.root_mut().check_updates() {
+                        handler.request_redraw();
+                    };
+                }
+            }
+        }
     }
     fn window_event(
         &mut self,
@@ -112,13 +168,14 @@ where
                     handler.on_mouse_wheel(delta, phase)
                 }
                 winit::event::WindowEvent::KeyboardInput { event, .. } => {
-                    if if event.state.is_pressed() {
+                    let flag = if event.state.is_pressed() {
                         handler
                             .root_mut()
                             .keydown(event.logical_key, event.location)
                     } else {
                         handler.root_mut().keyup(event.logical_key, event.location)
-                    } {
+                    };
+                    if flag {
                         handler.request_redraw();
                     }
                 }

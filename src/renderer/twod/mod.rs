@@ -1,7 +1,8 @@
 use std::ops::Range;
 
+#[cfg(feature = "opengl")]
+use glutin::config::Config;
 use glutin::{
-    config::Config,
     context::PossiblyCurrentContext,
     surface::{Surface, WindowSurface},
 };
@@ -13,14 +14,7 @@ pub mod candy2d;
 pub mod helpers;
 pub use candy2d::Candy2DRenderer;
 
-use crate::{
-    elements::{
-        image::{CandyImage, TwodCandyImg},
-        square::CandySquare,
-        text::CandyText,
-    },
-    renderer::CandyRenderer,
-};
+use crate::elements::{image::CandyImage, square::CandySquare, text::CandyText};
 
 #[derive(Debug)]
 pub struct Renderer2DEnvironment {
@@ -38,25 +32,27 @@ pub struct Renderer2DEnvironment {
     #[cfg(feature = "opengl")]
     stencil_size: usize,
 }
+
 ///Trait used to control a 2D painter
-pub trait BiDimensionalRenderer: BiDimensionalPainter {
+pub trait BiDimensionalRendererConstructor {
     #[cfg(feature = "opengl")]
     fn new(window: &Window, config: &Config) -> Self;
+}
 
+///Trait used to control a 2D painter
+pub trait BiDimensionalRenderer {
     ///When this renderer is requested to resize with the given `width` and `height`
     #[cfg(feature = "opengl")]
     fn resize(&mut self, window: &Window, width: u32, height: u32);
 
-    ///Retrieves the struct that actually does draw things on the screen
-    fn twod_painter(&mut self) -> &mut impl BiDimensionalPainter;
-
     ///Finishes every command made supposing everything is ready to be drawn on the next frame
     fn flush(&mut self);
+
+    fn painter(&mut self) -> &mut dyn BiDimensionalPainter;
 }
 
 ///A 2D painter used to draw 2D stuff on the screen
-pub trait BiDimensionalPainter: Sized + std::fmt::Debug {
-    type Image: TwodCandyImg;
+pub trait BiDimensionalPainter: BiDimensionalRenderer + std::fmt::Debug {
     ///Method used to draw a square on the screen using the underlying renderer
     fn square(&mut self, square_info: &CandySquare);
     ///Method used to draw a circle on the screen using the underlying renderer
@@ -68,7 +64,7 @@ pub trait BiDimensionalPainter: Sized + std::fmt::Debug {
     fn text(&mut self, info: &CandyText);
 
     ///Method uses to draw the given `img` at the given `position`
-    fn render_image(&mut self, info: &CandyImage<Self>);
+    fn render_image(&mut self, info: &CandyImage);
 
     fn background(&mut self, rule: &Vector4<f32>);
 }

@@ -7,15 +7,20 @@ pub mod text;
 pub mod ui;
 pub mod window;
 
+use std::f32;
+use std::time::Duration;
+
 use crate::components::Input;
 use crate::components::{Scrollable, ScrollableConfig};
 
-use crate::renderer::candy::CandyDefaultRenderer;
-use crate::renderer::twod::Candy2DRenderer;
+use crate::ui::animation::manager::AnimationManager;
+use crate::ui::animation::scheduler::{AnimationScheduler, SchedulerSender};
+use crate::ui::animation::{Animatable, Animation, AnimationConfig, AnimationState};
 use crate::ui::styling::fx::Effect;
 use crate::ui::styling::layout::Layout;
 use crate::ui::styling::layout::{DefinitionRect, Direction};
 
+use crate::ui::animation::curves::LinearCurve;
 use elements::CandySquare;
 use helpers::rect::Rect;
 use nalgebra::{Vector2, Vector4};
@@ -80,7 +85,7 @@ impl Component for Square {
         }
     }
 
-    fn render(&self, renderer: &mut Candy2DRenderer) {
+    fn render(&self, renderer: &mut dyn BiDimensionalPainter) {
         renderer.square(&self.info);
         renderer.text(&self.text);
     }
@@ -96,14 +101,15 @@ impl Component for Square {
     }
 }
 
-#[derive(Debug)]
 struct State {
     pos: Vector2<f32>,
+    idx: usize,
     w: f32,
     h: f32,
     data: Scrollable<Square>,
     input: Input,
     manager: FontManager,
+    anims: SchedulerSender,
 }
 
 impl Component for State {
@@ -111,15 +117,10 @@ impl Component for State {
         self.w = rect.width;
         self.h = rect.height;
         self.data.resize(rect.clone());
-        self.input.resize(rect);
     }
-    fn render(&self, renderer: &mut Candy2DRenderer) {
+    fn render(&self, renderer: &mut dyn BiDimensionalPainter) {
         renderer.background(&Vector4::new(0.0, 0.1, 0.2, 1.0));
-
-        <crate::components::Input as crate::ui::component::Component<CandyDefaultRenderer>>::render(
-            &self.input,
-            renderer,
-        );
+        self.data.render(renderer);
     }
     fn apply_style(&mut self, _: &dyn Style) {}
     fn position(&self) -> Vector2<f32> {
@@ -127,6 +128,49 @@ impl Component for State {
     }
     fn position_mut(&mut self) -> &mut Vector2<f32> {
         &mut self.pos
+    }
+}
+
+#[derive(Debug)]
+pub struct AnimState {
+    color: Vector4<f32>,
+    pos: Vector2<f32>,
+}
+impl AnimState {
+    pub fn black(pos: Vector2<f32>) -> Self {
+        Self {
+            color: Vector4::new(0.0, 0.0, 0.0, 1.0),
+            pos,
+        }
+    }
+
+    pub fn white(pos: Vector2<f32>) -> Self {
+        Self {
+            color: Vector4::new(1.0, 1.0, 1.0, 1.0),
+            pos,
+        }
+    }
+}
+impl Style for AnimState {
+    fn color(&self) -> Vector4<f32> {
+        self.color
+    }
+    fn background_color(&self) -> Vector4<f32> {
+        self.color
+    }
+}
+impl AnimationState for AnimState {
+    fn lerp(start: &Self, end: &Self, cdt: f32, dt: f32) -> Self {
+        println!("{cdt} {dt}");
+        let final_pos = { start.pos.lerp(&end.pos, cdt) };
+        Self {
+            color: start.color.lerp(&end.color, cdt),
+            pos: final_pos,
+        }
+    }
+    fn apply_to(&self, comp: &mut dyn crate::ui::component::Component) {
+        comp.apply_style(self);
+        comp.apply_offset(self.pos / 100.0);
     }
 }
 
@@ -179,6 +223,11 @@ impl RootComponent for State {
         println!("{:?}", font.avaible_fonts());
         let content = font.create_font("Nimbus Roman", 24.0);
         Self {
+            idx: 0,
+            anims: {
+                let manager = AnimationManager::new();
+                manager.start_execution()
+            },
             w: 0.0,
             h: 0.0,
             pos: Vector2::zeros(),
@@ -211,7 +260,6 @@ impl RootComponent for State {
     ) -> bool {
         match key {
             Key::Character(c) => {
-                println!("{c:?}");
                 self.input.write_str(&c);
                 true
             }
@@ -227,7 +275,6 @@ impl RootComponent for State {
                     self.input.write('\n');
                     true
                 } else {
-                    println!("{key:?}");
                     false
                 }
             }
@@ -272,11 +319,27 @@ impl RootComponent for State {
             s,
             DefinitionRect {
                 x: Size::Length(0.0),
-                y: Size::Length(10.0),
+                y: Size::Length(0.0),
                 width: Size::Percent(0.25),
                 height: Size::Percent(0.25),
             },
         );
+        let mut delay = 0;
+        for child in self.data.children_mut() {
+            child.play_animation(
+                Animation::new::<LinearCurve>(
+                    AnimState::black(Vector2::new(0.0, 0.0)),
+                    AnimState::white(Vector2::new(100.0, 100.0)),
+                    Duration::from_secs(3),
+                    Duration::from_millis(16),
+                ),
+                AnimationConfig {
+                    delay: Duration::from_millis(delay),
+                },
+                self.anims.clone(),
+            );
+            delay += 250;
+        }
 
         self.resize(Rect {
             x: 0.0,
@@ -286,10 +349,14 @@ impl RootComponent for State {
         });
         true
     }
+    fn check_updates(&mut self) -> bool {
+        self.idx += 1;
+        true
+    }
 }
 
 fn main() {
-    CandyWindow::<State, CandyDefaultRenderer>::new(
+    CandyWindow::<State>::new(
         Window::default_attributes()
             .with_transparent(true)
             .with_title("Candy"),
