@@ -1,0 +1,62 @@
+mod bidimensional;
+pub mod primitives;
+mod threedimensional;
+
+pub use bidimensional::*;
+use glutin::config::Config;
+pub use threedimensional::*;
+use winit::window::Window;
+
+///Trait used to define renderers for Candy. It uses 2 renderers inside to draw 2D and 3D and this is used mainly for requesting commands from them
+pub trait CandyRenderer {
+    type TwoD: BiDimensionalRenderer + BiDimensionalRendererConstructor;
+    type ThreeD: ThreeDimensionalRenderer;
+
+    #[cfg(feature = "opengl")]
+    fn new(window: &Window, config: &Config) -> Self;
+
+    #[cfg(feature = "opengl")]
+    ///Method called when this renderer is resized. The `width` and `height` are the new dimensions that were given
+    fn resize(&mut self, window: &Window, width: u32, height: u32);
+
+    ///Used to finish every commands on the renderers. Used before rendering a new frame
+    fn flush(&mut self);
+
+    ///Retrieves the internal renderer that controls the 2D
+    fn twod_renderer(&mut self) -> &mut Self::TwoD;
+}
+
+#[derive(Debug)]
+///The default renderer of a candy, used to render both 2D and 3D
+pub struct CandyDefaultRenderer<TwoD = Candy2DefaultRenderer, ThreeD = Candy3DefaultRenderer> {
+    twod: TwoD,
+    threed: ThreeD,
+}
+
+impl<TwoD, ThreeD> CandyRenderer for CandyDefaultRenderer<TwoD, ThreeD>
+where
+    TwoD: BiDimensionalRenderer + BiDimensionalRendererConstructor,
+    ThreeD: ThreeDimensionalRenderer,
+{
+    type TwoD = TwoD;
+    type ThreeD = ThreeD;
+    #[cfg(feature = "opengl")]
+    fn new(window: &Window, config: &Config) -> Self {
+        Self {
+            twod: TwoD::new(window, config),
+            threed: ThreeD::new(window),
+        }
+    }
+    #[cfg(feature = "opengl")]
+    fn resize(&mut self, window: &Window, width: u32, height: u32) {
+        self.twod.resize(window, width, height);
+    }
+
+    fn flush(&mut self) {
+        self.twod.flush();
+    }
+
+    fn twod_renderer(&mut self) -> &mut TwoD {
+        &mut self.twod
+    }
+}

@@ -3,26 +3,20 @@ name = "candy"
 version = "0.1.0"
 edition = "2024"
 
-[dependencies]
-flume = {version = "0.11.1", default-features=false}
-gl = {version = "0.14.0", optional=true}
-glutin = {version = "0.32.3", optional=true}
-glutin-winit = {version = "0.5.0", optional = true}
+[workspace.dependencies]
 lazy_static = "1.5.0"
 nalgebra = "0.33.2"
-raw-window-handle = "0.6.2"
-skia-safe = { version = "0.87.0", features = [] }
 
-wgpu = "26.0.1"
-winit = "0.30.11"
+[dependencies]
+flume = {version = "0.11.1", default-features=false}
+candy_renderers = {path="./renderers"}
 
 [lib]
 name = "candy"
 path = "src/lib.rs"
 
-[features]
-default = ["opengl"]
-opengl=["skia-safe/gl", "glutin", "glutin-winit", "gl"]
-vulkan=["skia-safe/vulkan"]
-metal=["skia-safe/metal"]
-directx=["skia-safe/d3d"]
+[workspaces]
+members = [
+  ".",
+  "renderers"
+]
