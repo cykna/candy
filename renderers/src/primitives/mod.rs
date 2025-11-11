@@ -1,8 +1,10 @@
 mod font;
 mod image;
+mod rule;
 mod square;
 mod text;
 pub use font::*;
 pub use image::*;
+pub use rule::*;
 pub use square::*;
 pub use text::*;
