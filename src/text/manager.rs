@@ -1,6 +1,5 @@
+use candy_renderers::primitives::CandyFont;
 use skia_safe::{FontMgr, FontStyle};
-
-use crate::text::font::CandyFont;
 
 #[derive(Debug, Default)]
 pub struct FontManager {

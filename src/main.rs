@@ -13,6 +13,7 @@ use std::time::Duration;
 use crate::components::Input;
 use crate::components::{Scrollable, ScrollableConfig};
 
+use crate::text::manager::FontManager;
 use crate::ui::animation::manager::AnimationManager;
 use crate::ui::animation::scheduler::{AnimationScheduler, SchedulerSender};
 use crate::ui::animation::{Animatable, Animation, AnimationConfig, AnimationState};
@@ -22,8 +23,8 @@ use crate::ui::styling::layout::{DefinitionRect, Direction};
 
 use crate::ui::animation::curves::LinearCurve;
 
-use candy_renderers::BiDimensionalPainter;
-use candy_renderers::primitives::{CandySquare, CandyText};
+use candy_renderers::primitives::{CandyFont, CandySquare, CandyText};
+use candy_renderers::{BiDimensionalPainter, CandyDefaultRenderer};
 use candy_shared_types::{Effect, Rect, ShadowEffect, Style};
 use nalgebra::{Vector2, Vector4};
 
@@ -38,10 +39,7 @@ use winit::{event::MouseButton, window::Window};
 #[cfg(feature = "opengl")]
 pub use glutin::config::Config;
 
-use crate::{
-    components::Text,
-    text::{font::CandyFont, manager::FontManager},
-};
+use crate::components::Text;
 
 pub enum Msg {
     None,
@@ -177,7 +175,7 @@ impl AnimationState for AnimState {
 #[derive(Debug)]
 pub struct RedShadow;
 impl Style for RedShadow {
-    fn effect(&self) -> Box<dyn crate::ui::styling::fx::Effect> {
+    fn effect(&self) -> Box<dyn Effect> {
         Box::new(RedShadow)
     }
     fn background_color(&self) -> Vector4<f32> {
@@ -207,7 +205,7 @@ impl Style for StyleQualquer {
 
 impl Effect for RedShadow {
     fn shadow(&self) -> Option<ShadowEffect> {
-        Some(crate::ui::styling::fx::ShadowEffect {
+        Some(ShadowEffect {
             color: Vector4::new(1.0, 1.0, 0.0, 0.5),
             offset: Vector2::new(20.0, 20.0),
             blur: Vector2::new(10.0, 10.0),
@@ -297,7 +295,6 @@ impl RootComponent for State {
         &mut self,
         offset: winit::event::MouseScrollDelta,
         _: winit::event::TouchPhase,
-        _: Vector2<f32>,
     ) -> bool {
         match offset {
             winit::event::MouseScrollDelta::LineDelta(x, y) => {
@@ -360,7 +357,7 @@ impl RootComponent for State {
 }
 
 fn main() {
-    CandyWindow::<State>::new(
+    CandyWindow::<State, CandyDefaultRenderer>::new(
         Window::default_attributes()
             .with_transparent(true)
             .with_title("Candy"),

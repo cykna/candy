@@ -148,6 +148,7 @@ where
             match event {
                 winit::event::WindowEvent::RedrawRequested => {
                     handler.render(renderer.twod_renderer().painter());
+                    renderer.flush();
                 }
                 winit::event::WindowEvent::Resized(size) => {
                     handler.resize(Rect::new(0.0, 0.0, size.width as f32, size.height as f32));
