@@ -15,6 +15,15 @@ pub struct Rect {
 }
 
 impl Rect {
+    ///Creates a new rect with the provided parameters according to their field names on the struct
+    pub fn new(x: f32, y: f32, width: f32, height: f32) -> Self {
+        Self {
+            x,
+            y,
+            width,
+            height,
+        }
+    }
     #[inline]
     ///The X position of the right corner
     pub fn right(&self) -> f32 {

@@ -261,6 +261,7 @@ dependencies = [
  "candy_renderers",
  "flume",
  "nalgebra",
+ "winit",
 ]
 
 [[package]]
