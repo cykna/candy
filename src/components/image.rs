@@ -1,8 +1,9 @@
 use std::ops::{Deref, DerefMut};
 
-use crate::{
-    elements::image::CandyImage, renderer::twod::BiDimensionalPainter, ui::component::Component,
-};
+use candy_renderers::{BiDimensionalPainter, primitives::CandyImage};
+use candy_shared_types::{Rect, Style};
+
+use crate::ui::component::Component;
 
 #[derive(Debug)]
 ///A component that simply represents an image
@@ -11,13 +12,13 @@ pub struct Image {
 }
 
 impl Component for Image {
-    fn resize(&mut self, rect: crate::helpers::rect::Rect) {
+    fn resize(&mut self, rect: Rect) {
         self.image.resize(rect);
     }
     fn render(&self, renderer: &mut dyn BiDimensionalPainter) {
         renderer.render_image(&self.image);
     }
-    fn apply_style(&mut self, style: &dyn crate::ui::styling::style::Style) {
+    fn apply_style(&mut self, style: &dyn Style) {
         self.image.apply_style(style);
     }
     fn position(&self) -> nalgebra::Vector2<f32> {

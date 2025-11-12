@@ -1,13 +1,13 @@
 use std::ops::{Deref, DerefMut};
 
+use candy_renderers::{
+    BiDimensionalPainter,
+    primitives::{CandyFont, CandyText},
+};
+use candy_shared_types::{Rect, Style};
 use nalgebra::Vector2;
 
-use crate::{
-    elements::text::CandyText,
-    renderer::twod::BiDimensionalPainter,
-    text::font::CandyFont,
-    ui::{component::Component, styling::style::Style},
-};
+use crate::ui::component::Component;
 #[derive(Debug)]
 pub struct Text {
     inner: CandyText,
@@ -32,7 +32,7 @@ impl Component for Text {
         renderer.text(&self.inner);
     }
     #[inline]
-    fn resize(&mut self, rect: crate::helpers::rect::Rect) {
+    fn resize(&mut self, rect: Rect) {
         let pos = self.position_mut();
         pos.x = rect.x;
         pos.y = rect.y;

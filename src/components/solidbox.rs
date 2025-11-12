@@ -1,12 +1,13 @@
 use std::ops::{Deref, DerefMut};
 
+use candy_renderers::{
+    BiDimensionalPainter,
+    primitives::{CandySquare, DrawRule},
+};
+use candy_shared_types::{Rect, Style};
 use nalgebra::Vector4;
 
-use crate::{
-    elements::{CandySquare, DrawRule},
-    renderer::twod::BiDimensionalPainter,
-    ui::component::Component,
-};
+use crate::ui::component::Component;
 
 #[derive(Debug)]
 pub struct SolidBox {
@@ -14,14 +15,14 @@ pub struct SolidBox {
 }
 
 impl Component for SolidBox {
-    fn resize(&mut self, rect: crate::helpers::rect::Rect) {
+    fn resize(&mut self, rect: Rect) {
         self.square.resize(rect);
     }
 
     fn render(&self, renderer: &mut dyn BiDimensionalPainter) {
         renderer.square(&self.square);
     }
-    fn apply_style(&mut self, style: &dyn crate::ui::styling::style::Style) {
+    fn apply_style(&mut self, style: &dyn Style) {
         self.square.apply_style(style);
     }
     fn position(&self) -> nalgebra::Vector2<f32> {

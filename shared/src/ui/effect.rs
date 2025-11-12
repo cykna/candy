@@ -1,13 +1,35 @@
 use nalgebra::{Vector2, Vector4};
 
-use crate::ui::styling::fx::{Effect, ShadowEffect};
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+///The specification of how the shadow effect should be applies
+pub struct ShadowEffect {
+    ///The color of the shadow
+    pub color: Vector4<f32>,
+    ///The offset of the shadow when applied
+    pub offset: Vector2<f32>,
+    ///The blur power on X and Y axis
+    pub blur: Vector2<f32>,
+}
+
+///An effect to be applied to a component when rendering
+pub trait Effect {
+    ///Retrieves whether this effect has or not a ShadowEffect
+    fn shadow(&self) -> Option<ShadowEffect> {
+        None
+    }
+}
 
 #[derive(Debug, Clone, Default)]
+///A shadow effect to be applied on the component
 pub struct Shadow {
     color: Vector4<f32>,
     offset: Vector2<f32>,
     blur: Vector2<f32>,
 }
+
+///A Effect that doesn't apply any effect actually.
+pub struct NoEffect;
+impl Effect for NoEffect {}
 
 impl Shadow {
     ///Creates a new Shadow with the provided `color`

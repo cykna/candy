@@ -1,9 +1,8 @@
 use std::ops::{Deref, DerefMut};
 
+use candy_shared_types::RendererImage;
 use nalgebra::Vector2;
 use skia_safe::{Data, Image};
-
-use crate::ui::component::RendererImage;
 
 use super::CandySquare;
 

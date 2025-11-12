@@ -1,15 +1,11 @@
 use std::ops::{Deref, DerefMut};
 
+use candy_renderers::{BiDimensionalPainter, primitives::CandySquare};
+use candy_shared_types::{Rect, Style};
 use nalgebra::Vector2;
 use winit::event::MouseButton;
 
-use crate::{
-    components::Text,
-    elements::CandySquare,
-    helpers::center,
-    renderer::twod::BiDimensionalPainter,
-    ui::{component::Component, styling::style::Style},
-};
+use crate::{components::Text, helpers::center, ui::component::Component};
 
 pub struct Button<'a, Msg> {
     text: Text,
@@ -18,7 +14,7 @@ pub struct Button<'a, Msg> {
 }
 
 impl<'a, Msg> Component for Button<'a, Msg> {
-    fn resize(&mut self, rect: crate::helpers::rect::Rect) {
+    fn resize(&mut self, rect: Rect) {
         *self.text.position_mut() = center(&self.text.text_bounds(), &rect);
         *self.text.size_mut() = Vector2::new(rect.width, rect.y);
         *self.rect.position_mut() = Vector2::new(rect.x, rect.y);

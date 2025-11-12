@@ -1,12 +1,12 @@
 use std::ops::{Deref, DerefMut, Range};
 
+use candy_renderers::{BiDimensionalPainter, primitives::CandySquare};
+use candy_shared_types::{Rect, Style};
 use nalgebra::Vector2;
 
 use crate::{
     components::Text,
-    elements::CandySquare,
     helpers::{char_size_backwards, char_size_init},
-    renderer::twod::BiDimensionalPainter,
     ui::component::Component,
 };
 
@@ -234,7 +234,7 @@ impl RawInput {
 }
 
 impl Component for Input {
-    fn resize(&mut self, rect: crate::helpers::rect::Rect) {
+    fn resize(&mut self, rect: Rect) {
         self.rect.resize(rect.clone());
 
         let content_bounds = self.content.text_bounds();
@@ -262,7 +262,7 @@ impl Component for Input {
         }
         renderer.square(&self.cursor_square);
     }
-    fn apply_style(&mut self, style: &dyn crate::ui::styling::style::Style) {
+    fn apply_style(&mut self, style: &dyn Style) {
         self.rect.apply_style(style);
         self.content.apply_style(style);
     }

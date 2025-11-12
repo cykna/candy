@@ -1,21 +1,16 @@
+use candy_renderers::BiDimensionalPainter;
+use candy_shared_types::{Rect, Style};
 use nalgebra::Vector2;
 use winit::{
     event::{MouseButton, MouseScrollDelta, TouchPhase},
     keyboard::{Key, KeyLocation, SmolStr},
+    window::Window,
 };
-
-use crate::{helpers::rect::Rect, renderer::twod::BiDimensionalPainter, ui::styling::style::Style};
-
-#[cfg(feature = "opengl")]
-pub type RendererImage = skia_safe::Image;
-#[cfg(feature = "vello")]
-pub type Image = ();
 
 pub trait Component {
     ///Method called when some parent tries to resize this component. The `rect` parameter is the bounds calculated
     fn resize(&mut self, rect: Rect);
     ///Method called when this component is requested to redraw with the given `renderer`
-    #[cfg(feature = "opengl")]
     fn render(&self, renderer: &mut dyn BiDimensionalPainter);
 
     ///Applies the given `style` on this component
@@ -33,13 +28,16 @@ pub trait Component {
     }
 }
 
+///The root component that will be used to render all the screen. Note that mouse position is tracked by it as well
 pub trait RootComponent: Component {
     type Args: Default;
-    fn new(args: Self::Args) -> Self;
+    fn new(window: Window, args: Self::Args) -> Self;
+
+    fn window(&self) -> &Window;
 
     #[inline]
-    ///Emitted when the mouse whell is moved `delta` is the delta of the movement and `position` the current position of the cursor when the event happended
-    fn on_mouse_wheel(&mut self, _: MouseScrollDelta, _: TouchPhase, _: Vector2<f32>) -> bool {
+    ///Emitted when the mouse whell is moved `delta` is the delta of the movement
+    fn on_mouse_wheel(&mut self, _: MouseScrollDelta, _: TouchPhase) -> bool {
         false
     }
 
@@ -52,7 +50,7 @@ pub trait RootComponent: Component {
     #[inline]
     ///Emitted when some click arrives. The `position` is the position of the click relative to the top left corner of the window
     ///Returns whether a redraw should be made
-    fn click(&mut self, _: Vector2<f32>, _: MouseButton) -> bool {
+    fn click(&mut self, _: MouseButton) -> bool {
         false
     }
 

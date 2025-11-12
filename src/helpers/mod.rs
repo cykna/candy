@@ -1,22 +1,6 @@
 pub mod rect;
+use candy_shared_types::Rect;
 use nalgebra::{Vector2, Vector4};
-use rect::Rect;
-use skia_safe::Color4f;
-
-///Casts the given vector into a Color4f.
-pub fn vec4f32_to_color(color: &Vector4<f32>) -> &Color4f {
-    unsafe { std::mem::transmute::<&Vector4<f32>, &Color4f>(color) }
-}
-
-///Casts the given vector into a Color4f.
-pub fn vec4f32_to_color_value(color: Vector4<f32>) -> Color4f {
-    unsafe { std::mem::transmute::<Vector4<f32>, Color4f>(color) }
-}
-
-///Casts the given `color` into a `rect`(???)
-pub fn vec4f32_to_rect(color: &Vector4<f32>) -> &Rect {
-    unsafe { std::mem::transmute::<&Vector4<f32>, &Rect>(color) }
-}
 
 ///Checks whether `position` is inside of `rect`. This function interprets zw of `rect` as it's width and height
 pub fn in_bounds_of(rect: Vector4<f32>, position: Vector2<f32>) -> bool {

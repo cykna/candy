@@ -1,6 +1,5 @@
+use candy_shared_types::Rect;
 use nalgebra::{Vector2, Vector4};
-
-use crate::helpers::rect::Rect;
 
 #[derive(Debug, Clone)]
 pub struct DefinitionRect {

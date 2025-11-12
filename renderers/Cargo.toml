@@ -1,0 +1,25 @@
+[package]
+name = "candy_renderers"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+nalgebra.workspace=true
+skia-safe.workspace=true
+winit.workspace=true
+glutin.workspace=true
+gl = {version = "0.14.0", optional=true}
+raw-window-handle = "0.6.2"
+wgpu = "26.0.1"
+candy-shared-types = {path="../shared"}
+
+[features]
+default = ["opengl"]
+opengl=["skia-safe/gl", "gl"]
+vulkan=["skia-safe/vulkan"]
+metal=["skia-safe/metal"]
+directx=["skia-safe/d3d"]
+
+[lib]
+name = "candy_renderers"
+path = "src/lib.rs"

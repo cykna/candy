@@ -1,15 +1,11 @@
 use std::ops::{Deref, DerefMut};
 
-use crate::{
-    elements::CandySquare,
-    renderer::twod::BiDimensionalPainter,
-    ui::{
-        component::Component,
-        styling::{
-            layout::{DefinitionRect, Layout},
-            style::Style,
-        },
-    },
+use candy_renderers::{BiDimensionalPainter, primitives::CandySquare};
+use candy_shared_types::{Rect, Style};
+
+use crate::ui::{
+    component::Component,
+    styling::layout::{DefinitionRect, Layout},
 };
 
 #[derive(Debug)]
@@ -32,7 +28,7 @@ impl<C: Component> Component for Container<C> {
             child.render(renderer);
         }
     }
-    fn resize(&mut self, rect: crate::helpers::rect::Rect) {
+    fn resize(&mut self, rect: Rect) {
         self.square.position_mut().x = rect.x;
         self.square.position_mut().y = rect.y;
         self.square.size_mut().x = rect.width;

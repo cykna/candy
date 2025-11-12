@@ -1,12 +1,10 @@
+use candy_renderers::BiDimensionalPainter;
+use candy_shared_types::{Rect, Style};
 use nalgebra::Vector2;
 
 use crate::{
     components::{SolidBox, container::Container},
-    renderer::twod::BiDimensionalPainter,
-    ui::{
-        component::Component,
-        styling::{layout::Layout, style::Style},
-    },
+    ui::{component::Component, styling::layout::Layout},
 };
 
 #[derive(Debug)]
@@ -66,14 +64,14 @@ impl Toggle {
 }
 
 impl Component for Toggle {
-    fn resize(&mut self, rect: crate::helpers::rect::Rect) {
+    fn resize(&mut self, rect: Rect) {
         self.square.resize(rect);
     }
     fn render(&self, renderer: &mut dyn BiDimensionalPainter) {
         self.square.render(renderer);
     }
     #[inline]
-    fn apply_style(&mut self, style: &dyn crate::ui::styling::style::Style) {
+    fn apply_style(&mut self, style: &dyn Style) {
         self.square.apply_style(style);
     }
 

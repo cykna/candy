@@ -1,3 +1,8 @@
+use candy_shared_types::Effect;
+use candy_shared_types::Style;
+use candy_shared_types::vec4f32_to_color;
+use candy_shared_types::vec4f32_to_color_value;
+
 use nalgebra::Vector2;
 use nalgebra::Vector4;
 
@@ -9,18 +14,12 @@ use skia_safe::Paint;
 use skia_safe::Point;
 use skia_safe::Rect;
 
-use crate::helpers::vec4f32_to_color;
-use crate::helpers::vec4f32_to_color_value;
-use crate::ui::styling::fx::Effect;
-use crate::ui::styling::style::Style;
-
 #[derive(Debug, Default)]
 pub struct DrawRule {
-    pub(crate) border_color: Vector4<f32>,
-    pub(crate) border_radius: Vector2<f32>,
-    pub(crate) border_width: f32,
-
-    pub(crate) inner: Paint,
+    pub border_color: Vector4<f32>,
+    pub border_radius: Vector2<f32>,
+    pub border_width: f32,
+    pub inner: Paint,
 }
 
 impl DrawRule {
