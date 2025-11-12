@@ -36,7 +36,7 @@ pub struct CandyDefaultRenderer<TwoD = Candy2DefaultRenderer, ThreeD = Candy3Def
 impl<TwoD, ThreeD> CandyRenderer for CandyDefaultRenderer<TwoD, ThreeD>
 where
     TwoD: BiDimensionalRenderer + BiDimensionalRendererConstructor,
-    ThreeD: ThreeDimensionalRenderer,
+    ThreeD: ThreeDimensionalRenderer + ThreeDimensionalRendererConstructor,
 {
     type TwoD = TwoD;
     type ThreeD = ThreeD;

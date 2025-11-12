@@ -1,10 +1,7 @@
-use crate::{
-    elements::DrawRule,
-    helpers::{rect::Rect, vec4f32_to_color},
-    text::font::CandyFont,
-    ui::styling::style::Style,
-};
+use candy_shared_types::{Rect, Style, vec4f32_to_color};
 use nalgebra::{Vector2, Vector4};
+
+use crate::primitives::{CandyFont, DrawRule};
 
 #[derive(Debug, Default)]
 ///A handler that contains on how to draw an specific text

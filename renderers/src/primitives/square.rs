@@ -1,6 +1,7 @@
+use candy_shared_types::{Rect, Style};
 use nalgebra::Vector2;
 
-use crate::{elements::DrawRule, helpers::rect::Rect, ui::styling::style::Style};
+use crate::primitives::DrawRule;
 
 ///A handler that contains information about how a square should be drawn.
 #[derive(Debug, Default)]

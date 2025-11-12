@@ -257,14 +257,26 @@ dependencies = [
 name = "candy"
 version = "0.1.0"
 dependencies = [
+ "candy-shared-types",
  "candy_renderers",
  "flume",
+ "nalgebra",
+]
+
+[[package]]
+name = "candy-shared-types"
+version = "0.1.0"
+dependencies = [
+ "nalgebra",
+ "skia-safe",
+ "winit",
 ]
 
 [[package]]
 name = "candy_renderers"
 version = "0.1.0"
 dependencies = [
+ "candy-shared-types",
  "gl",
  "glutin",
  "glutin-winit",

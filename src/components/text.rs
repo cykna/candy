@@ -1,5 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
+use candy_renderers::BiDimensionalPainter;
 use nalgebra::Vector2;
 
 use crate::{

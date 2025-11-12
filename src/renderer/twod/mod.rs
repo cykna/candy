@@ -1,5 +1,3 @@
-use std::ops::Range;
-
 #[cfg(feature = "opengl")]
 use glutin::config::Config;
 use glutin::{
@@ -37,20 +35,4 @@ pub struct Renderer2DEnvironment {
 pub trait BiDimensionalRendererConstructor {
     #[cfg(feature = "opengl")]
     fn new(window: &Window, config: &Config) -> Self;
-}
-
-pub struct RenderImageOptions {
-    pub border_radius: Vector2<f32>,
-    pub border_color: Vector4<f32>,
-    pub border_width: f32,
-}
-
-pub trait CandyImgConstructor<I> {
-    fn from_bytes(bytes: &[u8]) -> I;
-}
-
-impl CandyImgConstructor<skia_safe::Image> for skia_safe::Image {
-    fn from_bytes(bytes: &[u8]) -> skia_safe::Image {
-        skia_safe::Image::from_encoded(Data::new_copy(bytes)).unwrap()
-    }
 }

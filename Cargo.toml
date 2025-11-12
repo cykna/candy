@@ -6,10 +6,14 @@ edition = "2024"
 [workspace.dependencies]
 lazy_static = "1.5.0"
 nalgebra = "0.33.2"
+skia-safe = { version = "0.87.0", features = [] }
+winit = "0.30.11"
 
 [dependencies]
 flume = {version = "0.11.1", default-features=false}
 candy_renderers = {path="./renderers"}
+candy-shared-types = {path="./shared"}
+nalgebra.workspace=true
 
 [lib]
 name = "candy"
@@ -18,5 +22,6 @@ path = "src/lib.rs"
 [workspaces]
 members = [
   ".",
-  "renderers"
+  "renderers",
+  "shared"
 ]

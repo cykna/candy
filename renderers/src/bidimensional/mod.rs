@@ -4,6 +4,8 @@ use nalgebra::{Vector2, Vector4};
 use winit::window::Window;
 mod default_renderer;
 pub use default_renderer::*;
+
+use crate::primitives::{CandyImage, CandySquare, CandyText};
 ///Trait used to control a 2D painter
 
 pub trait BiDimensionalRenderer {

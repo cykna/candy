@@ -6,11 +6,6 @@ use winit::{
 
 use crate::{helpers::rect::Rect, renderer::twod::BiDimensionalPainter, ui::styling::style::Style};
 
-#[cfg(feature = "opengl")]
-pub type RendererImage = skia_safe::Image;
-#[cfg(feature = "vello")]
-pub type Image = ();
-
 pub trait Component {
     ///Method called when some parent tries to resize this component. The `rect` parameter is the bounds calculated
     fn resize(&mut self, rect: Rect);
