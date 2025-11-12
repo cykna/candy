@@ -1,12 +1,14 @@
-use candy_renderers::{BiDimensionalRenderer, CandyRenderer};
-use candy_shared_types::Rect;
 use flume::unbounded;
 use lazy_static::lazy_static;
+use std::marker::PhantomData;
 
 use nalgebra::Vector2;
 use winit::{event_loop::EventLoop, window::WindowAttributes};
 
-use crate::ui::component::RootComponent;
+use crate::{
+    handler::{CandyDefaultHandler, CandyHandler},
+    ui::component::RootComponent,
+};
 
 use flume::{Receiver, Sender};
 
@@ -42,20 +44,22 @@ unsafe impl Sync for ComponentEvents {}
 unsafe impl Send for ComponentEvents {}
 
 #[derive(Default, Debug)]
-pub struct CandyWindow<Root, Renderer>
+pub struct CandyWindow<Root, T = CandyDefaultHandler<Root>>
 where
     Root: RootComponent,
-    Renderer: CandyRenderer,
+    T: CandyHandler<Root>,
 {
-    handler: Option<(Root, Renderer)>,
+    root: PhantomData<Root>,
+    handler: Option<T>,
     attribs: WindowAttributes,
 }
-impl<Root: RootComponent, R> CandyWindow<Root, R>
+impl<Root: RootComponent, T> CandyWindow<Root, T>
 where
-    R: CandyRenderer,
+    T: CandyHandler<Root>,
 {
     pub fn new(attribs: WindowAttributes) -> Self {
         Self {
+            root: PhantomData,
             handler: None,
             attribs,
         }
@@ -88,11 +92,10 @@ where
                         .unwrap()
                 })
                 .unwrap();
-            let window = window.expect("Window could not be created.");
-            let renderer = CandyRenderer::new(&window, &config);
-            self.handler = Some((
-                Root::new(window, <Root as RootComponent>::Args::default()),
-                renderer,
+            self.handler = Some(T::new(
+                window.expect("Window not created??"),
+                config,
+                <Root as RootComponent>::Args::default(),
             ));
         };
         let proxy = lp.create_proxy();
@@ -109,10 +112,10 @@ where
     }
 }
 
-impl<Root, R> winit::application::ApplicationHandler<ComponentEvents> for CandyWindow<Root, R>
+impl<Root, T> winit::application::ApplicationHandler<ComponentEvents> for CandyWindow<Root, T>
 where
     Root: RootComponent,
-    R: CandyRenderer,
+    T: CandyHandler<Root>,
 {
     fn resumed(&mut self, _: &winit::event_loop::ActiveEventLoop) {
         #[cfg(not(feature = "opengl"))]
@@ -123,15 +126,13 @@ where
         match event {
             ComponentEvents::Redraw => {
                 if let Some(ref mut handler) = self.handler {
-                    let (handler, _) = (&mut handler.0, &mut handler.1);
-                    handler.window().request_redraw();
+                    handler.request_redraw();
                 }
             }
             ComponentEvents::CheckUpdates => {
                 if let Some(ref mut handler) = self.handler {
-                    let (handler, _) = (&mut handler.0, &mut handler.1);
-                    if handler.check_updates() {
-                        handler.window().request_redraw();
+                    if handler.root_mut().check_updates() {
+                        handler.request_redraw();
                     };
                 }
             }
@@ -144,41 +145,38 @@ where
         event: winit::event::WindowEvent,
     ) {
         if let Some(ref mut handler) = self.handler {
-            let (handler, renderer) = (&mut handler.0, &mut handler.1);
             match event {
                 winit::event::WindowEvent::RedrawRequested => {
-                    handler.render(renderer.twod_renderer().painter());
+                    handler.draw();
                 }
                 winit::event::WindowEvent::Resized(size) => {
-                    handler.resize(Rect::new(0.0, 0.0, size.width as f32, size.height as f32));
-                    renderer.resize(handler.window(), size.width, size.height);
+                    handler.resize(size);
                 }
                 winit::event::WindowEvent::CloseRequested => {
                     event_loop.exit();
+                    handler.exit();
                 }
                 winit::event::WindowEvent::MouseInput { state, button, .. } => {
-                    if state.is_pressed() && handler.click(button) {
-                        handler.window().request_redraw();
+                    if state.is_pressed() {
+                        handler.on_press(button)
                     }
                 }
                 winit::event::WindowEvent::CursorMoved { position, .. } => {
-                    if handler.on_mouse_move(Vector2::new(position.x as f32, position.y as f32)) {
-                        handler.window().request_redraw();
-                    }
+                    handler.on_mouse_move(Vector2::new(position.x as f32, position.y as f32));
                 }
                 winit::event::WindowEvent::MouseWheel { delta, phase, .. } => {
-                    if handler.on_mouse_wheel(delta, phase) {
-                        handler.window().request_redraw();
-                    }
+                    handler.on_mouse_wheel(delta, phase)
                 }
                 winit::event::WindowEvent::KeyboardInput { event, .. } => {
                     let flag = if event.state.is_pressed() {
-                        handler.keydown(event.logical_key, event.location)
+                        handler
+                            .root_mut()
+                            .keydown(event.logical_key, event.location)
                     } else {
-                        handler.keyup(event.logical_key, event.location)
+                        handler.root_mut().keyup(event.logical_key, event.location)
                     };
                     if flag {
-                        handler.window().request_redraw();
+                        handler.request_redraw();
                     }
                 }
                 _ => {}

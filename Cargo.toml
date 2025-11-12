@@ -8,6 +8,7 @@ lazy_static = "1.5.0"
 nalgebra = "0.33.2"
 skia-safe = { version = "0.87.0", features = [] }
 winit = "0.30.11"
+glutin = {version = "0.32.3"}
 
 [dependencies]
 flume = {version = "0.11.1", default-features=false}
@@ -15,6 +16,10 @@ candy_renderers = {path="./renderers"}
 candy-shared-types = {path="./shared"}
 nalgebra.workspace=true
 winit.workspace=true
+glutin.workspace=true
+glutin-winit = {version = "0.5.0", optional=true}
+lazy_static.workspace=true
+skia-safe.workspace=true
 
 [lib]
 name = "candy"
@@ -26,3 +31,7 @@ members = [
   "renderers",
   "shared"
 ]
+
+[features]
+default = ["opengl"]
+opengl = ["glutin-winit"]

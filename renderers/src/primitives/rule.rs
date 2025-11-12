@@ -16,11 +16,10 @@ use skia_safe::Rect;
 
 #[derive(Debug, Default)]
 pub struct DrawRule {
-    pub(crate) border_color: Vector4<f32>,
-    pub(crate) border_radius: Vector2<f32>,
-    pub(crate) border_width: f32,
-
-    pub(crate) inner: Paint,
+    pub border_color: Vector4<f32>,
+    pub border_radius: Vector2<f32>,
+    pub border_width: f32,
+    pub inner: Paint,
 }
 
 impl DrawRule {

@@ -1,9 +1,8 @@
 pub mod components;
-pub mod elements;
-pub mod handler;
+
 pub mod helpers;
 pub mod renderer;
-pub mod renderers;
+
 pub mod text;
 pub mod ui;
 pub mod window;
@@ -17,15 +16,16 @@ use crate::components::{Scrollable, ScrollableConfig};
 use crate::ui::animation::manager::AnimationManager;
 use crate::ui::animation::scheduler::{AnimationScheduler, SchedulerSender};
 use crate::ui::animation::{Animatable, Animation, AnimationConfig, AnimationState};
-use crate::ui::styling::fx::Effect;
+
 use crate::ui::styling::layout::Layout;
 use crate::ui::styling::layout::{DefinitionRect, Direction};
 
 use crate::ui::animation::curves::LinearCurve;
-use elements::CandySquare;
-use helpers::rect::Rect;
+
+use candy_renderers::BiDimensionalPainter;
+use candy_renderers::primitives::{CandySquare, CandyText};
+use candy_shared_types::{Effect, Rect, ShadowEffect, Style};
 use nalgebra::{Vector2, Vector4};
-use renderer::twod::BiDimensionalPainter;
 
 use crate::ui::{
     component::{Component, RootComponent},
@@ -40,9 +40,7 @@ pub use glutin::config::Config;
 
 use crate::{
     components::Text,
-    elements::text::CandyText,
     text::{font::CandyFont, manager::FontManager},
-    ui::styling::style::Style,
 };
 
 pub enum Msg {
@@ -103,6 +101,7 @@ impl Component for Square {
 }
 
 struct State {
+    window: Window,
     pos: Vector2<f32>,
     idx: usize,
     w: f32,
@@ -207,7 +206,7 @@ impl Style for StyleQualquer {
 }
 
 impl Effect for RedShadow {
-    fn shadow(&self) -> Option<crate::ui::styling::fx::ShadowEffect> {
+    fn shadow(&self) -> Option<ShadowEffect> {
         Some(crate::ui::styling::fx::ShadowEffect {
             color: Vector4::new(1.0, 1.0, 0.0, 0.5),
             offset: Vector2::new(20.0, 20.0),
@@ -218,12 +217,13 @@ impl Effect for RedShadow {
 
 impl RootComponent for State {
     type Args = ();
-    fn new(_: ()) -> Self {
+    fn new(window: Window, _: ()) -> Self {
         let font = FontManager::new();
 
         println!("{:?}", font.avaible_fonts());
         let content = font.create_font("Nimbus Roman", 24.0);
         Self {
+            window,
             idx: 0,
             anims: {
                 let manager = AnimationManager::new();
@@ -252,6 +252,9 @@ impl RootComponent for State {
             },
             manager: font,
         }
+    }
+    fn window(&self) -> &Window {
+        &self.window
     }
 
     fn keydown(
@@ -308,8 +311,8 @@ impl RootComponent for State {
 
         self.data.is_dragging()
     }
-    fn click(&mut self, pos: Vector2<f32>, _: MouseButton) -> bool {
-        self.data.on_mouse_click(pos);
+    fn click(&mut self, _: MouseButton) -> bool {
+        self.data.on_mouse_click(Vector2::new(0.0, 0.0));
 
         let font = self.manager.create_font("Nimbus Roman", 24.0).unwrap();
         let mut s = Square::new(font);

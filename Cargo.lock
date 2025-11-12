@@ -260,7 +260,11 @@ dependencies = [
  "candy-shared-types",
  "candy_renderers",
  "flume",
+ "glutin",
+ "glutin-winit",
+ "lazy_static",
  "nalgebra",
+ "skia-safe",
  "winit",
 ]
 
@@ -280,7 +284,6 @@ dependencies = [
  "candy-shared-types",
  "gl",
  "glutin",
- "glutin-winit",
  "nalgebra",
  "raw-window-handle",
  "skia-safe",

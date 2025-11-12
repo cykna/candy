@@ -8,7 +8,7 @@ use crate::primitives::DrawRule;
 pub struct CandySquare {
     position: Vector2<f32>,
     size: Vector2<f32>,
-    pub(crate) rule: DrawRule,
+    pub rule: DrawRule,
 }
 
 impl CandySquare {

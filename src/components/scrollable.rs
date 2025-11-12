@@ -1,17 +1,14 @@
 use std::ops::{Deref, DerefMut};
 
+use candy_renderers::BiDimensionalPainter;
+use candy_shared_types::{Rect, Style};
 use nalgebra::{Vector2, Vector4};
 
 use crate::{
     components::{SolidBox, container::Container},
-    helpers::rect::Rect,
-    renderer::twod::BiDimensionalPainter,
     ui::{
         component::Component,
-        styling::{
-            layout::{DefinitionRect, Direction, Layout, Size},
-            style::Style,
-        },
+        styling::layout::{DefinitionRect, Direction, Layout, Size},
     },
 };
 
