@@ -114,7 +114,7 @@ impl Component for State {
         self.data.resize(rect.clone());
     }
     fn render(&self, renderer: &mut dyn BiDimensionalPainter) {
-        renderer.background(&Vector4::new(0.0, 0.1, 0.2, 0.0));
+        renderer.background(&Vector4::new(0.0, 0.1, 0.2, 0.5));
         self.data.render(renderer);
     }
     fn apply_style(&mut self, _: &dyn Style) {}

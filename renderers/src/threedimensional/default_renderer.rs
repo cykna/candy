@@ -4,8 +4,8 @@ use std::{
 };
 
 use vello::wgpu::{
-    self, Adapter, BackendOptions, Backends, CommandEncoder, Device, DeviceDescriptor, Features,
-    Instance, InstanceFlags, Limits, Operations, Queue, RenderPassColorAttachment,
+    self, Adapter, BackendOptions, Backends, Color, CommandEncoder, Device, DeviceDescriptor,
+    Features, Instance, InstanceFlags, Limits, Operations, Queue, RenderPassColorAttachment,
     RenderPassDescriptor, RequestAdapterOptions, Surface, SurfaceConfiguration, TextureUsages,
     TextureView, Trace,
     wgt::{CommandEncoderDescriptor, TextureViewDescriptor},
@@ -134,7 +134,7 @@ impl ThreeDimensionalRenderer for Candy3DefaultRenderer {
                     depth_slice: None,
                     resolve_target: None,
                     ops: Operations {
-                        load: wgpu::LoadOp::Load,
+                        load: wgpu::LoadOp::Clear(Color::GREEN),
                         store: wgpu::StoreOp::Store,
                     },
                 })],

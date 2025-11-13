@@ -44,6 +44,8 @@ pub trait BiDimensionalRenderer {
     fn flush(&mut self, texture: &TextureView, encoder: &mut CommandEncoder);
 
     fn painter(&mut self) -> &mut dyn BiDimensionalPainter;
+
+    fn prepare(&mut self);
 }
 
 ///Trait used to control a 2D painter

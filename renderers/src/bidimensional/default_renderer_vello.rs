@@ -3,10 +3,14 @@ use std::sync::Arc;
 use nalgebra::Vector4;
 use vello::{
     AaSupport, RenderParams, Renderer, RendererOptions, Scene,
-    peniko::color::AlphaColor,
+    kurbo::{self, Affine, Rect},
+    peniko::{BlendMode, BrushRef, Fill, color::AlphaColor},
     wgpu::{
-        self, CommandEncoder, CommandEncoderDescriptor, Extent3d, Texture, TextureUsages,
-        TextureView, TextureViewDescriptor, wgt::TextureDescriptor,
+        self, BlendComponent, BlendFactor, BlendOperation, BlendState, Color, CommandEncoder,
+        CommandEncoderDescriptor, Extent3d, Operations, RenderPassColorAttachment,
+        RenderPassDescriptor, Texture, TextureUsages, TextureView, TextureViewDescriptor,
+        util::{TextureBlitter, TextureBlitterBuilder},
+        wgt::TextureDescriptor,
     },
 };
 use winit::window::Window;
@@ -23,6 +27,8 @@ pub struct Candy2DefaultRenderer {
     window: Arc<Window>,
     background: Vector4<f32>,
     texture: Texture,
+    view: TextureView,
+    blitter: TextureBlitter,
 }
 impl BiDimensionalRendererConstructor for Candy2DefaultRenderer {
     fn new(window: Arc<Window>, state: Arc<WgpuState>) -> Self {
@@ -55,8 +61,27 @@ impl BiDimensionalRendererConstructor for Candy2DefaultRenderer {
                 | TextureUsages::TEXTURE_BINDING,
             view_formats: &[],
         });
-
+        let blitter = TextureBlitterBuilder::new(&state.device, texture.format())
+            .sample_type(wgpu::FilterMode::Linear)
+            .blend_state(BlendState {
+                color: BlendComponent {
+                    src_factor: BlendFactor::One,
+                    dst_factor: BlendFactor::OneMinusSrcAlpha,
+                    operation: BlendOperation::Add,
+                },
+                alpha: BlendComponent {
+                    src_factor: BlendFactor::One,
+                    dst_factor: BlendFactor::OneMinusSrcAlpha,
+                    operation: BlendOperation::Add,
+                },
+            })
+            .build();
         Self {
+            view: texture.create_view(&TextureViewDescriptor {
+                label: None,
+                ..Default::default()
+            }),
+            blitter,
             window,
             renderer,
             scene: Scene::new(),
@@ -69,16 +94,40 @@ impl BiDimensionalRendererConstructor for Candy2DefaultRenderer {
 
 impl BiDimensionalRenderer for Candy2DefaultRenderer {
     fn flush(&mut self, texture: &TextureView, encoder: &mut CommandEncoder) {
-        let src = self.texture.create_view(&TextureViewDescriptor {
-            label: None,
-            ..Default::default()
-        });
+        let view = self.texture.create_view(&TextureViewDescriptor::default());
+        let mut clear_encoder = self
+            .state
+            .device
+            .create_command_encoder(&CommandEncoderDescriptor::default());
+
+        {
+            let _pass = clear_encoder.begin_render_pass(&RenderPassDescriptor {
+                label: Some("clear vello texture"),
+                color_attachments: &[Some(RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    depth_slice: None,
+                    ops: Operations {
+                        load: wgpu::LoadOp::Clear(Color {
+                            r: self.background.x as f64,
+                            g: self.background.y as f64,
+                            b: self.background.z as f64,
+                            a: self.background.w as f64,
+                        }),
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                ..Default::default()
+            });
+        }
+
+        self.state.queue.submit(Some(clear_encoder.finish()));
         self.renderer
             .render_to_texture(
                 &self.state.device,
                 &self.state.queue,
                 &self.scene,
-                &src,
+                &view,
                 &RenderParams {
                     base_color: AlphaColor {
                         components: [
@@ -95,16 +144,51 @@ impl BiDimensionalRenderer for Candy2DefaultRenderer {
                 },
             )
             .unwrap();
-        let blitter = wgpu::util::TextureBlitter::new(&self.state.device, self.texture.format());
-        blitter.copy(&self.state.device, encoder, &src, texture);
+
+        self.blitter
+            .copy(&self.state.device, encoder, &view, texture);
+        self.scene.reset();
     }
     fn painter(&mut self) -> &mut dyn super::BiDimensionalPainter {
         self
     }
+    fn prepare(&mut self) {}
 }
 
 impl BiDimensionalPainter for Candy2DefaultRenderer {
-    fn square(&mut self, square_info: &crate::primitives::CandySquare) {}
+    fn square(&mut self, square_info: &crate::primitives::CandySquare) {
+        let rule = &square_info.rule;
+
+        let radius = rule.border_radius;
+        let rect = {
+            let position = square_info.position();
+            let size = square_info.size();
+            kurbo::Rect {
+                x0: position.x as f64,
+                y0: position.y as f64,
+                x1: (position.x + size.x) as f64,
+                y1: (position.y + size.y) as f64,
+            }
+        };
+
+        let color = rule.get_color();
+
+        let window = self.window.inner_size();
+
+        self.scene.fill(
+            Fill::NonZero,
+            Affine::IDENTITY,
+            BrushRef::Solid(AlphaColor::new([color.x, color.y, color.z, color.w])),
+            None,
+            &rect,
+        );
+
+        let border_color = rule.border_color;
+
+        if border_color.w == 0.0 || rule.border_width == 0.0 {
+            return;
+        }
+    }
     fn circle(
         &mut self,
         position: &nalgebra::Vector2<f32>,

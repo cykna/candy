@@ -80,6 +80,11 @@ where
         Self { twod, threed }
     }
 
+    fn prepare(&mut self) {
+        self.twod.prepare();
+        self.threed.prepare();
+    }
+
     #[cfg(feature = "opengl")]
     fn resize(&mut self, window: &Window, width: u32, height: u32) {
         self.twod.resize(window, width, height);

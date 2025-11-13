@@ -20,6 +20,8 @@ pub trait ThreeDimensionalRenderer {
 
     #[cfg(feature = "vello")]
     fn state(&self) -> Arc<WgpuState>;
+
+    fn prepare(&mut self) {}
 }
 pub trait ThreeDimensionalRendererConstructor {
     fn new(window: Arc<Window>) -> Self;
