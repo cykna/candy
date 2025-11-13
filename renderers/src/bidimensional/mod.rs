@@ -1,5 +1,7 @@
 #[cfg(feature = "opengl")]
 mod default_renderer_gl;
+#[cfg(feature = "vello")]
+mod default_renderer_vello;
 #[cfg(feature = "opengl")]
 pub use default_renderer_gl::*;
 
@@ -8,13 +10,21 @@ mod default_renderer_vk;
 #[cfg(feature = "vulkan")]
 pub use default_renderer_vk::*;
 
+#[cfg(feature = "vello")]
+pub use default_renderer_vello::*;
+
+#[cfg(not(feature = "vello"))]
 mod default_painter;
 
 use nalgebra::{Vector2, Vector4};
 use std::ops::Range;
 use std::sync::Arc;
+#[cfg(feature = "vello")]
+use vello::wgpu::{CommandEncoder, TextureView};
 use winit::window::Window;
 
+#[cfg(feature = "vello")]
+use crate::WgpuState;
 use crate::primitives::{CandyImage, CandySquare, CandyText};
 ///Trait used to control a 2D painter
 
@@ -24,8 +34,14 @@ pub trait BiDimensionalRenderer {
     fn resize(&mut self, window: &Window, width: u32, height: u32);
     #[cfg(feature = "vulkan")]
     fn resize(&mut self);
-    ///Finishes every command made supposing everything is ready to be drawn on the next frame
+
+    #[cfg(not(feature = "vello"))]
+    ///Finishes every commands on the renderer. Used before rendering a new frame
     fn flush(&mut self);
+
+    #[cfg(feature = "vello")]
+    ///Finishes every commands on the renderer. Used before rendering a new frame
+    fn flush(&mut self, texture: &TextureView, encoder: &mut CommandEncoder);
 
     fn painter(&mut self) -> &mut dyn BiDimensionalPainter;
 }
@@ -36,6 +52,8 @@ pub trait BiDimensionalRendererConstructor {
     fn new(window: Arc<Window>, config: &glutin::config::Config) -> Self;
     #[cfg(feature = "vulkan")]
     fn new(window: Arc<Window>) -> Self;
+    #[cfg(feature = "vello")]
+    fn new(window: Arc<Window>, state: Arc<WgpuState>) -> Self;
 }
 
 ///A 2D painter used to draw 2D stuff on the screen

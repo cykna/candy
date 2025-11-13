@@ -119,7 +119,7 @@ where
     R: CandyRenderer,
 {
     fn resumed(&mut self, active: &winit::event_loop::ActiveEventLoop) {
-        #[cfg(feature = "vulkan")]
+        #[cfg(any(feature = "vulkan", feature = "vello"))]
         {
             use std::sync::Arc;
 
@@ -162,9 +162,16 @@ where
             let (handler, renderer) = (&mut handler.0, &mut handler.1);
             match event {
                 winit::event::WindowEvent::RedrawRequested => {
-                    let texture = renderer.threed_renderer().render(None);
+                    let (texture, view, encoder) = renderer.threed_renderer().render(None);
                     handler.render(renderer.twod_renderer().painter());
-                    renderer.flush();
+                    #[cfg(feature = "vello")]
+                    {
+                        renderer.flush(&view, encoder);
+                    }
+                    #[cfg(not(feature = "vello"))]
+                    {
+                        renderer.flush();
+                    }
                     texture.present();
                 }
                 winit::event::WindowEvent::Resized(size) => {

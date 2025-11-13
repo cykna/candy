@@ -8,6 +8,9 @@ pub use bidimensional::*;
 #[cfg(feature = "opengl")]
 use glutin::config::Config;
 pub use threedimensional::*;
+use vello::wgpu::CommandEncoder;
+#[cfg(feature = "vello")]
+use vello::wgpu::TextureView;
 use winit::window::Window;
 
 ///Trait used to define renderers for Candy. It uses 2 renderers inside to draw 2D and 3D and this is used mainly for requesting commands from them
@@ -17,6 +20,7 @@ pub trait CandyRenderer {
 
     #[cfg(feature = "opengl")]
     fn new(window: Arc<Window>, config: &Config) -> Self;
+
     fn new(window: Arc<Window>) -> Self;
 
     #[cfg(feature = "opengl")]
@@ -27,8 +31,13 @@ pub trait CandyRenderer {
 
     fn prepare(&mut self) {}
 
+    #[cfg(not(feature = "vello"))]
     ///Used to finish every commands on the renderers. Used before rendering a new frame
     fn flush(&mut self);
+
+    #[cfg(feature = "vello")]
+    ///Used to finish every commands on the renderers. Used before rendering a new frame
+    fn flush(&mut self, texture: &TextureView, encoder: CommandEncoder);
 
     ///Retrieves the internal renderer that controls the 2D
     fn twod_renderer(&mut self) -> &mut Self::TwoD;
@@ -57,12 +66,20 @@ where
         Self { twod, threed }
     }
     #[cfg(feature = "vulkan")]
-
     fn new(window: Arc<Window>) -> Self {
         let threed = ThreeD::new(window.clone());
         let twod = TwoD::new(window);
         Self { twod, threed }
     }
+
+    #[cfg(feature = "vello")]
+    fn new(window: Arc<Window>) -> Self {
+        let threed = ThreeD::new(window.clone());
+        let state = threed.state();
+        let twod = TwoD::new(window, state);
+        Self { twod, threed }
+    }
+
     #[cfg(feature = "opengl")]
     fn resize(&mut self, window: &Window, width: u32, height: u32) {
         self.twod.resize(window, width, height);
@@ -73,8 +90,10 @@ where
         self.threed.resize(width, height);
     }
 
-    fn flush(&mut self) {
-        self.twod.flush();
+    fn flush(&mut self, image: &TextureView, mut encoder: CommandEncoder) {
+        self.twod.flush(image, &mut encoder);
+        let buffer = encoder.finish();
+        self.threed.state().queue.submit([buffer]);
     }
 
     fn twod_renderer(&mut self) -> &mut TwoD {

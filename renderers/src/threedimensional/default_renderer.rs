@@ -1,28 +1,27 @@
 use std::{
     ops::{Deref, DerefMut},
-    rc::Rc,
     sync::Arc,
 };
 
-use wgpu::{
-    Adapter, BackendOptions, Backends, Color, Device, DeviceDescriptor, ExperimentalFeatures,
-    Features, Instance, InstanceFlags, Limits, Operations, Queue, RenderPassColorAttachment,
-    RenderPassDescriptor, RequestAdapterOptions, Surface, SurfaceConfiguration, TextureFormat,
-    TextureUsages, Trace,
+use vello::wgpu::{
+    self, Adapter, BackendOptions, Backends, CommandEncoder, Device, DeviceDescriptor, Features,
+    Instance, InstanceFlags, Limits, Operations, Queue, RenderPassColorAttachment,
+    RenderPassDescriptor, RequestAdapterOptions, Surface, SurfaceConfiguration, TextureUsages,
+    TextureView, Trace,
     wgt::{CommandEncoderDescriptor, TextureViewDescriptor},
 };
-use wgpu_hal::{Api, DynDevice};
+
 use winit::window::Window;
 
 use crate::{ThreeDimensionalRenderer, ThreeDimensionalRendererConstructor};
 
+#[derive(Debug)]
 ///The inner state of the default renderer used mainly to talk with wgpu
 pub struct WgpuState {
     pub(crate) surface: Surface<'static>,
     adapter: Adapter,
-    device: Device,
-    queue: Queue,
-    config: SurfaceConfiguration,
+    pub(crate) device: Device,
+    pub(crate) queue: Queue,
 }
 
 impl WgpuState {
@@ -35,8 +34,10 @@ impl WgpuState {
     ) -> SurfaceConfiguration {
         let capabilities = surface.get_capabilities(adapter);
         SurfaceConfiguration {
-            usage: TextureUsages::RENDER_ATTACHMENT,
-            format: capabilities.formats[0],
+            usage: TextureUsages::RENDER_ATTACHMENT
+                | wgpu::TextureUsages::STORAGE_BINDING
+                | wgpu::TextureUsages::COPY_DST,
+            format: wgpu::TextureFormat::Rgba8Unorm,
             width,
             height,
             present_mode: capabilities.present_modes[0],
@@ -47,12 +48,12 @@ impl WgpuState {
     }
 
     ///Retrieves a new State to work with the provided `window`. Panics if something goes wrong during initialization, since this is a basic operation to the software start operating
-    fn new(window: Arc<Window>) -> Self {
+    fn new(window: Arc<Window>) -> (Self, SurfaceConfiguration) {
         let instance = Instance::new(&wgpu::InstanceDescriptor {
             backends: if cfg!(feature = "vulkan") {
                 Backends::VULKAN
             } else {
-                Backends::GL
+                Backends::all()
             },
             flags: InstanceFlags::all(),
             memory_budget_thresholds: wgpu::MemoryBudgetThresholds::default(),
@@ -71,7 +72,6 @@ impl WgpuState {
             required_features: Features::empty(),
             required_limits: Limits::defaults(),
             memory_hints: wgpu::MemoryHints::Performance,
-            experimental_features: ExperimentalFeatures::disabled(),
             trace: Trace::Off,
         }))
         .unwrap();
@@ -79,31 +79,40 @@ impl WgpuState {
         let surface_config =
             Self::surface_config(&surface, &adapter, window_size.width, window_size.height);
         surface.configure(&device, &surface_config);
-        Self {
-            surface,
-            adapter,
-            device,
-            queue,
-            config: surface_config,
-        }
+        (
+            Self {
+                surface,
+                adapter,
+                device,
+                queue,
+            },
+            surface_config,
+        )
     }
 }
 
 ///The default 3D renderer used by Candy. Note that on it's creation, on failures, it will panic.
 pub struct Candy3DefaultRenderer {
-    state: WgpuState,
+    state: Arc<WgpuState>,
+    config: SurfaceConfiguration,
 }
 
 impl ThreeDimensionalRenderer for Candy3DefaultRenderer {
+    fn state(&self) -> Arc<WgpuState> {
+        self.state.clone()
+    }
     fn resize(&mut self, width: u32, height: u32) {
-        self.state.config.width = width;
-        self.state.config.height = height;
+        self.config.width = width;
+        self.config.height = height;
+        self.state
+            .surface
+            .configure(&self.state.device, &self.config);
     }
     ///Returns the surface texture to be able to draw other things after it
     fn render(
         &mut self,
         scene: Option<&dyn candy_shared_types::threed::ThreeDScene>,
-    ) -> wgpu::SurfaceTexture {
+    ) -> (wgpu::SurfaceTexture, wgpu::TextureView, CommandEncoder) {
         let texture = self.surface.get_current_texture().unwrap();
 
         let view = texture
@@ -130,22 +139,22 @@ impl ThreeDimensionalRenderer for Candy3DefaultRenderer {
                     },
                 })],
             });
-        }
-        let command_buffer = encoder.finish();
-        self.queue.submit([command_buffer]);
-        texture
+        };
+        (texture, view, encoder)
     }
 }
 impl ThreeDimensionalRendererConstructor for Candy3DefaultRenderer {
     fn new(window: Arc<Window>) -> Self {
+        let (state, config) = WgpuState::new(window);
         Self {
-            state: WgpuState::new(window),
+            state: Arc::new(state),
+            config,
         }
     }
 }
 
 impl Deref for Candy3DefaultRenderer {
-    type Target = WgpuState;
+    type Target = Arc<WgpuState>;
     fn deref(&self) -> &Self::Target {
         &self.state
     }
