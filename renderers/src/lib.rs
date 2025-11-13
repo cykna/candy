@@ -2,10 +2,10 @@ mod bidimensional;
 pub mod primitives;
 mod threedimensional;
 
-#[cfg(feature = "opengl")]
 use std::sync::Arc;
 
 pub use bidimensional::*;
+#[cfg(feature = "opengl")]
 use glutin::config::Config;
 pub use threedimensional::*;
 use winit::window::Window;
@@ -17,10 +17,15 @@ pub trait CandyRenderer {
 
     #[cfg(feature = "opengl")]
     fn new(window: Arc<Window>, config: &Config) -> Self;
+    fn new(window: Arc<Window>) -> Self;
 
     #[cfg(feature = "opengl")]
     ///Method called when this renderer is resized. The `width` and `height` are the new dimensions that were given
     fn resize(&mut self, window: &Window, width: u32, height: u32);
+
+    fn resize(&mut self, width: u32, height: u32);
+
+    fn prepare(&mut self) {}
 
     ///Used to finish every commands on the renderers. Used before rendering a new frame
     fn flush(&mut self);
@@ -51,9 +56,21 @@ where
         let twod = TwoD::new(window, config);
         Self { twod, threed }
     }
+    #[cfg(feature = "vulkan")]
+
+    fn new(window: Arc<Window>) -> Self {
+        let threed = ThreeD::new(window.clone());
+        let twod = TwoD::new(window);
+        Self { twod, threed }
+    }
     #[cfg(feature = "opengl")]
     fn resize(&mut self, window: &Window, width: u32, height: u32) {
         self.twod.resize(window, width, height);
+    }
+    fn resize(&mut self, width: u32, height: u32) {
+        #[cfg(feature = "vulkan")]
+        self.twod.resize();
+        self.threed.resize(width, height);
     }
 
     fn flush(&mut self) {

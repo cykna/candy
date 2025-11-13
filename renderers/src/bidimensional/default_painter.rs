@@ -2,7 +2,7 @@ use std::ops::Range;
 
 use candy_shared_types::vec4f32_to_color;
 use nalgebra::Vector4;
-use skia_safe::{Paint, Point, Rect, SamplingOptions, canvas::SrcRectConstraint};
+use skia_safe::{Paint, Point, RRect, Rect, SamplingOptions, canvas::SrcRectConstraint};
 
 use crate::{
     BiDimensionalPainter,

@@ -10,12 +10,9 @@ pub use default_renderer_vk::*;
 
 mod default_painter;
 
-use std::ops::Range;
-#[cfg(feature = "opengl")]
-use std::sync::Arc;
-
 use nalgebra::{Vector2, Vector4};
-#[cfg(feature = "opengl")]
+use std::ops::Range;
+use std::sync::Arc;
 use winit::window::Window;
 
 use crate::primitives::{CandyImage, CandySquare, CandyText};
@@ -25,7 +22,8 @@ pub trait BiDimensionalRenderer {
     ///When this renderer is requested to resize with the given `width` and `height`
     #[cfg(feature = "opengl")]
     fn resize(&mut self, window: &Window, width: u32, height: u32);
-
+    #[cfg(feature = "vulkan")]
+    fn resize(&mut self);
     ///Finishes every command made supposing everything is ready to be drawn on the next frame
     fn flush(&mut self);
 
@@ -36,6 +34,8 @@ pub trait BiDimensionalRenderer {
 pub trait BiDimensionalRendererConstructor {
     #[cfg(feature = "opengl")]
     fn new(window: Arc<Window>, config: &glutin::config::Config) -> Self;
+    #[cfg(feature = "vulkan")]
+    fn new(window: Arc<Window>) -> Self;
 }
 
 ///A 2D painter used to draw 2D stuff on the screen

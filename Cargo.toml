@@ -36,5 +36,6 @@ members = [
 ]
 
 [features]
-default = ["opengl"]
+default = ["vulkan"]
 opengl = ["glutin-winit"]
+vulkan = ["candy_renderers/vulkan"]

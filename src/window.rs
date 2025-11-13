@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use candy_renderers::{BiDimensionalRenderer, CandyRenderer, ThreeDimensionalRenderer};
 use candy_shared_types::Rect;
 use flume::unbounded;
@@ -100,6 +98,7 @@ where
                 renderer,
             ));
         };
+
         let proxy = lp.create_proxy();
 
         std::thread::spawn(move || {
@@ -119,9 +118,20 @@ where
     Root: RootComponent,
     R: CandyRenderer,
 {
-    fn resumed(&mut self, _: &winit::event_loop::ActiveEventLoop) {
-        #[cfg(not(feature = "opengl"))]
-        println!("gayzinho");
+    fn resumed(&mut self, active: &winit::event_loop::ActiveEventLoop) {
+        #[cfg(feature = "vulkan")]
+        {
+            use std::sync::Arc;
+
+            let window = active.create_window(self.attribs.clone()).unwrap();
+            let window = Arc::new(window);
+
+            let renderer = CandyRenderer::new(window.clone());
+            self.handler = Some((
+                Root::new(window, <Root as RootComponent>::Args::default()),
+                renderer,
+            ));
+        }
     }
 
     fn user_event(&mut self, _: &winit::event_loop::ActiveEventLoop, event: ComponentEvents) {
@@ -159,7 +169,10 @@ where
                 }
                 winit::event::WindowEvent::Resized(size) => {
                     handler.resize(Rect::new(0.0, 0.0, size.width as f32, size.height as f32));
+                    #[cfg(feature = "opengl")]
                     renderer.resize(handler.window(), size.width, size.height);
+                    #[cfg(feature = "vulkan")]
+                    renderer.resize(size.width, size.height);
                 }
                 winit::event::WindowEvent::CloseRequested => {
                     event_loop.exit();
