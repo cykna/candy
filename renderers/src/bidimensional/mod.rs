@@ -1,9 +1,22 @@
+#[cfg(feature = "opengl")]
+mod default_renderer_gl;
+#[cfg(feature = "opengl")]
+pub use default_renderer_gl::*;
+
+#[cfg(feature = "vulkan")]
+mod default_renderer_vk;
+#[cfg(feature = "vulkan")]
+pub use default_renderer_vk::*;
+
+mod default_painter;
+
 use std::ops::Range;
+#[cfg(feature = "opengl")]
+use std::sync::Arc;
 
 use nalgebra::{Vector2, Vector4};
+#[cfg(feature = "opengl")]
 use winit::window::Window;
-mod default_renderer;
-pub use default_renderer::*;
 
 use crate::primitives::{CandyImage, CandySquare, CandyText};
 ///Trait used to control a 2D painter
@@ -22,7 +35,7 @@ pub trait BiDimensionalRenderer {
 ///Trait used to control a 2D painter
 pub trait BiDimensionalRendererConstructor {
     #[cfg(feature = "opengl")]
-    fn new(window: &Window, config: &glutin::config::Config) -> Self;
+    fn new(window: Arc<Window>, config: &glutin::config::Config) -> Self;
 }
 
 ///A 2D painter used to draw 2D stuff on the screen

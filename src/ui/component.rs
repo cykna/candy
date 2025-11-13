@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use candy_renderers::BiDimensionalPainter;
 use candy_shared_types::{Rect, Style};
 use nalgebra::Vector2;
@@ -31,7 +33,7 @@ pub trait Component {
 ///The root component that will be used to render all the screen. Note that mouse position is tracked by it as well
 pub trait RootComponent: Component {
     type Args: Default;
-    fn new(window: Window, args: Self::Args) -> Self;
+    fn new(window: Arc<Window>, args: Self::Args) -> Self;
 
     fn window(&self) -> &Window;
 

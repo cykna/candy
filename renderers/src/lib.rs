@@ -2,6 +2,9 @@ mod bidimensional;
 pub mod primitives;
 mod threedimensional;
 
+#[cfg(feature = "opengl")]
+use std::sync::Arc;
+
 pub use bidimensional::*;
 use glutin::config::Config;
 pub use threedimensional::*;
@@ -13,7 +16,7 @@ pub trait CandyRenderer {
     type ThreeD: ThreeDimensionalRenderer;
 
     #[cfg(feature = "opengl")]
-    fn new(window: &Window, config: &Config) -> Self;
+    fn new(window: Arc<Window>, config: &Config) -> Self;
 
     #[cfg(feature = "opengl")]
     ///Method called when this renderer is resized. The `width` and `height` are the new dimensions that were given
@@ -24,6 +27,8 @@ pub trait CandyRenderer {
 
     ///Retrieves the internal renderer that controls the 2D
     fn twod_renderer(&mut self) -> &mut Self::TwoD;
+    ///Retrieves the internal renderer that controls the 3D
+    fn threed_renderer(&mut self) -> &mut Self::ThreeD;
 }
 
 #[derive(Debug)]
@@ -41,11 +46,10 @@ where
     type TwoD = TwoD;
     type ThreeD = ThreeD;
     #[cfg(feature = "opengl")]
-    fn new(window: &Window, config: &Config) -> Self {
-        Self {
-            twod: TwoD::new(window, config),
-            threed: ThreeD::new(window),
-        }
+    fn new(window: Arc<Window>, config: &Config) -> Self {
+        let threed = ThreeD::new(window.clone());
+        let twod = TwoD::new(window, config);
+        Self { twod, threed }
     }
     #[cfg(feature = "opengl")]
     fn resize(&mut self, window: &Window, width: u32, height: u32) {
@@ -58,5 +62,8 @@ where
 
     fn twod_renderer(&mut self) -> &mut TwoD {
         &mut self.twod
+    }
+    fn threed_renderer(&mut self) -> &mut Self::ThreeD {
+        &mut self.threed
     }
 }

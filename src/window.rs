@@ -1,4 +1,6 @@
-use candy_renderers::{BiDimensionalRenderer, CandyRenderer};
+use std::time::Duration;
+
+use candy_renderers::{BiDimensionalRenderer, CandyRenderer, ThreeDimensionalRenderer};
 use candy_shared_types::Rect;
 use flume::unbounded;
 use lazy_static::lazy_static;
@@ -65,6 +67,8 @@ where
         let lp = EventLoop::with_user_event().build().unwrap();
         #[cfg(feature = "opengl")]
         {
+            use std::sync::Arc;
+
             use glutin::config::{ConfigTemplateBuilder, GlConfig};
 
             use glutin_winit::DisplayBuilder;
@@ -88,8 +92,9 @@ where
                         .unwrap()
                 })
                 .unwrap();
-            let window = window.expect("Window could not be created.");
-            let renderer = CandyRenderer::new(&window, &config);
+            let window = Arc::new(window.expect("Window could not be created."));
+
+            let renderer = CandyRenderer::new(window.clone(), &config);
             self.handler = Some((
                 Root::new(window, <Root as RootComponent>::Args::default()),
                 renderer,
@@ -147,8 +152,10 @@ where
             let (handler, renderer) = (&mut handler.0, &mut handler.1);
             match event {
                 winit::event::WindowEvent::RedrawRequested => {
+                    let texture = renderer.threed_renderer().render(None);
                     handler.render(renderer.twod_renderer().painter());
                     renderer.flush();
+                    texture.present();
                 }
                 winit::event::WindowEvent::Resized(size) => {
                     handler.resize(Rect::new(0.0, 0.0, size.width as f32, size.height as f32));

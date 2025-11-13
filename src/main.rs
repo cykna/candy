@@ -8,9 +8,9 @@ pub mod ui;
 pub mod window;
 
 use std::f32;
+use std::sync::Arc;
 use std::time::Duration;
 
-use crate::components::Input;
 use crate::components::{Scrollable, ScrollableConfig};
 
 use crate::text::manager::FontManager;
@@ -25,7 +25,7 @@ use crate::ui::animation::curves::LinearCurve;
 
 use candy_renderers::primitives::{CandyFont, CandySquare, CandyText};
 use candy_renderers::{BiDimensionalPainter, CandyDefaultRenderer};
-use candy_shared_types::{Effect, Rect, ShadowEffect, Style};
+use candy_shared_types::{Rect, Style};
 use nalgebra::{Vector2, Vector4};
 
 use crate::ui::{
@@ -33,13 +33,11 @@ use crate::ui::{
     styling::layout::Size,
 };
 use window::CandyWindow;
-use winit::keyboard::Key;
+
 use winit::{event::MouseButton, window::Window};
 
 #[cfg(feature = "opengl")]
 pub use glutin::config::Config;
-
-use crate::components::Text;
 
 pub enum Msg {
     None,
@@ -99,13 +97,12 @@ impl Component for Square {
 }
 
 struct State {
-    window: Window,
+    window: Arc<Window>,
     pos: Vector2<f32>,
     idx: usize,
     w: f32,
     h: f32,
     data: Scrollable<Square>,
-    input: Input,
     manager: FontManager,
     anims: SchedulerSender,
 }
@@ -159,7 +156,6 @@ impl Style for AnimState {
 }
 impl AnimationState for AnimState {
     fn lerp(start: &Self, end: &Self, cdt: f32, dt: f32) -> Self {
-        println!("{cdt} {dt}");
         let final_pos = { start.pos.lerp(&end.pos, cdt) };
         Self {
             color: start.color.lerp(&end.color, cdt),
@@ -172,54 +168,11 @@ impl AnimationState for AnimState {
     }
 }
 
-#[derive(Debug)]
-pub struct RedShadow;
-impl Style for RedShadow {
-    fn effect(&self) -> Box<dyn Effect> {
-        Box::new(RedShadow)
-    }
-    fn background_color(&self) -> Vector4<f32> {
-        Vector4::new(1.0, 0.0, 1.0, 1.0)
-    }
-    fn color(&self) -> Vector4<f32> {
-        Vector4::new(1.0, 1.0, 0.0, 1.0)
-    }
-    fn border_color(&self) -> Vector4<f32> {
-        Vector4::new(1.0, 0.0, 0.0, 0.5)
-    }
-    fn border_radius(&self) -> Vector2<f32> {
-        Vector2::new(12.0, 12.0)
-    }
-    fn border_width(&self) -> f32 {
-        5.0
-    }
-}
-
-#[derive(Debug)]
-pub struct StyleQualquer;
-impl Style for StyleQualquer {
-    fn color(&self) -> Vector4<f32> {
-        Vector4::new(0.0, 1.0, 1.0, 1.0)
-    }
-}
-
-impl Effect for RedShadow {
-    fn shadow(&self) -> Option<ShadowEffect> {
-        Some(ShadowEffect {
-            color: Vector4::new(1.0, 1.0, 0.0, 0.5),
-            offset: Vector2::new(20.0, 20.0),
-            blur: Vector2::new(10.0, 10.0),
-        })
-    }
-}
-
 impl RootComponent for State {
     type Args = ();
-    fn new(window: Window, _: ()) -> Self {
+    fn new(window: Arc<Window>, _: ()) -> Self {
         let font = FontManager::new();
 
-        println!("{:?}", font.avaible_fonts());
-        let content = font.create_font("Nimbus Roman", 24.0);
         Self {
             window,
             idx: 0,
@@ -230,13 +183,8 @@ impl RootComponent for State {
             w: 0.0,
             h: 0.0,
             pos: Vector2::zeros(),
-            input: {
-                let mut inp = Input::new(Text::new_content("JF Flat", content.clone().unwrap()));
-                inp.apply_style(&StyleQualquer);
-                inp
-            },
             data: {
-                let mut scroll = Scrollable::new(ScrollableConfig {
+                let scroll = Scrollable::new(ScrollableConfig {
                     layout: {
                         let mut out = Layout::vertical();
                         out.with_gap(Vector2::new(Size::Length(0.0), Size::Length(10.0)));
@@ -245,7 +193,6 @@ impl RootComponent for State {
                     scroll_bar_width: 10.0,
                     direction: Direction::Vertical,
                 });
-                scroll.apply_style_scrollbar(&RedShadow);
                 scroll
             },
             manager: font,
@@ -253,35 +200,6 @@ impl RootComponent for State {
     }
     fn window(&self) -> &Window {
         &self.window
-    }
-
-    fn keydown(
-        &mut self,
-        key: winit::keyboard::Key<winit::keyboard::SmolStr>,
-        _: winit::keyboard::KeyLocation,
-    ) -> bool {
-        match key {
-            Key::Character(c) => {
-                self.input.write_str(&c);
-                true
-            }
-
-            Key::Named(key) => {
-                if let winit::keyboard::NamedKey::ArrowLeft = key {
-                    self.input.move_left(1);
-                    true
-                } else if let winit::keyboard::NamedKey::Space = key {
-                    self.input.write(' ');
-                    true
-                } else if let winit::keyboard::NamedKey::Enter = key {
-                    self.input.write('\n');
-                    true
-                } else {
-                    false
-                }
-            }
-            _ => false,
-        }
     }
 
     fn keyup(
@@ -306,7 +224,7 @@ impl RootComponent for State {
     fn on_mouse_move(&mut self, pos: Vector2<f32>) -> bool {
         self.data.drag(pos);
 
-        self.data.is_dragging()
+        false
     }
     fn click(&mut self, _: MouseButton) -> bool {
         self.data.on_mouse_click(Vector2::new(0.0, 0.0));
@@ -314,7 +232,6 @@ impl RootComponent for State {
         let font = self.manager.create_font("Nimbus Roman", 24.0).unwrap();
         let mut s = Square::new(font);
         *s.text.content_mut() = format!("Hello {}", self.data.children().len());
-        s.apply_style(&StyleQualquer);
 
         self.data.add_child(
             s,

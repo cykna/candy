@@ -1,5 +1,6 @@
 //This crate contains only the abstractions over `renderer` and the most higher level features used on the library
 mod rect;
+pub mod threed;
 mod ui;
 use nalgebra::Vector4;
 pub use rect::*;
