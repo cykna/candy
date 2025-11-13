@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
-use nalgebra::Vector4;
+use nalgebra::{Vector2, Vector4};
 use vello::{
     AaSupport, RenderParams, Renderer, RendererOptions, Scene,
-    kurbo::{self, Affine, Rect},
-    peniko::{BlendMode, BrushRef, Fill, color::AlphaColor},
+    kurbo::{self, Affine, Rect, RoundedRectRadii, Shape, Stroke},
+    peniko::{BlendMode, Blob, BrushRef, Fill, FontData, color::AlphaColor},
     wgpu::{
         self, BlendComponent, BlendFactor, BlendOperation, BlendState, Color, CommandEncoder,
         CommandEncoderDescriptor, Extent3d, Operations, RenderPassColorAttachment,
@@ -160,33 +160,76 @@ impl BiDimensionalPainter for Candy2DefaultRenderer {
         let rule = &square_info.rule;
 
         let radius = rule.border_radius;
-        let rect = {
-            let position = square_info.position();
-            let size = square_info.size();
-            kurbo::Rect {
+
+        let position = square_info.position();
+        let size = square_info.size();
+        let color = rule.get_color();
+        let mut brush = BrushRef::Solid(AlphaColor::new([color.x, color.y, color.z, color.w]));
+        if radius == Vector2::zeros() {
+            let rect = kurbo::Rect {
                 x0: position.x as f64,
                 y0: position.y as f64,
                 x1: (position.x + size.x) as f64,
                 y1: (position.y + size.y) as f64,
+            };
+            self.scene.fill(
+                Fill::NonZero,
+                Affine::IDENTITY,
+                BrushRef::Solid(AlphaColor::new([color.x, color.y, color.z, color.w])),
+                None,
+                &rect,
+            );
+            let border_color = rule.border_color;
+
+            if border_color.w == 0.0 || rule.border_width == 0.0 {
+                return;
             }
-        };
+            brush = BrushRef::Solid(AlphaColor::new([
+                rule.border_color.x,
+                rule.border_color.y,
+                rule.border_color.z,
+                rule.border_color.w,
+            ]));
+            self.scene.stroke(
+                &Stroke::new(rule.border_width as f64),
+                Affine::IDENTITY,
+                brush,
+                None,
+                &rect,
+            );
+        } else {
+            let rect = kurbo::RoundedRect::new(
+                position.x as f64,
+                position.y as f64,
+                (position.x + size.x) as f64,
+                (position.y + size.y) as f64,
+                RoundedRectRadii::new(
+                    radius.x.into(),
+                    radius.x.into(),
+                    radius.y.into(),
+                    radius.y.into(),
+                ),
+            );
+            self.scene
+                .fill(Fill::NonZero, Affine::IDENTITY, brush, None, &rect);
+            let border_color = rule.border_color;
 
-        let color = rule.get_color();
-
-        let window = self.window.inner_size();
-
-        self.scene.fill(
-            Fill::NonZero,
-            Affine::IDENTITY,
-            BrushRef::Solid(AlphaColor::new([color.x, color.y, color.z, color.w])),
-            None,
-            &rect,
-        );
-
-        let border_color = rule.border_color;
-
-        if border_color.w == 0.0 || rule.border_width == 0.0 {
-            return;
+            if border_color.w == 0.0 || rule.border_width == 0.0 {
+                return;
+            }
+            brush = BrushRef::Solid(AlphaColor::new([
+                rule.border_color.x,
+                rule.border_color.y,
+                rule.border_color.z,
+                rule.border_color.w,
+            ]));
+            self.scene.stroke(
+                &Stroke::new(rule.border_width as f64),
+                Affine::IDENTITY,
+                brush,
+                None,
+                &rect,
+            );
         }
     }
     fn circle(

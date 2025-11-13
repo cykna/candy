@@ -78,22 +78,24 @@ impl CandyText {
 
     ///Gets the width of this Text
     pub fn text_width(&self) -> f32 {
-        self.font
-            .measure_str(&self.content(), Some(&self.rule.inner))
-            .0
+        /*self.font
+        .measure_str(&self.content(), Some(&self.rule.inner))
+        .0*/
+        0.0
     }
 
     ///Gets the bounds of this Text.
     #[inline]
     pub fn text_bounds(&self) -> Rect {
-        let (_, rect) = self
-            .font
-            .measure_str(self.content(), Some(&self.rule.inner));
+        /*let (_, rect) = self
+        .font
+        .measure_str(self.content(), Some(&self.rule.inner));*/
+
         Rect {
-            x: rect.x(),
-            y: rect.y(),
-            width: rect.width(),
-            height: rect.height(),
+            x: 0.0,      //rect.x(),
+            y: 0.0,      //rect.y(),
+            width: 0.0,  //rect.width(),
+            height: 0.0, //rect.height(),
         }
     }
 
@@ -113,17 +115,13 @@ impl CandyText {
     #[inline]
     pub fn apply_style(&mut self, style: &dyn Style) {
         self.rule.apply_style(style);
-        self.rule
-            .inner
-            .set_color4f(vec4f32_to_color(&style.color()), None);
+        self.rule.set_color(&style.color());
     }
 
     #[inline]
     pub fn with_style(mut self, style: &dyn Style) -> Self {
         self.rule.apply_style(style);
-        self.rule
-            .inner
-            .set_color4f(vec4f32_to_color(&style.color()), None);
+        self.rule.set_color(&style.color());
         self
     }
 }
