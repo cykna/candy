@@ -1,5 +1,5 @@
 use candy_renderers::{BiDimensionalRenderer, CandyRenderer, ThreeDimensionalRenderer};
-use candy_shared_types::Rect;
+use candy_shared_types::{Rect, threed::ThreeDScene};
 use flume::unbounded;
 use lazy_static::lazy_static;
 
@@ -36,28 +36,27 @@ pub(crate) enum ComponentEvents {
     Redraw,
 }
 
-unsafe impl Send for ComponentEventsScheduler {}
-unsafe impl Sync for ComponentEventsScheduler {}
-unsafe impl Sync for ComponentEvents {}
-unsafe impl Send for ComponentEvents {}
-
 #[derive(Default, Debug)]
-pub struct CandyWindow<Root, Renderer>
+pub struct CandyWindow<Root, Renderer, Scene>
 where
     Root: RootComponent,
     Renderer: CandyRenderer,
+    Scene: ThreeDScene,
 {
     handler: Option<(Root, Renderer)>,
     attribs: WindowAttributes,
+    scene: Option<Scene>,
 }
-impl<Root: RootComponent, R> CandyWindow<Root, R>
+impl<Root: RootComponent, R, Scene> CandyWindow<Root, R, Scene>
 where
     R: CandyRenderer,
+    Scene: ThreeDScene,
 {
-    pub fn new(attribs: WindowAttributes) -> Self {
+    pub fn new(attribs: WindowAttributes, scene: Option<Scene>) -> Self {
         Self {
             handler: None,
             attribs,
+            scene,
         }
     }
 
@@ -113,10 +112,12 @@ where
     }
 }
 
-impl<Root, R> winit::application::ApplicationHandler<ComponentEvents> for CandyWindow<Root, R>
+impl<Root, R, Scene> winit::application::ApplicationHandler<ComponentEvents>
+    for CandyWindow<Root, R, Scene>
 where
     Root: RootComponent,
     R: CandyRenderer,
+    Scene: ThreeDScene,
 {
     fn resumed(&mut self, active: &winit::event_loop::ActiveEventLoop) {
         #[cfg(any(feature = "vulkan", feature = "vello"))]
@@ -162,7 +163,9 @@ where
             let (handler, renderer) = (&mut handler.0, &mut handler.1);
             match event {
                 winit::event::WindowEvent::RedrawRequested => {
-                    let (texture, view, encoder) = renderer.threed_renderer().render(None);
+                    let (texture, view, encoder) = renderer
+                        .threed_renderer()
+                        .render(self.scene.as_ref().map(|v| v.meshes()));
                     handler.render(renderer.twod_renderer().painter());
                     #[cfg(feature = "vello")]
                     {

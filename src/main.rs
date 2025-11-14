@@ -1,8 +1,5 @@
 pub mod components;
-
 pub mod helpers;
-pub mod renderer;
-
 pub mod text;
 pub mod ui;
 pub mod window;
@@ -25,6 +22,7 @@ use crate::ui::animation::curves::LinearCurve;
 
 use candy_renderers::primitives::{CandyFont, CandySquare, CandyText};
 use candy_renderers::{BiDimensionalPainter, CandyDefaultRenderer};
+use candy_shared_types::threed::{Mesh, ThreeDScene};
 use candy_shared_types::{Rect, Style};
 use nalgebra::{Vector2, Vector4};
 
@@ -273,11 +271,25 @@ impl RootComponent for State {
     }
 }
 
+pub struct TestScene {
+    scene: Vec<Mesh>,
+}
+
+impl ThreeDScene for TestScene {
+    fn insert_mesh(&mut self, mesh: Mesh) {
+        self.scene.push(mesh);
+    }
+    fn meshes(&self) -> impl Iterator<Item = &Mesh> {
+        self.scene.iter()
+    }
+}
+
 fn main() {
-    CandyWindow::<State, CandyDefaultRenderer>::new(
+    CandyWindow::<State, CandyDefaultRenderer, TestScene>::new(
         Window::default_attributes()
             .with_transparent(true)
             .with_title("Candy"),
+        Some(TestScene { scene: Vec::new() }),
     )
     .run();
 }

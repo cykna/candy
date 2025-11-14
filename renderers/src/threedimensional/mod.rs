@@ -1,7 +1,6 @@
-extern crate wgpu;
 use std::sync::Arc;
 
-use candy_shared_types::threed::{GpuCalculation, ThreeDScene};
+use candy_shared_types::threed::{GpuCalculation, Mesh};
 use vello::wgpu::{CommandEncoder, SurfaceTexture, TextureView};
 use winit::window::Window;
 mod default_renderer;
@@ -11,9 +10,9 @@ pub trait ThreeDimensionalRenderer {
     fn resize(&mut self, width: u32, height: u32);
 
     ///Renders the 3D with the provided scene and returns the surface texture to be able to draw other things after it, such as skia
-    fn render(
+    fn render<'a>(
         &mut self,
-        scene: Option<&dyn ThreeDScene>,
+        scene: Option<impl Iterator<Item = &'a Mesh>>,
     ) -> (SurfaceTexture, TextureView, CommandEncoder);
 
     fn calculate(&mut self, _: &dyn GpuCalculation) {}

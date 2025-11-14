@@ -3,11 +3,12 @@ use std::{
     sync::Arc,
 };
 
+use candy_shared_types::threed::Mesh;
 use vello::wgpu::{
     self, Adapter, BackendOptions, Backends, Color, CommandEncoder, Device, DeviceDescriptor,
     Features, Instance, InstanceFlags, Limits, Operations, Queue, RenderPassColorAttachment,
     RenderPassDescriptor, RequestAdapterOptions, Surface, SurfaceConfiguration, TextureUsages,
-    TextureView, Trace,
+    Trace,
     wgt::{CommandEncoderDescriptor, TextureViewDescriptor},
 };
 
@@ -109,9 +110,9 @@ impl ThreeDimensionalRenderer for Candy3DefaultRenderer {
             .configure(&self.state.device, &self.config);
     }
     ///Returns the surface texture to be able to draw other things after it
-    fn render(
+    fn render<'a>(
         &mut self,
-        scene: Option<&dyn candy_shared_types::threed::ThreeDScene>,
+        scene: Option<impl Iterator<Item = &'a Mesh>>,
     ) -> (wgpu::SurfaceTexture, wgpu::TextureView, CommandEncoder) {
         let texture = self.surface.get_current_texture().unwrap();
 
@@ -134,7 +135,7 @@ impl ThreeDimensionalRenderer for Candy3DefaultRenderer {
                     depth_slice: None,
                     resolve_target: None,
                     ops: Operations {
-                        load: wgpu::LoadOp::Clear(Color::GREEN),
+                        load: wgpu::LoadOp::Clear(Color::TRANSPARENT),
                         store: wgpu::StoreOp::Store,
                     },
                 })],
