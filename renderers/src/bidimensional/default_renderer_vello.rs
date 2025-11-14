@@ -27,7 +27,6 @@ pub struct Candy2DefaultRenderer {
     window: Arc<Window>,
     background: Vector4<f32>,
     texture: Texture,
-    view: TextureView,
     blitter: TextureBlitter,
 }
 impl BiDimensionalRendererConstructor for Candy2DefaultRenderer {
@@ -77,10 +76,6 @@ impl BiDimensionalRendererConstructor for Candy2DefaultRenderer {
             })
             .build();
         Self {
-            view: texture.create_view(&TextureViewDescriptor {
-                label: None,
-                ..Default::default()
-            }),
             blitter,
             window,
             renderer,

@@ -7,8 +7,8 @@ use candy_shared_types::threed::Mesh;
 use vello::wgpu::{
     self, Adapter, BackendOptions, Backends, Color, CommandEncoder, Device, DeviceDescriptor,
     Features, Instance, InstanceFlags, Limits, Operations, Queue, RenderPassColorAttachment,
-    RenderPassDescriptor, RequestAdapterOptions, Surface, SurfaceConfiguration, TextureUsages,
-    Trace,
+    RenderPassDescriptor, RequestAdapterOptions, ShaderModule, ShaderModuleDescriptor, Surface,
+    SurfaceConfiguration, TextureFormat, TextureUsages, Trace,
     wgt::{CommandEncoderDescriptor, TextureViewDescriptor},
 };
 
@@ -90,6 +90,25 @@ impl WgpuState {
             surface_config,
         )
     }
+
+    ///Retrieves the inner device of this state.
+    pub fn device(&self) -> &Device {
+        &self.device
+    }
+
+    ///Creates a new Wgsl shader from the given `source`
+    pub fn create_shader(&self, source: &str) -> ShaderModule {
+        let module = self.device.create_shader_module(ShaderModuleDescriptor {
+            label: Some("shader creation"),
+            source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(source)),
+        });
+        module
+    }
+
+    ///Retrieves the color format of the surface this state will render to.
+    pub fn retrieve_surface_color_format(&self) -> TextureFormat {
+        TextureFormat::Rgba8Unorm
+    }
 }
 
 ///The default 3D renderer used by Candy. Note that on it's creation, on failures, it will panic.
@@ -112,20 +131,16 @@ impl ThreeDimensionalRenderer for Candy3DefaultRenderer {
     ///Returns the surface texture to be able to draw other things after it
     fn render<'a>(
         &mut self,
+        encoder: &mut CommandEncoder,
         scene: Option<impl Iterator<Item = &'a Mesh>>,
-    ) -> (wgpu::SurfaceTexture, wgpu::TextureView, CommandEncoder) {
+    ) -> (wgpu::SurfaceTexture, wgpu::TextureView) {
         let texture = self.surface.get_current_texture().unwrap();
 
         let view = texture
             .texture
             .create_view(&TextureViewDescriptor::default());
-        let mut encoder = self
-            .device
-            .create_command_encoder(&CommandEncoderDescriptor {
-                label: Some("Encoder descriptor"),
-            });
         {
-            let pass = encoder.begin_render_pass(&RenderPassDescriptor {
+            let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
                 depth_stencil_attachment: None,
                 timestamp_writes: None,
                 occlusion_query_set: None,
@@ -140,8 +155,13 @@ impl ThreeDimensionalRenderer for Candy3DefaultRenderer {
                     },
                 })],
             });
+            if let Some(meshes) = scene {
+                for mesh in meshes {
+                    mesh.render(&mut pass);
+                }
+            }
         };
-        (texture, view, encoder)
+        (texture, view)
     }
 }
 impl ThreeDimensionalRendererConstructor for Candy3DefaultRenderer {

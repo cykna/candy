@@ -1,12 +1,12 @@
 use candy_renderers::{BiDimensionalRenderer, CandyRenderer, ThreeDimensionalRenderer};
-use candy_shared_types::{Rect, threed::ThreeDScene};
+use candy_shared_types::Rect;
 use flume::unbounded;
 use lazy_static::lazy_static;
 
 use nalgebra::Vector2;
 use winit::{event_loop::EventLoop, window::WindowAttributes};
 
-use crate::ui::component::RootComponent;
+use crate::{threed::ThreeDScene, ui::component::RootComponent};
 
 use flume::{Receiver, Sender};
 
@@ -52,11 +52,11 @@ where
     R: CandyRenderer,
     Scene: ThreeDScene,
 {
-    pub fn new(attribs: WindowAttributes, scene: Option<Scene>) -> Self {
+    pub fn new(attribs: WindowAttributes) -> Self {
         Self {
             handler: None,
             attribs,
-            scene,
+            scene: None,
         }
     }
 
@@ -127,7 +127,8 @@ where
             let window = active.create_window(self.attribs.clone()).unwrap();
             let window = Arc::new(window);
 
-            let renderer = CandyRenderer::new(window.clone());
+            let mut renderer: R = R::new(window.clone());
+            self.scene = Some(Scene::new(&renderer.threed_renderer().state()));
             self.handler = Some((
                 Root::new(window, <Root as RootComponent>::Args::default()),
                 renderer,
@@ -163,9 +164,14 @@ where
             let (handler, renderer) = (&mut handler.0, &mut handler.1);
             match event {
                 winit::event::WindowEvent::RedrawRequested => {
-                    let (texture, view, encoder) = renderer
+                    let mut encoder = renderer
                         .threed_renderer()
-                        .render(self.scene.as_ref().map(|v| v.meshes()));
+                        .state()
+                        .device()
+                        .create_command_encoder(&Default::default());
+                    let (texture, view) = renderer
+                        .threed_renderer()
+                        .render(&mut encoder, self.scene.as_ref().map(|v| v.meshes()));
                     handler.render(renderer.twod_renderer().painter());
                     #[cfg(feature = "vello")]
                     {
@@ -179,9 +185,11 @@ where
                 }
                 winit::event::WindowEvent::Resized(size) => {
                     handler.resize(Rect::new(0.0, 0.0, size.width as f32, size.height as f32));
+                    if let Some(ref mut scene) = self.scene {
+                        scene.resize(size.width, size.height);
+                    }
                     #[cfg(feature = "opengl")]
                     renderer.resize(handler.window(), size.width, size.height);
-                    #[cfg(feature = "vulkan")]
                     renderer.resize(size.width, size.height);
                 }
                 winit::event::WindowEvent::CloseRequested => {
@@ -191,26 +199,52 @@ where
                     if state.is_pressed() && handler.click(button) {
                         handler.window().request_redraw();
                     }
+                    if let Some(ref mut scene) = self.scene {
+                        scene.click(&renderer.threed_renderer().state(), button);
+                    }
                 }
                 winit::event::WindowEvent::CursorMoved { position, .. } => {
-                    if handler.on_mouse_move(Vector2::new(position.x as f32, position.y as f32)) {
+                    let pos = Vector2::new(position.x as f32, position.y as f32);
+                    if handler.on_mouse_move(pos) {
                         handler.window().request_redraw();
+                    }
+                    if let Some(ref mut scene) = self.scene {
+                        scene.on_mouse_move(&renderer.threed_renderer().state(), pos);
                     }
                 }
                 winit::event::WindowEvent::MouseWheel { delta, phase, .. } => {
                     if handler.on_mouse_wheel(delta, phase) {
                         handler.window().request_redraw();
                     }
+                    if let Some(ref mut scene) = self.scene {
+                        scene.on_mouse_wheel(&renderer.threed_renderer().state(), delta, phase);
+                    }
                 }
                 winit::event::WindowEvent::KeyboardInput { event, .. } => {
+                    let key = event.logical_key.clone();
                     let flag = if event.state.is_pressed() {
-                        handler.keydown(event.logical_key, event.location)
+                        handler.keydown(key, event.location)
                     } else {
-                        handler.keyup(event.logical_key, event.location)
+                        handler.keyup(key, event.location)
                     };
                     if flag {
                         handler.window().request_redraw();
                     }
+                    if let Some(ref mut scene) = self.scene {
+                        if event.state.is_pressed() {
+                            scene.keydown(
+                                &renderer.threed_renderer().state(),
+                                event.logical_key,
+                                event.location,
+                            );
+                        } else {
+                            scene.keyup(
+                                &renderer.threed_renderer().state(),
+                                event.logical_key,
+                                event.location,
+                            );
+                        }
+                    };
                 }
                 _ => {}
             }

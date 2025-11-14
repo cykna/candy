@@ -26,7 +26,8 @@ glutin.workspace=true
 glutin-winit = {version = "0.5.0", optional=true}
 lazy_static.workspace=true
 skia-safe.workspace=true
-
+candy-macros.workspace=true
+bytemuck.workspace=true
 
 [lib]
 name = "candy"

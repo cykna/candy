@@ -257,6 +257,8 @@ dependencies = [
 name = "candy"
 version = "0.1.0"
 dependencies = [
+ "bytemuck",
+ "candy-macros",
  "candy-shared-types",
  "candy_renderers",
  "flume",

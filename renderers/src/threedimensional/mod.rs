@@ -12,8 +12,9 @@ pub trait ThreeDimensionalRenderer {
     ///Renders the 3D with the provided scene and returns the surface texture to be able to draw other things after it, such as skia
     fn render<'a>(
         &mut self,
+        encoder: &mut CommandEncoder,
         scene: Option<impl Iterator<Item = &'a Mesh>>,
-    ) -> (SurfaceTexture, TextureView, CommandEncoder);
+    ) -> (SurfaceTexture, TextureView);
 
     fn calculate(&mut self, _: &dyn GpuCalculation) {}
 

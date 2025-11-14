@@ -1,6 +1,7 @@
 pub mod components;
 pub mod helpers;
 pub mod text;
+pub mod threed;
 pub mod ui;
 pub mod window;
 
@@ -11,6 +12,7 @@ use std::time::Duration;
 use crate::components::{Scrollable, ScrollableConfig};
 
 use crate::text::manager::FontManager;
+use crate::threed::ThreeDScene;
 use crate::ui::animation::manager::AnimationManager;
 use crate::ui::animation::scheduler::{AnimationScheduler, SchedulerSender};
 use crate::ui::animation::{Animatable, Animation, AnimationConfig, AnimationState};
@@ -20,9 +22,12 @@ use crate::ui::styling::layout::{DefinitionRect, Direction};
 
 use crate::ui::animation::curves::LinearCurve;
 
+use candy_macros::Vertex;
 use candy_renderers::primitives::{CandyFont, CandySquare, CandyText};
 use candy_renderers::{BiDimensionalPainter, CandyDefaultRenderer};
-use candy_shared_types::threed::{Mesh, ThreeDScene};
+use candy_shared_types::threed::{
+    Material, MaterialData, Mesh, MeshData, PolygonMode, PrimitiveTopology, SingleObjectMesh,
+};
 use candy_shared_types::{Rect, Style};
 use nalgebra::{Vector2, Vector4};
 
@@ -112,7 +117,7 @@ impl Component for State {
         self.data.resize(rect.clone());
     }
     fn render(&self, renderer: &mut dyn BiDimensionalPainter) {
-        renderer.background(&Vector4::new(0.0, 0.1, 0.2, 0.8));
+        renderer.background(&Vector4::new(0.0, 0.1, 0.2, 0.0));
         self.data.render(renderer);
     }
     fn apply_style(&mut self, _: &dyn Style) {}
@@ -271,16 +276,61 @@ impl RootComponent for State {
     }
 }
 
+use candy_shared_types::threed::{GpuVertex, vertex_attr_array, wgpu};
+
+#[derive(Vertex, Clone, Copy)]
+#[repr(C)]
+pub struct SomeVertex {
+    position: [f32; 2],
+}
+
 pub struct TestScene {
     scene: Vec<Mesh>,
 }
 
 impl ThreeDScene for TestScene {
+    fn new(state: &candy_renderers::WgpuState) -> Self {
+        let shader = state.create_shader(include_str!("../shaders/triangle.wgsl"));
+        let mesh = Mesh::new_single(SingleObjectMesh::new(
+            state.device(),
+            MeshData {
+                vertices: &[
+                    SomeVertex {
+                        position: [0.0, 0.5],
+                    },
+                    SomeVertex {
+                        position: [0.5, -0.5],
+                    },
+                    SomeVertex {
+                        position: [-0.5, -0.5],
+                    },
+                ],
+                indices: bytemuck::cast_slice(&[0u16, 1, 2]),
+                indexu16: true,
+                material: Arc::new(Material::new(
+                    state.device(),
+                    MaterialData {
+                        vertices: &[SomeVertex::VERTEX_LAYOUT],
+                        shader: &shader,
+                        draw_type: PrimitiveTopology::TriangleList,
+                        right_handed: true,
+                        polygon_type: PolygonMode::Fill,
+                        texture_format: state.retrieve_surface_color_format(),
+                        bindgroups_data: Vec::new(),
+                    },
+                )),
+            },
+        ));
+        Self { scene: vec![mesh] }
+    }
     fn insert_mesh(&mut self, mesh: Mesh) {
         self.scene.push(mesh);
     }
     fn meshes(&self) -> impl Iterator<Item = &Mesh> {
         self.scene.iter()
+    }
+    fn click(&mut self, state: &candy_renderers::WgpuState, _: MouseButton) -> bool {
+        true
     }
 }
 
@@ -289,7 +339,6 @@ fn main() {
         Window::default_attributes()
             .with_transparent(true)
             .with_title("Candy"),
-        Some(TestScene { scene: Vec::new() }),
     )
     .run();
 }

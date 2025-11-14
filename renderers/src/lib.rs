@@ -95,10 +95,14 @@ where
         self.threed.resize(width, height);
     }
 
-    fn flush(&mut self, image: &TextureView, mut encoder: CommandEncoder) {
+    fn flush(&mut self, image: &TextureView, encoder: CommandEncoder) {
+        let state = self.threed.state();
+        let buffer = encoder.finish();
+        state.queue.submit([buffer]);
+        let mut encoder = state.device.create_command_encoder(&Default::default());
         self.twod.flush(image, &mut encoder);
         let buffer = encoder.finish();
-        self.threed.state().queue.submit([buffer]);
+        state.queue.submit([buffer]);
     }
 
     fn twod_renderer(&mut self) -> &mut TwoD {
