@@ -9,6 +9,7 @@ nalgebra.workspace=true
 winit.workspace=true
 vello.workspace=true
 bytemuck.workspace=true
+candy-macros = {path="../candy-macros"}
 [features]
 default = ["skia"]
 skia = []

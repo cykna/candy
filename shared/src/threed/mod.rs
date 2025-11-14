@@ -1,7 +1,10 @@
 use bytemuck::NoUninit;
+use candy_macros::Vertex;
+use nalgebra::{Vector, Vector2};
 use vello::wgpu::{
     self, BufferUsages, IndexFormat, RenderPass, VertexBufferLayout,
     util::{BufferInitDescriptor, DeviceExt},
+    vertex_attr_array,
 };
 
 pub trait GpuCalculation {}
@@ -25,7 +28,8 @@ impl Mesh {
 }
 
 pub trait GpuVertex: NoUninit {
-    const LAYOUT: VertexBufferLayout<'static>;
+    const VERTEX_LAYOUT: VertexBufferLayout<'static>;
+    const INSTANCE_LAYOUT: VertexBufferLayout<'static>;
 }
 
 ///The initial contents used when creating a new mesh
