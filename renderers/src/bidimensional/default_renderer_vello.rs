@@ -3,8 +3,8 @@ use std::sync::Arc;
 use nalgebra::{Vector2, Vector4};
 use vello::{
     AaSupport, RenderParams, Renderer, RendererOptions, Scene,
-    kurbo::{self, Affine, Rect, RoundedRectRadii, Shape, Stroke},
-    peniko::{BlendMode, Blob, BrushRef, Fill, FontData, color::AlphaColor},
+    kurbo::{self, Affine, RoundedRectRadii, Stroke},
+    peniko::{BrushRef, Fill, color::AlphaColor},
     wgpu::{
         self, BlendComponent, BlendFactor, BlendOperation, BlendState, Color, CommandEncoder,
         CommandEncoderDescriptor, Extent3d, Operations, RenderPassColorAttachment,

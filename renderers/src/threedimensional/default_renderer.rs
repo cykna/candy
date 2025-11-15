@@ -8,8 +8,7 @@ use vello::wgpu::{
     self, Adapter, BackendOptions, Backends, Color, CommandEncoder, Device, DeviceDescriptor,
     Features, Instance, InstanceFlags, Limits, Operations, Queue, RenderPassColorAttachment,
     RenderPassDescriptor, RequestAdapterOptions, ShaderModule, ShaderModuleDescriptor, Surface,
-    SurfaceConfiguration, TextureFormat, TextureUsages, Trace,
-    wgt::{CommandEncoderDescriptor, TextureViewDescriptor},
+    SurfaceConfiguration, TextureFormat, TextureUsages, Trace, wgt::TextureViewDescriptor,
 };
 
 use winit::window::Window;

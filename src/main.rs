@@ -25,8 +25,11 @@ use crate::ui::animation::curves::LinearCurve;
 use candy_macros::Vertex;
 use candy_renderers::primitives::{CandyFont, CandySquare, CandyText};
 use candy_renderers::{BiDimensionalPainter, CandyDefaultRenderer};
+use candy_shared_types::threed::wgpu::util::{BufferInitDescriptor, DeviceExt};
+use candy_shared_types::threed::wgpu::{Buffer, BufferUsages, ShaderStages};
 use candy_shared_types::threed::{
-    Material, MaterialData, Mesh, MeshData, PolygonMode, PrimitiveTopology, SingleObjectMesh,
+    BindGroupData, BindGroupResource, BindGroupType, Material, MaterialData, Mesh, MeshData,
+    PolygonMode, PrimitiveTopology, SingleObjectMesh,
 };
 use candy_shared_types::{Rect, Style};
 use nalgebra::{Vector2, Vector4};
@@ -284,13 +287,43 @@ pub struct SomeVertex {
     position: [f32; 2],
 }
 
+pub struct Object {
+    mesh: Mesh,
+    position: Buffer,
+}
+
 pub struct TestScene {
-    scene: Vec<Mesh>,
+    scene: Vec<Object>,
 }
 
 impl ThreeDScene for TestScene {
     fn new(state: &candy_renderers::WgpuState) -> Self {
         let shader = state.create_shader(include_str!("../shaders/triangle.wgsl"));
+        let material = Material::new(
+            state.device(),
+            MaterialData {
+                vertices: &[SomeVertex::VERTEX_LAYOUT],
+                shader: &shader,
+                draw_type: PrimitiveTopology::TriangleList,
+                right_handed: true,
+                polygon_type: PolygonMode::Fill,
+                texture_format: state.retrieve_surface_color_format(),
+                bindgroups_data: vec![vec![BindGroupData {
+                    visibility: ShaderStages::VERTEX,
+                    bindgroup_ty: BindGroupType::Uniform,
+                }]],
+            },
+        );
+        let material = Arc::new(material);
+        let buf = state.device().create_buffer_init(&BufferInitDescriptor {
+            label: None,
+            contents: bytemuck::cast_slice(&[SomeVertex {
+                position: [0.0, 0.5],
+            }]),
+            usage: BufferUsages::UNIFORM | BufferUsages::COPY_SRC | BufferUsages::COPY_DST,
+        });
+        let bindgroups =
+            material.create_bindgroups(state.device(), vec![vec![BindGroupResource::Buffer(&buf)]]);
         let mesh = Mesh::new_single(SingleObjectMesh::new(
             state.device(),
             MeshData {
@@ -307,27 +340,20 @@ impl ThreeDScene for TestScene {
                 ],
                 indices: bytemuck::cast_slice(&[0u16, 1, 2]),
                 indexu16: true,
-                material: Arc::new(Material::new(
-                    state.device(),
-                    MaterialData {
-                        vertices: &[SomeVertex::VERTEX_LAYOUT],
-                        shader: &shader,
-                        draw_type: PrimitiveTopology::TriangleList,
-                        right_handed: true,
-                        polygon_type: PolygonMode::Fill,
-                        texture_format: state.retrieve_surface_color_format(),
-                        bindgroups_data: Vec::new(),
-                    },
-                )),
+                material,
+                bindgroups,
             },
         ));
-        Self { scene: vec![mesh] }
+        Self {
+            scene: vec![Object {
+                mesh,
+                position: buf,
+            }],
+        }
     }
-    fn insert_mesh(&mut self, mesh: Mesh) {
-        self.scene.push(mesh);
-    }
+    fn insert_mesh(&mut self, mesh: Mesh) {}
     fn meshes(&self) -> impl Iterator<Item = &Mesh> {
-        self.scene.iter()
+        self.scene.iter().map(|o| &o.mesh)
     }
     fn click(&mut self, state: &candy_renderers::WgpuState, _: MouseButton) -> bool {
         true
