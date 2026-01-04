@@ -49,6 +49,7 @@ impl AwaitingAnimation {
     }
 }
 
+#[derive(Default)]
 pub struct AnimationManager {
     animations: BTreeMap<Duration, Vec<AwaitingAnimation>>, //duration is the steptime of the animation
 }
@@ -62,15 +63,13 @@ impl AnimationScheduler for AnimationManager {
             let sender = SCHEDULER.retrieve_sender();
             loop {
                 if self.animations.is_empty() {
-                    while let Ok((animation, config, target)) = rx.recv() {
+                    if let Ok((animation, config, target)) = rx.recv() {
                         self.insert_animation(animation, *target, config);
                         break;
                     }
-                } else {
-                    while let Ok((animation, config, target)) = rx.try_recv() {
-                        self.insert_animation(animation, *target, config);
-                        break;
-                    }
+                } else if let Ok((animation, config, target)) = rx.try_recv() {
+                    self.insert_animation(animation, *target, config);
+                    break;
                 }
                 let mut towait = Duration::ZERO;
                 for (duration, anims) in self.animations.iter() {

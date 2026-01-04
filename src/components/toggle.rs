@@ -43,7 +43,7 @@ impl Toggle {
     pub fn toggle(&mut self, pos: Vector2<f32>) -> Option<bool> {
         if self.would_toggle(pos) {
             self.checked = !self.checked;
-            let style = &*if self.checked {
+            let style = if self.checked {
                 &*self.checked_style
             } else {
                 &*self.unchecked_style

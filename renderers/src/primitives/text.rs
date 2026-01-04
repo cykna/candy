@@ -79,7 +79,7 @@ impl CandyText {
     ///Gets the width of this Text
     pub fn text_width(&self) -> f32 {
         self.font
-            .measure_str(&self.content(), Some(&self.rule.inner))
+            .measure_str(self.content(), Some(&self.rule.inner))
             .0
     }
 

@@ -6,5 +6,5 @@ pub mod ui;
 pub mod window;
 pub use candy_renderers::*;
 pub use candy_shared_types as shared_types;
-pub use winit;
 pub use nalgebra;
+pub use winit;
