@@ -7,7 +7,6 @@ pub use default_renderer::*;
 
 use crate::primitives::{CandyImage, CandySquare, CandyText};
 ///Trait used to control a 2D painter
-
 pub trait BiDimensionalRenderer {
     ///When this renderer is requested to resize with the given `width` and `height`
     #[cfg(feature = "opengl")]

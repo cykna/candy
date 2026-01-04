@@ -127,7 +127,7 @@ impl Candy2DefaultRenderer {
         let gl_surface = unsafe {
             config
                 .display()
-                .create_window_surface(&config, &attrs)
+                .create_window_surface(config, &attrs)
                 .unwrap()
         };
         let context = create_context(handle, config);
@@ -245,7 +245,7 @@ impl BiDimensionalPainter for Candy2DefaultRenderer {
             .set_stroke_width(rule.border_width);
 
         self.canvas()
-            .draw_round_rect(&rect, radius.x, radius.y, &paint);
+            .draw_round_rect(rect, radius.x, radius.y, &paint);
     }
 
     #[inline]
@@ -274,7 +274,7 @@ impl BiDimensionalPainter for Candy2DefaultRenderer {
         canvas.draw_str(
             &info.content()[range],
             Point::new(info.position().x, info.position().y),
-            &info.font(),
+            info.font(),
             &rule.inner,
         );
         canvas.restore();
@@ -298,7 +298,7 @@ impl BiDimensionalPainter for Candy2DefaultRenderer {
         canvas.draw_str(
             info.content(),
             Point::new(info.position().x, info.position().y),
-            &info.font(),
+            info.font(),
             &rule.inner,
         );
         canvas.restore();
@@ -320,7 +320,7 @@ impl BiDimensionalPainter for Candy2DefaultRenderer {
         canvas.save();
 
         canvas.clip_rrect(
-            &RRect::new_rect_xy(&rect, rule.border_radius.x, rule.border_radius.y),
+            RRect::new_rect_xy(rect, rule.border_radius.x, rule.border_radius.y),
             None,
             true,
         );

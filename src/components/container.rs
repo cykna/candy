@@ -89,12 +89,14 @@ impl<C: Component> Container<C> {
         debug_assert!(children.len() == layouts.len());
         children
             .into_iter()
-            .zip(layouts.into_iter())
+            .zip(layouts)
             .collect::<Vec<(_, _)>>()
     }
 
     #[inline]
     ///Appends the given `child` on this container without a definition. Note that if the amount of deffinition don't match, this will lead to bugs
+    /// # Safety
+    /// The amount of childs inside this should be < the amount of deffinitions
     pub unsafe fn add_child_unsafe(&mut self, child: C) -> &mut Self {
         self.children.push(child);
         self

@@ -47,19 +47,20 @@ impl CandyImage {
     ///Gets the position of this Image
     #[inline]
     pub fn position(&self) -> &Vector2<f32> {
+
         self.square.position()
     }
 
     #[inline]
     ///Returns the actual width of the image and not the size it will be drawn
     pub fn real_width(&self) -> i32 {
-        self.inner.width() as i32
+        self.inner.width()
     }
 
     #[inline]
     ///Returns the actual height of the image and not the size it will be drawn
     pub fn real_height(&self) -> i32 {
-        self.inner.height() as i32
+        self.inner.height()
     }
 
     #[inline]

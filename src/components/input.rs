@@ -206,7 +206,7 @@ impl RawInput {
             return;
         }
         while amount > 0 {
-            let char_size = char_size_backwards(&self.content().as_bytes(), self.cursor - 1);
+            let char_size = char_size_backwards(self.content().as_bytes(), self.cursor - 1);
             self.cursor -= char_size;
             amount -= 1;
         }

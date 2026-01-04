@@ -33,7 +33,7 @@ impl ComponentEventsScheduler {
 #[derive(Debug)]
 pub(crate) enum ComponentEvents {
     CheckUpdates,
-    Redraw,
+    Redraw
 }
 
 unsafe impl Send for ComponentEventsScheduler {}
