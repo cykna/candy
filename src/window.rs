@@ -29,6 +29,7 @@ impl<C> ComponentEventsScheduler<C> {
 ///This is more internal of how the lib works and in general is not known
 #[derive(Debug)]
 pub enum ComponentEvents<C> {
+    Batch(Vec<ComponentEvents<C>>),
     CheckUpdates,
     Redraw,
     Custom(C)
@@ -38,6 +39,10 @@ impl<C> ComponentEvents<C> {
     ///Creates a new component event with the provided `command`
     pub fn new(command:C) -> Self{
         Self::Custom(command)
+    }
+    ///Creates a new batch component event, with the provided `command` and right after it, a redraw
+    pub fn new_with_redraw(command:C) -> Self {
+        Self::Batch(vec![Self::Custom(command), Self::Redraw])
     }
 }
 
@@ -147,6 +152,27 @@ where
             }
             ComponentEvents::Custom(c) => if let Some(ref mut handler) = self.handler {
                 handler.0.handle_command(c, &self.scheduler.tx);
+            }
+            ComponentEvents::Batch(batch) => {
+                if let Some(ref mut handler) = self.handler {
+                    let handler = &mut handler.0;
+                    let mut should_redraw = false;
+                    for event in batch {
+                        match event {
+                            ComponentEvents::CheckUpdates => {
+                                if handler.check_updates() {should_redraw = true}
+                            }
+                            ComponentEvents::Redraw => should_redraw = true,
+                            ComponentEvents::Custom(c) => handler.handle_command(c, &self.scheduler.tx),
+                            _ => {
+                                println!("A batch event should not be inside another one")
+                            }
+                        }
+                    }
+                    if should_redraw {
+                        handler.window().request_redraw();
+                    }
+                }
             }
         }
     }
