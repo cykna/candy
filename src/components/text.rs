@@ -60,6 +60,13 @@ impl Text {
             inner: CandyText::new("", Vector2::zeros(), font),
         }
     }
+    
+    pub fn update_text(&mut self, text:&str) {
+        self.inner.content_mut().clear();
+        self.inner.content_mut().push_str(text);
+        self.recompute();
+    }
+    
     ///Creates a new Text with the given `content` and using the specified `font`
     pub fn new_content(content: &str, font: CandyFont) -> Self {
         Self {
