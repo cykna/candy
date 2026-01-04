@@ -86,7 +86,7 @@ impl CandyText {
             .measure_str(self.content(), Some(&self.rule.inner))
             .0
     }
-        
+
     ///Recomputes the bounds of this text
     pub fn recompute(&mut self) {
         let bounds = self.text_bounds();
@@ -100,7 +100,7 @@ impl CandyText {
         let (_, rect) = self
             .font
             .measure_str(self.content(), Some(&self.rule.inner));
-        
+
         Rect {
             x: rect.x(),
             y: rect.y(),

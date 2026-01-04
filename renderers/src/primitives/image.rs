@@ -47,7 +47,6 @@ impl CandyImage {
     ///Gets the position of this Image
     #[inline]
     pub fn position(&self) -> &Vector2<f32> {
-
         self.square.position()
     }
 

@@ -87,10 +87,7 @@ impl<C: Component> Container<C> {
         let children = std::mem::take(&mut self.children);
         let layouts = std::mem::take(&mut self.layout.boxes);
         debug_assert!(children.len() == layouts.len());
-        children
-            .into_iter()
-            .zip(layouts)
-            .collect::<Vec<(_, _)>>()
+        children.into_iter().zip(layouts).collect::<Vec<(_, _)>>()
     }
 
     #[inline]

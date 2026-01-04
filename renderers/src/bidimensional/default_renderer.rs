@@ -285,11 +285,12 @@ impl BiDimensionalPainter for Candy2DefaultRenderer {
         let canvas = self.canvas();
         canvas.save();
         let bounds = info.bounds();
+        println!("{}", info.font().size());
         canvas.clip_rect(
             Rect {
                 left: bounds.x,
                 top: bounds.y,
-                right: bounds.x + bounds.width,
+                right: bounds.x + bounds.width + info.font().size(),
                 bottom: bounds.y - bounds.height,
             },
             Some(skia_safe::ClipOp::Intersect),
