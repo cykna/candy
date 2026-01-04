@@ -7,13 +7,13 @@ use winit::event::MouseButton;
 
 use crate::{components::Text, helpers::center, ui::component::Component};
 
-pub struct Button<'a, Msg> {
-    text: Text,
+pub struct Button<'a, Msg:'static> {
+    text: Text<Msg>,
     rect: CandySquare,
     func: Box<dyn Fn(Vector2<f32>, MouseButton) -> Msg + 'a>,
 }
 
-impl<'a, Msg> Component for Button<'a, Msg> {
+impl<'a, Msg: 'static> Component<Msg> for Button<'a, Msg> {
     fn resize(&mut self, rect: Rect) {
         *self.text.position_mut() = center(&self.text.text_bounds(), &rect);
         *self.text.size_mut() = Vector2::new(rect.width, rect.y);
@@ -40,9 +40,9 @@ impl<'a, Msg> Component for Button<'a, Msg> {
     }
 }
 
-impl<'a, Msg> Button<'a, Msg> {
+impl<'a, Msg: 'static> Button<'a, Msg> {
     ///Creates a new Button with the given `text` centered and executing `f` when clicked
-    pub fn new<F>(text: Text, f: F) -> Self
+    pub fn new<F>(text: Text<Msg>, f: F) -> Self
     where
         F: (Fn(Vector2<f32>, MouseButton) -> Msg) + 'a,
     {

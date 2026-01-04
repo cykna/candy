@@ -14,10 +14,10 @@ use crate::{
 
 #[derive(Debug)]
 ///A Component that can scroll it's inner elements down, up, left or right. A single axis is accepted per scrollable
-pub struct Scrollable<C: Component> {
+pub struct Scrollable<Cmd:'static, C: Component<Cmd>> {
     direction: Direction,
-    container: Container<C>,
-    scrollbar: Container<SolidBox>,
+    container: Container<Cmd, C>,
+    scrollbar: Container<Cmd, SolidBox>,
     layout: Layout,
     old_cursor: Vector2<f32>,
     offset: f32,
@@ -37,9 +37,9 @@ pub struct ScrollableConfig {
     pub layout: Layout,
 }
 
-impl<C: Component> Scrollable<C> {
+impl<Cmd:'static, C: Component<Cmd>> Scrollable<Cmd, C> {
     ///Generates a ScrollBar for a Scrollable
-    pub fn scroll_bar() -> Container<SolidBox> {
+    pub fn scroll_bar() -> Container<Cmd, SolidBox> {
         let mut out = Container::new(Layout::vertical(), false);
         out.add_child(
             SolidBox::new(&Vector4::new(0.0, 0.0, 0.0, 1.0)),
@@ -111,7 +111,7 @@ impl<C: Component> Scrollable<C> {
 
     #[inline]
     ///Returns the element of the scrollbar
-    pub fn scrollbar(&self) -> &Container<SolidBox> {
+    pub fn scrollbar(&self) -> &Container<Cmd, SolidBox> {
         &self.scrollbar
     }
 
@@ -183,19 +183,19 @@ impl<C: Component> Scrollable<C> {
     }
 }
 
-impl<C: Component> Deref for Scrollable<C> {
-    type Target = Container<C>;
+impl<Cmd, C: Component<Cmd>> Deref for Scrollable<Cmd, C> {
+    type Target = Container<Cmd, C>;
     fn deref(&self) -> &Self::Target {
         &self.container
     }
 }
-impl<C: Component> DerefMut for Scrollable<C> {
+impl<Cmd, C: Component<Cmd>> DerefMut for Scrollable<Cmd, C> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.container
     }
 }
 
-impl<C: Component> Component for Scrollable<C> {
+impl<Cmd, C: Component<Cmd>> Component<Cmd> for Scrollable<Cmd, C> {
     fn resize(&mut self, rect: Rect) {
         let height = rect.height;
         let rects = self.layout.calculate(rect, true);

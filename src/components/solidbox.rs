@@ -14,7 +14,7 @@ pub struct SolidBox {
     square: CandySquare,
 }
 
-impl Component for SolidBox {
+impl<Cmd:'static> Component<Cmd> for SolidBox {
     fn resize(&mut self, rect: Rect) {
         self.square.resize(rect);
     }

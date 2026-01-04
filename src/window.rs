@@ -1,7 +1,6 @@
 use candy_renderers::{BiDimensionalRenderer, CandyRenderer};
 use candy_shared_types::Rect;
 use flume::unbounded;
-use lazy_static::lazy_static;
 
 use nalgebra::Vector2;
 use winit::{event_loop::EventLoop, window::WindowAttributes};
@@ -10,20 +9,18 @@ use crate::ui::component::RootComponent;
 
 use flume::{Receiver, Sender};
 
-lazy_static! {
-    pub(crate) static ref SCHEDULER: ComponentEventsScheduler = {
-        let (tx, rx) = unbounded::<ComponentEvents>();
+///An scheduler that sends component events. The provided `C` is the custom command the root is expecting to receive
+pub(crate) struct ComponentEventsScheduler<C> {
+    pub(crate) rx: Receiver<ComponentEvents<C>>,
+    pub(crate) tx: Sender<ComponentEvents<C>>,
+}
+impl<C> ComponentEventsScheduler<C> {
+    pub fn new() -> Self {        
+        let (tx, rx) = unbounded::<ComponentEvents<C>>();
         ComponentEventsScheduler { rx, tx }
-    };
-}
-
-pub(crate) struct ComponentEventsScheduler {
-    pub(crate) rx: Receiver<ComponentEvents>,
-    pub(crate) tx: Sender<ComponentEvents>,
-}
-impl ComponentEventsScheduler {
+    }
     ///Retrieves a new sender for this scheduler
-    pub fn retrieve_sender(&self) -> Sender<ComponentEvents> {
+    pub fn retrieve_sender(&self) -> Sender<ComponentEvents<C>> {
         self.tx.clone()
     }
 }
@@ -31,38 +28,51 @@ impl ComponentEventsScheduler {
 ///Events that can be sent from some component directly to the window, such as a request to redraw due to some animation state being changed.
 ///This is more internal of how the lib works and in general is not known
 #[derive(Debug)]
-pub(crate) enum ComponentEvents {
+pub enum ComponentEvents<C> {
     CheckUpdates,
     Redraw,
+    Custom(C)
 }
 
-unsafe impl Send for ComponentEventsScheduler {}
-unsafe impl Sync for ComponentEventsScheduler {}
-unsafe impl Sync for ComponentEvents {}
-unsafe impl Send for ComponentEvents {}
+impl<C> ComponentEvents<C> {
+    ///Creates a new component event with the provided `command`
+    pub fn new(command:C) -> Self{
+        Self::Custom(command)
+    }
+}
 
-#[derive(Default, Debug)]
-pub struct CandyWindow<Root, Renderer>
+unsafe impl<C> Send for ComponentEventsScheduler<C> {}
+unsafe impl<C> Sync for ComponentEventsScheduler<C> {}
+unsafe impl<C> Sync for ComponentEvents<C> {}
+unsafe impl<C> Send for ComponentEvents<C>{}
+
+
+pub struct CandyWindow<Root, Renderer, Commands>
 where
-    Root: RootComponent,
+    Root: RootComponent<Commands>,
     Renderer: CandyRenderer,
+    Commands: 'static
 {
     handler: Option<(Root, Renderer)>,
     attribs: WindowAttributes,
+    scheduler: ComponentEventsScheduler<Commands>,
 }
-impl<Root: RootComponent, R> CandyWindow<Root, R>
+impl<Root: RootComponent<C>, R, C> CandyWindow<Root, R, C>
 where
     R: CandyRenderer,
+    C:'static
 {
     pub fn new(attribs: WindowAttributes) -> Self {
         Self {
             handler: None,
             attribs,
+            scheduler: ComponentEventsScheduler::new()
         }
     }
 
     pub fn run(&mut self) {
         let lp = EventLoop::with_user_event().build().unwrap();
+
         #[cfg(feature = "opengl")]
         {
             use glutin::config::{ConfigTemplateBuilder, GlConfig};
@@ -91,14 +101,14 @@ where
             let window = window.expect("Window could not be created.");
             let renderer = CandyRenderer::new(&window, &config);
             self.handler = Some((
-                Root::new(window, <Root as RootComponent>::Args::default()),
+                Root::new(window, <Root as RootComponent<C>>::Args::default(), self.scheduler.retrieve_sender()),
                 renderer,
             ));
         };
         let proxy = lp.create_proxy();
-
+        let rx = self.scheduler.rx.clone();
         std::thread::spawn(move || {
-            while let Ok(c) = SCHEDULER.rx.recv() {
+            while let Ok(c) = rx.recv() {
                 let Ok(_) = proxy.send_event(c) else {
                     println!("Thread findou. Nenhum evento de um componente será lidado mais");
                     return;
@@ -109,9 +119,9 @@ where
     }
 }
 
-impl<Root, R> winit::application::ApplicationHandler<ComponentEvents> for CandyWindow<Root, R>
+impl<Root, R, C> winit::application::ApplicationHandler<ComponentEvents<C>> for CandyWindow<Root, R,C>
 where
-    Root: RootComponent,
+    Root: RootComponent<C>,
     R: CandyRenderer,
 {
     fn resumed(&mut self, _: &winit::event_loop::ActiveEventLoop) {
@@ -119,7 +129,7 @@ where
         println!("gayzinho");
     }
 
-    fn user_event(&mut self, _: &winit::event_loop::ActiveEventLoop, event: ComponentEvents) {
+    fn user_event(&mut self, _: &winit::event_loop::ActiveEventLoop, event: ComponentEvents<C>) {
         match event {
             ComponentEvents::Redraw => {
                 if let Some(ref mut handler) = self.handler {
@@ -134,6 +144,9 @@ where
                         handler.window().request_redraw();
                     };
                 }
+            }
+            ComponentEvents::Custom(c) => if let Some(ref mut handler) = self.handler {
+                handler.0.handle_command(c, &self.scheduler.tx);
             }
         }
     }

@@ -1,4 +1,4 @@
-use std::ops::{Deref, DerefMut};
+use std::{marker::PhantomData, ops::{Deref, DerefMut}};
 
 use candy_renderers::{
     BiDimensionalPainter,
@@ -9,31 +9,32 @@ use nalgebra::Vector2;
 
 use crate::ui::component::Component;
 #[derive(Debug)]
-pub struct Text {
+pub struct Text<C> {
     inner: CandyText,
+    phantom: PhantomData<C>
 }
 
-impl Deref for Text {
+impl<C> Deref for Text<C> {
     type Target = CandyText;
     fn deref(&self) -> &Self::Target {
         &self.inner
     }
 }
 
-impl DerefMut for Text {
+impl<C> DerefMut for Text<C> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }
 }
 
-impl Component for Text {
+impl<Cmd:'static> Component<Cmd> for Text<Cmd> {
     #[inline]
     fn render(&self, renderer: &mut dyn BiDimensionalPainter) {
         renderer.text(&self.inner);
     }
     #[inline]
     fn resize(&mut self, rect: Rect) {
-        let pos = self.position_mut();
+        let pos = (self as &mut dyn Component<Cmd>).position_mut();
         pos.x = rect.x;
         pos.y = rect.y;
     }
@@ -53,11 +54,12 @@ impl Component for Text {
     }
 }
 
-impl Text {
+impl<C> Text<C> {
     ///Creates a new Empty Text with the specified `font`
     pub fn new(font: CandyFont) -> Self {
         Self {
             inner: CandyText::new("", Vector2::zeros(), font),
+            phantom:PhantomData
         }
     }
 
@@ -75,6 +77,7 @@ impl Text {
     pub fn new_content(content: &str, font: CandyFont) -> Self {
         Self {
             inner: CandyText::new(content, Vector2::zeros(), font),
+            phantom:PhantomData,
         }
     }
     ///Retrieves the content text used by candy for this Text

@@ -9,14 +9,14 @@ use crate::{
 
 #[derive(Debug)]
 ///A component that represents a toggle button
-pub struct Toggle {
+pub struct Toggle<Cmd:'static> {
     checked: bool,
-    square: Container<SolidBox>,
+    square: Container<Cmd, SolidBox>,
     unchecked_style: Box<dyn Style>,
     checked_style: Box<dyn Style>,
 }
 
-impl Toggle {
+impl<Cmd> Toggle<Cmd> {
     ///Creates a new toggle. The provided `unchecked` style will be applied when this toggle value is false, `checked_style` will be applied when it's true
     pub fn new<U, C>(unchecked: U, checked_style: C) -> Self
     where
@@ -63,7 +63,7 @@ impl Toggle {
     }
 }
 
-impl Component for Toggle {
+impl<Cmd> Component<Cmd> for Toggle<Cmd> {
     fn resize(&mut self, rect: Rect) {
         self.square.resize(rect);
     }

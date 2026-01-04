@@ -1,7 +1,7 @@
 pub mod curves;
 pub mod manager;
 pub mod scheduler;
-use std::{sync::Arc, time::Duration};
+use std::{marker::PhantomData, sync::Arc, time::Duration};
 
 use crate::ui::{
     animation::{curves::AnimationCurve, manager::ComponentRef, scheduler::SchedulerSender},
@@ -14,47 +14,49 @@ pub struct AnimationConfig {
 }
 
 ///A step to send to the main thread whether the animation finalized or received a new state
-pub enum AnimationStep {
-    State(Box<dyn AnimationState>),
+pub enum AnimationStep<C> {
+    State(Box<dyn AnimationState<C>>),
     Finish,
 }
 
-pub trait Animatable<T: AnimationState> {
+pub trait Animatable<T: AnimationState<C>, C:Send+Sync> {
     fn play_animation(
         &mut self,
-        animation: Animation<T>,
+        animation: Animation<T,C>,
         config: AnimationConfig,
-        target: SchedulerSender,
+        target: SchedulerSender<C>,
     );
 }
 
-impl<T: AnimationState + 'static, C> Animatable<T> for C
+impl<T: AnimationState<Command> + 'static, C, Command:Send+Sync> Animatable<T, Command> for C
 where
-    C: Component + 'static,
+    Command: 'static,
+    C: Component<Command> + 'static,
 {
     ///Starts the provided `animation` on the given `scheduler`
     #[inline]
     fn play_animation(
         &mut self,
-        animation: Animation<T>,
+        animation: Animation<T,Command>,
         config: AnimationConfig,
-        target: SchedulerSender,
+        target: SchedulerSender<Command>,
     ) {
         let _ = target.send((Arc::new(animation), config, ComponentRef::new(self)));
     }
 }
 
-pub trait AnimationState: Send + Sync {
+pub trait AnimationState<C>: Send + Sync {
     ///Executed to get an intermediate state to when executing an animation.
     ///`initial` is the initial value that the animation started this, initialized from. `end` is the value that the animation if going towards. `cdt`, which is 'curve delta time' is the
     ///delta time that passed after applying the curve of the animation initialized it, and `dt` is the delta time since the start
     fn lerp(initial: &Self, end: &Self, cdt: f32, dt: f32) -> Self
     where
         Self: Sized;
-    fn apply_to(&self, comp: &mut dyn Component);
+    fn apply_to(&self, comp: &mut dyn Component<C>);
 }
 
-pub struct Animation<T: AnimationState> {
+pub struct Animation<T: AnimationState<C>, C:'static+Send+Sync> {
+    phantom: PhantomData<C>,
     initial: T,
     end: T,
     duration: Duration,
@@ -62,9 +64,9 @@ pub struct Animation<T: AnimationState> {
     curve: Box<dyn AnimationCurve + 'static>,
 }
 
-pub trait AnyAnimation: Send + Sync {
+pub trait AnyAnimation<C>: Send + Sync {
     ///Calculates the new state based on the `elapsed` time, which is the delta time since the start of the animation
-    fn calculate_state(&self, elapsed: f32) -> Box<dyn AnimationState>;
+    fn calculate_state(&self, elapsed: f32) -> Box<dyn AnimationState<C>>;
     ///Returns the duration of the animation
     fn duration(&self) -> Duration;
     ///Returns the rate the updates are going to be sent
@@ -75,7 +77,7 @@ pub trait AnyAnimation: Send + Sync {
     }
 }
 
-impl<T: AnimationState> Animation<T> {
+impl<T: AnimationState<Command>, Command:Send+Sync> Animation<T, Command> {
     pub fn new<C: AnimationCurve + std::default::Default + 'static>(
         initial: T,
         end: T,
@@ -83,6 +85,7 @@ impl<T: AnimationState> Animation<T> {
         step_time: Duration,
     ) -> Self {
         Self {
+            phantom: PhantomData,
             end,
             initial,
             duration,
@@ -92,8 +95,8 @@ impl<T: AnimationState> Animation<T> {
     }
 }
 
-impl<T: AnimationState + 'static> AnyAnimation for Animation<T> {
-    fn calculate_state(&self, elapsed: f32) -> Box<dyn AnimationState> {
+impl<C:'static + Send + Sync,T: AnimationState<C> + 'static> AnyAnimation<C> for Animation<T,C> {
+    fn calculate_state(&self, elapsed: f32) -> Box<dyn AnimationState<C>> {
         Box::new(T::lerp(
             &self.initial,
             &self.end,

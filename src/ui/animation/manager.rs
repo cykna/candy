@@ -1,10 +1,7 @@
 use std::{
-    collections::BTreeMap,
-    ops::Deref,
-    sync::Arc,
-    thread,
-    time::{Duration, Instant},
+    collections::BTreeMap, ops::Deref, sync::Arc, thread, time::{Duration, Instant}
 };
+use flume::Sender;
 
 use crate::{
     ui::{
@@ -14,34 +11,34 @@ use crate::{
         },
         component::Component,
     },
-    window::{ComponentEvents, SCHEDULER},
+    window::{ComponentEvents},
 };
 
 ///A Component reference that is unsafely, send and sync to be used across threads for scheduling
-pub struct ComponentRef(*mut dyn Component);
-unsafe impl Send for ComponentRef {}
-unsafe impl Sync for ComponentRef {}
-impl ComponentRef {
+pub struct ComponentRef<C>(*mut dyn Component<C>);
+unsafe impl<C> Send for ComponentRef<C> {}
+unsafe impl<C> Sync for ComponentRef<C> {}
+impl<C> ComponentRef<C> {
     ///Creates a new component reference
-    pub fn new(reference: *mut dyn Component) -> Self {
+    pub fn new(reference: *mut dyn Component<C>) -> Self {
         Self(reference)
     }
 }
-impl Deref for ComponentRef {
-    type Target = *mut dyn Component;
+impl<C> Deref for ComponentRef<C> {
+    type Target = *mut dyn Component<C>;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
 ///An awaiting animation, which is ordered by its steptime
-pub struct AwaitingAnimation {
-    animation: Arc<dyn AnyAnimation>,
+pub struct AwaitingAnimation<C> {
+    animation: Arc<dyn AnyAnimation<C>>,
     start_time: Instant,
-    target: ComponentRef,
+    target: ComponentRef<C>,
 }
 
-impl AwaitingAnimation {
+impl<C> AwaitingAnimation<C> {
     #[inline]
     ///Calculates the delta time for this animation. In range to 0..1, 0 is the initial time, 1 is the final time
     pub fn dt(&self) -> f32 {
@@ -49,18 +46,21 @@ impl AwaitingAnimation {
     }
 }
 
-#[derive(Default)]
-pub struct AnimationManager {
-    animations: BTreeMap<Duration, Vec<AwaitingAnimation>>, //duration is the steptime of the animation
+
+pub struct AnimationManager<C:'static> {
+    animations: BTreeMap<Duration, Vec<AwaitingAnimation<C>>>, //duration is the steptime of the animation
+    sender: Sender<ComponentEvents<C>>
 }
 
-impl AnimationScheduler for AnimationManager {
-    fn start_execution(mut self) -> SchedulerSender {
-        let (tx, rx) = flume::unbounded::<SchedulerAnimation>();
-
+impl<C:'static> AnimationScheduler<C> for AnimationManager<C> {
+    fn command_sender(&mut self) -> flume::Sender<ComponentEvents<C>> {
+        self.sender.clone()
+    }
+    fn start_execution(mut self) -> SchedulerSender<C> {
+        let (tx, rx) = flume::unbounded::<SchedulerAnimation<C>>();
+        let sender = self.command_sender();
         thread::spawn(move || {
             let mut indices = Vec::new();
-            let sender = SCHEDULER.retrieve_sender();
             loop {
                 if self.animations.is_empty() {
                     if let Ok((animation, config, target)) = rx.recv() {
@@ -106,8 +106,8 @@ impl AnimationScheduler for AnimationManager {
     }
     fn insert_animation(
         &mut self,
-        animation: Arc<dyn AnyAnimation>,
-        target: *mut dyn Component,
+        animation: Arc<dyn AnyAnimation<C>>,
+        target: *mut dyn Component<C>,
         config: AnimationConfig,
     ) {
         let anim = AwaitingAnimation {
@@ -123,10 +123,11 @@ impl AnimationScheduler for AnimationManager {
     }
 }
 
-impl AnimationManager {
-    pub fn new() -> Self {
+impl<C> AnimationManager<C> {
+    pub fn new(sender:Sender<ComponentEvents<C>>) -> Self {
         Self {
             animations: BTreeMap::new(),
+            sender,
         }
     }
 }

@@ -11,7 +11,7 @@ pub struct Image {
     image: CandyImage,
 }
 
-impl Component for Image {
+impl<C:'static> Component<C> for Image {
     fn resize(&mut self, rect: Rect) {
         self.image.resize(rect);
     }

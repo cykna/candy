@@ -1,5 +1,6 @@
 use candy_renderers::BiDimensionalPainter;
 use candy_shared_types::{Rect, Style};
+use flume::Sender;
 use nalgebra::Vector2;
 use winit::{
     event::{MouseButton, MouseScrollDelta, TouchPhase},
@@ -7,7 +8,9 @@ use winit::{
     window::Window,
 };
 
-pub trait Component {
+use crate::window::ComponentEvents;
+
+pub trait Component<C:'static> {
     ///Method called when some parent tries to resize this component. The `rect` parameter is the bounds calculated
     fn resize(&mut self, rect: Rect);
     ///Method called when this component is requested to redraw with the given `renderer`
@@ -17,7 +20,9 @@ pub trait Component {
     fn apply_style(&mut self, style: &dyn Style);
 
     ///Retrieves the position of this component
-    fn position(&self) -> Vector2<f32>;
+    fn position(&self) -> Vector2<f32>{
+        Vector2::zeros()
+    }
 
     ///Retrieves the position of this component
     fn position_mut(&mut self) -> &mut Vector2<f32>;
@@ -26,12 +31,15 @@ pub trait Component {
     fn apply_offset(&mut self, offset: Vector2<f32>) {
         *self.position_mut() += offset;
     }
+    fn handle_command(&mut self, _:C, _: &Sender<ComponentEvents<C>>){}
 }
 
 ///The root component that will be used to render all the screen. Note that mouse position is tracked by it as well
-pub trait RootComponent: Component {
+pub trait RootComponent<Command>: Component<Command> where Command:'static {
     type Args: Default;
-    fn new(window: Window, args: Self::Args) -> Self;
+    ///Creates a new root component with the provided `window`, `args` and `sender`.
+    ///The `sender` argument is used mainly for sending commands to the proxy of winit, so handle command will be called
+    fn new(window: Window, args: Self::Args, sender:Sender<ComponentEvents<Command>>) -> Self;
 
     fn window(&self) -> &Window;
 

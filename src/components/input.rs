@@ -13,16 +13,16 @@ use crate::{
 #[derive(Debug)]
 ///A Input that can be eitger Text, Numeric or Password. Text input accepts any kind of input. Numeric will only accept numbers and
 ///Password will accept everything, such as Text, but will hide the content written
-pub enum Input {
-    Text(RawInput),
-    Numeric(RawInput),
-    Password(RawInput, String), //the second field is the actually value
+pub enum Input<C> {
+    Text(RawInput<C>),
+    Numeric(RawInput<C>),
+    Password(RawInput<C>, String), //the second field is the actually value
 }
 
 #[derive(Debug)]
-pub struct RawInput {
+pub struct RawInput<C> {
     ///The content to be shown on the screen
-    content: Text,
+    content: Text<C>,
     ///The square this input has got
     rect: CandySquare,
     ///The square of the cursor of this input
@@ -31,19 +31,19 @@ pub struct RawInput {
     cursor: usize,
 }
 
-impl Input {
+impl<C:'static> Input<C> {
     ///Creates a new Input that accepts Strings in general as long as they're utf8 with the initial text being the provided `content`
-    pub fn new(content: Text) -> Self {
+    pub fn new(content: Text<C>) -> Self {
         Self::Text(RawInput::new(content))
     }
 
     ///Creates a new Input that accepts Strings in general as long as they're utf8 with the initial text being the provided `content`
-    pub fn new_numeric(content: Text) -> Self {
+    pub fn new_numeric(content: Text<C>) -> Self {
         Self::Numeric(RawInput::new(content))
     }
 
     ///Creates a new Input that accepts Strings in general as long as they're utf8 with the initial text being the provided `content`
-    pub fn new_password(mut content: Text) -> Self {
+    pub fn new_password(mut content: Text<C>) -> Self {
         let text = content.content().to_string();
         {
             let len = content.content().chars().count();
@@ -57,7 +57,7 @@ impl Input {
 
     #[inline]
     ///Retrieves the raw input which contains the data and logic
-    fn raw(&self) -> &RawInput {
+    fn raw(&self) -> &RawInput<C> {
         match self {
             Self::Text(t) => t,
             Self::Numeric(t) => t,
@@ -66,11 +66,9 @@ impl Input {
     }
     #[inline]
     ///Retrieves the raw input which contains the data and logic
-    fn raw_mut(&mut self) -> &mut RawInput {
+    fn raw_mut(&mut self) -> &mut RawInput<C> {
         match self {
-            Self::Text(t) => t,
-            Self::Numeric(t) => t,
-            Self::Password(t, _) => t,
+            Self::Text(t) | Self::Numeric(t) | Self::Password(t, _) => t,
         }
     }
 
@@ -124,21 +122,21 @@ impl Input {
     }
 }
 
-impl Deref for Input {
-    type Target = RawInput;
+impl<C:'static> Deref for Input<C> {
+    type Target = RawInput<C>;
     fn deref(&self) -> &Self::Target {
         self.raw()
     }
 }
-impl DerefMut for Input {
+impl<C:'static> DerefMut for Input<C> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.raw_mut()
     }
 }
 
-impl RawInput {
+impl<C:'static> RawInput<C> {
     ///Creates a new Input which will accept any kind of char as long as it's utf8 valid
-    pub fn new(content: Text) -> Self {
+    pub fn new(content: Text<C>) -> Self {
         Self {
             cursor_square: CandySquare::default(),
             rect: CandySquare::default(),
@@ -182,8 +180,10 @@ impl RawInput {
                 .width_for(&self.content()[start_byte..indice - (len - 1)])
         };
         //totally arbitary numbers. seriosuly, i just tested until i found that it was 0.75
+        let position = (&self.content as &dyn Component<C>).position().y;
+        
         self.cursor_square.position_mut().y =
-            self.content.position().y - self.content.font().size() * 0.75;
+        position - self.content.font().size() * 0.75;
     }
 
     ///Moves the cursor to the right by the given `amount` of chars updates it's GUI
@@ -233,14 +233,15 @@ impl RawInput {
     }
 }
 
-impl Component for Input {
+impl<C:'static> Component<C> for Input<C> {
     fn resize(&mut self, rect: Rect) {
         self.rect.resize(rect.clone());
 
         let content_bounds = self.content.text_bounds();
         //y center
-        self.content.position_mut().y = rect.center().y + content_bounds.height * 0.5;
-        self.content.position_mut().x = rect.x;
+        let position = (&mut self.content as &mut dyn Component<C>).position_mut();
+        position.y = rect.center().y + content_bounds.height * 0.5;
+        position.x = rect.x;
         *self.content.size_mut() = Vector2::new(rect.width, rect.height);
 
         self.update_cursor();
@@ -264,12 +265,12 @@ impl Component for Input {
     }
     fn apply_style(&mut self, style: &dyn Style) {
         self.rect.apply_style(style);
-        self.content.apply_style(style);
+        (&mut self.content as &mut dyn Component<C>).apply_style(style);
     }
     fn position(&self) -> Vector2<f32> {
-        self.content.position()
+        (&self.content as &dyn Component<C>).position()
     }
     fn position_mut(&mut self) -> &mut Vector2<f32> {
-        self.content.position_mut()
+        (&mut self.content as &mut dyn Component<C>).position_mut()
     }
 }

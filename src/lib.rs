@@ -8,3 +8,4 @@ pub use candy_renderers::*;
 pub use candy_shared_types as shared_types;
 pub use nalgebra;
 pub use winit;
+pub use flume;
