@@ -15,7 +15,7 @@ pub struct CandyText {
 
 impl CandyText {
     pub fn new(text: &str, position: Vector2<f32>, font: CandyFont) -> Self {
-        Self {
+        let mut out = Self {
             text: text.to_string(),
             size: Vector2::zeros(),
             position,
@@ -25,7 +25,11 @@ impl CandyText {
                 rule.set_color(&Vector4::new(1.0, 1.0, 1.0, 1.0));
                 rule
             },
-        }
+        };
+        let bounds = out.text_bounds();
+        out.size.x = bounds.width;
+        out.size.y = bounds.height;
+        out
     }
 
     ///Gets the content of this text
@@ -82,6 +86,13 @@ impl CandyText {
             .measure_str(self.content(), Some(&self.rule.inner))
             .0
     }
+        
+    ///Recomputes the bounds of this text
+    pub fn recompute(&mut self) {
+        let bounds = self.text_bounds();
+        self.size.x = bounds.width;
+        self.size.y = bounds.height;
+    }
 
     ///Gets the bounds of this Text.
     #[inline]
@@ -89,6 +100,7 @@ impl CandyText {
         let (_, rect) = self
             .font
             .measure_str(self.content(), Some(&self.rule.inner));
+        
         Rect {
             x: rect.x(),
             y: rect.y(),

@@ -60,6 +60,17 @@ impl Text {
             inner: CandyText::new("", Vector2::zeros(), font),
         }
     }
+    
+    ///Updates the inner text to be the provided `text` and recomputes it to have the correct values.
+    ///Use this instead of text.content_mut(), which can be considered unsafe since it does not recompute anything and text
+    ///can appear wrongly or maybe not even render on the screen due to internal clips
+    #[inline]
+    pub fn update_text(&mut self, text:&str) {
+        self.inner.content_mut().clear();
+        self.inner.content_mut().push_str(text);
+        self.recompute();
+    }
+    
     ///Creates a new Text with the given `content` and using the specified `font`
     pub fn new_content(content: &str, font: CandyFont) -> Self {
         Self {
